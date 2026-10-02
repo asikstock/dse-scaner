@@ -1,0 +1,55 @@
+name: DSE ডেটা আপডেট
+
+on:
+  schedule:
+    # ঢাকা সময় ১৪:৫০ (UTC ০৮:৫০), রবি থেকে বৃহস্পতিবার
+    - cron: '50 8 * * 0-4'
+    # ব্যাকআপ: GitHub মাঝে মাঝে দেরি করে বা বাদ দেয়, তাই ঢাকা সময় ১৬:৩০-এ আবার
+    - cron: '30 10 * * 0-4'
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: 'প্রথমবার সব কোম্পানির ইতিহাস নামাবেন? (true বা false)'
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dse-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: টেস্ট চালান
+        run: python tests/test_update_data.py
+
+      - name: ইতিহাস নামান (শুধু প্রথমবার)
+        if: ${{ github.event.inputs.bootstrap == 'true' }}
+        run: python scripts/update_data.py --bootstrap --days 400
+
+      - name: আজকের ডেটা যোগ করুন
+        if: ${{ github.event.inputs.bootstrap != 'true' }}
+        run: python scripts/update_data.py
+
+      - name: পরিবর্তন সেভ করুন
+        run: |
+          git config user.name "dse-data-bot"
+          git config user.email "dse-data-bot@users.noreply.github.com"
+          git add docs/data
+          if git diff --cached --quiet; then
+            echo "নতুন ডেটা নেই (ছুটির দিন বা আগেই যোগ হয়েছে)"
+          else
+            git commit -m "data: $(date -u +%F)"
+            git pull --rebase
+            git push
+          fi
