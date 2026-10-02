@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DSE সুইং স্ক্যানার</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#eef2f1; --surface:#fbfcfb; --ink:#12262b; --muted:#5a6b70; --line:#d3dcdb; --line2:#e4eae9;
+  --accent:#27408b; --accent-ink:#ffffff;
+  --up:#13804f; --up-bg:#dcf1e6; --down:#c0392b; --down-bg:#f8e0dd; --warn:#8a5a00; --warn-bg:#f8ecd0; --flat-bg:#e3e9e8;
+  --l20:#c97a00; --l50:#27408b; --meter-off:#d3dcdb;
+  --serif:'Tiro Bangla','Noto Serif Bengali','Kalpurush',Georgia,serif;
+  --sans:'Hind Siliguri','Noto Sans Bengali','Kalpurush',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1819; --surface:#142224; --ink:#e3ecea; --muted:#93a6a8; --line:#2a3d3f; --line2:#1f3032;
+    --accent:#8fa6f5; --accent-ink:#0e1819;
+    --up:#4cc78b; --up-bg:#143a2a; --down:#ef7a6c; --down-bg:#41201d; --warn:#e6b450; --warn-bg:#3d3015; --flat-bg:#223335;
+    --l20:#f0a63a; --l50:#8fa6f5; --meter-off:#2a3d3f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1819; --surface:#142224; --ink:#e3ecea; --muted:#93a6a8; --line:#2a3d3f; --line2:#1f3032;
+  --accent:#8fa6f5; --accent-ink:#0e1819;
+  --up:#4cc78b; --up-bg:#143a2a; --down:#ef7a6c; --down-bg:#41201d; --warn:#e6b450; --warn-bg:#3d3015; --flat-bg:#223335;
+  --l20:#f0a63a; --l50:#8fa6f5; --meter-off:#2a3d3f;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;font-variant-numeric:tabular-nums;}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 56px;}
+h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;line-height:1.3}
+h1{font-size:clamp(26px,4.4vw,38px);letter-spacing:-.01em}
+h2{font-size:21px}
+h3{font-size:17px}
+p{margin:0}
+.muted{color:var(--muted)}
+.mast{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;justify-content:space-between;padding:8px 0 18px;border-bottom:2px solid var(--ink);}
+.mast p{max-width:56ch;font-size:15px;color:var(--muted);margin-top:6px}
+.asof{text-align:right;font-size:13px;color:var(--muted)}
+.asof b{display:block;font-family:var(--serif);font-weight:400;font-size:22px;color:var(--ink)}
+section{padding:22px 0;border-bottom:1px solid var(--line)}
+.sec-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px}
+
+/* data intake */
+.intake{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+@media(max-width:820px){.intake{grid-template-columns:1fr}}
+.drop{border:1.5px dashed var(--muted);border-radius:6px;padding:22px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--line2)}
+.drop strong{display:block;font-size:16px;margin-bottom:4px}
+textarea{width:100%;min-height:92px;resize:vertical;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px}
+button,.btn{font:inherit;cursor:pointer;border-radius:4px;border:1px solid var(--ink);background:transparent;color:var(--ink);padding:7px 14px;min-height:38px}
+button:hover{background:var(--line2)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.primary:hover{filter:brightness(1.08)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible,tr[data-s]:focus-visible,.drop:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.msg{margin-top:10px;font-size:14px;min-height:22px}
+.msg.err{color:var(--down)} .msg.ok{color:var(--up)}
+details{border-top:1px solid var(--line2);padding:10px 0}
+details summary{cursor:pointer;font-weight:600}
+details ul{margin:8px 0 0;padding-left:20px}
+details li{margin:4px 0}
+code{font:12.5px ui-monospace,Menlo,Consolas,monospace;background:var(--line2);padding:1px 5px;border-radius:3px}
+
+/* settings */
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px 18px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
+input[type=number],input[type=search],select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:7px 9px;min-height:38px;width:100%}
+label.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:38px;align-self:end}
+
+/* summary */
+.tally{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.tally div{flex:1 1 130px;padding:12px 16px;border-right:1px solid var(--line)}
+.tally div:last-child{border-right:0}
+.tally b{display:block;font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1}
+.tally span{font-size:13px;color:var(--muted)}
+.t-buy b{color:var(--up)} .t-sell b{color:var(--down)}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 10px}
+.tabs button{border-color:var(--line);border-radius:999px;padding:5px 14px;min-height:34px;font-size:14px}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* table */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:14.5px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg);position:sticky;top:0;cursor:pointer;user-select:none}
+th[aria-sort]{color:var(--ink)}
+th .ar{display:inline-block;width:10px;font-size:10px}
+td.n,th.n{text-align:right}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--line2)}
+tbody tr.sel{background:var(--line2);box-shadow:inset 3px 0 0 var(--accent)}
+td.sym{font-weight:700;letter-spacing:.01em}
+.up{color:var(--up)} .down{color:var(--down)}
+.badge{display:inline-block;padding:2px 10px;border-radius:3px;font-size:13px;font-weight:600}
+.b-sb,.b-b{background:var(--up-bg);color:var(--up)}
+.b-w{background:var(--warn-bg);color:var(--warn)}
+.b-n{background:var(--flat-bg);color:var(--muted)}
+.b-s,.b-ss{background:var(--down-bg);color:var(--down)}
+.b-sb{box-shadow:inset 0 0 0 1.5px var(--up)} .b-ss{box-shadow:inset 0 0 0 1.5px var(--down)}
+.meter{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
+.meter i{width:5px;height:14px;background:var(--meter-off);border-radius:1px}
+.meter.mb i.on{background:var(--up)} .meter.ms i.on{background:var(--down)}
+.empty{padding:34px 16px;text-align:center;color:var(--muted)}
+
+/* detail */
+#detail{display:none}
+#detail.show{display:block}
+.dgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px}
+@media(max-width:900px){.dgrid{grid-template-columns:1fr}}
+.chart{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.chart text{fill:var(--muted);font-size:10.5px;font-family:var(--sans)}
+.chart .grid{stroke:var(--line2);stroke-width:1}
+.chart .c-up{fill:var(--up);stroke:var(--up)} .chart .c-dn{fill:var(--down);stroke:var(--down)}
+.chart .v-up{fill:var(--up);opacity:.45} .chart .v-dn{fill:var(--down);opacity:.45}
+.chart .ln20{stroke:var(--l20);fill:none;stroke-width:1.5} .chart .ln50{stroke:var(--l50);fill:none;stroke-width:1.5}
+.chart .rsi{stroke:var(--ink);fill:none;stroke-width:1.3}
+.chart .plan{stroke-width:1.2;stroke-dasharray:5 4}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin:0 0 8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:6px}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin:8px 0 0}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-weight:600}
+.blk{margin-bottom:20px}
+.blk ul{margin:6px 0 0;padding-left:18px}
+.blk li{margin:3px 0;font-size:14px}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.warnbox{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px;border-radius:0 4px 4px 0}
+footer{padding-top:22px;font-size:13px;color:var(--muted)}
+footer p{max-width:90ch;margin-bottom:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div>
+    <h1>DSE সুইং স্ক্যানার</h1>
+    <p>ঢাকা স্টক এক্সচেঞ্জের দৈনিক ডেটা থেকে ২–২০ দিনের সুইং ট্রেডের কেনা ও বিক্রির সংকেত খুঁজে দেয়।</p>
+  </div>
+  <div class="asof" id="asof"><b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে</div>
+</header>
+
+<section id="intake-sec">
+  <div class="sec-h"><h2>১. ডেটা</h2><span class="muted" style="font-size:13.5px">নিজের CSV দিলে তা আপনার ব্রাউজারেই থাকে, কোথাও আপলোড হয় না</span></div>
+  <p id="autoinfo" class="note" style="margin:0 0 14px;font-size:14px" role="status"></p>
+  <div class="intake">
+    <div>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="CSV ফাইল বেছে নিন বা এখানে ছেড়ে দিন">
+        <strong>CSV ফাইল বেছে নিন বা এখানে ছেড়ে দিন</strong>
+        <span class="muted">একসাথে একাধিক ফাইল দেওয়া যায়। ফাইলে একাধিক কোম্পানি থাকলে ভালো, না থাকলে ফাইলের নামই কোম্পানির কোড ধরা হবে।</span>
+        <input type="file" id="file" accept=".csv,.txt,.tsv" multiple hidden>
+      </div>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    </div>
+    <div>
+      <label class="f" for="paste">অথবা এখানে CSV পেস্ট করুন</label>
+      <textarea id="paste" placeholder="DATE,TRADING CODE,LTP,HIGH,LOW,OPENP,CLOSEP,YCP,TRADE,VALUE (mn),VOLUME&#10;2026-09-30,GP,310.5,312,308,309,310.5,309.2,2150,45.2,146000"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="primary" id="btnPaste">পেস্ট করা ডেটা যোগ করুন</button>
+        <button id="btnDemo">ডেমো ডেটা দিয়ে দেখুন</button>
+        <button id="btnClear">সব মুছুন</button>
+      </div>
+    </div>
+  </div>
+  <details style="margin-top:16px">
+    <summary>কোন ফরম্যাটের ডেটা লাগবে, কোথায় পাবেন</summary>
+    <ul>
+      <li>প্রতিটি সারিতে একটি কোম্পানির একদিনের তথ্য থাকতে হবে। দরকারি কলাম: তারিখ, কোম্পানির কোড, ক্লোজ (বা LTP), ভলিউম। হাই, লো, ওপেন থাকলে সংকেত আরও নির্ভুল হয়।</li>
+      <li>কলামের নাম আপনি চিনিয়ে দিতে হবে না। <code>DATE</code>, <code>TRADING CODE</code>, <code>OPENP</code>, <code>HIGH</code>, <code>LOW</code>, <code>CLOSEP</code>, <code>LTP</code>, <code>VOLUME</code> বা এদের ইংরেজি সমার্থক নাম নিজে থেকে চিনে নেয়।</li>
+      <li>তারিখ <code>2026-09-30</code>, <code>30-09-2026</code>, <code>30/09/2026</code> বা <code>30-Sep-2026</code> যেকোনো ফরম্যাটে চলে।</li>
+      <li>ডেটার উৎস: DSE-র ওয়েবসাইটের Day End Archive পেজ থেকে নির্দিষ্ট তারিখের ডেটা নামানো যায়। ব্রোকারের প্ল্যাটফর্ম বা তৃতীয় পক্ষের সাইট থেকেও হিস্টোরিক্যাল CSV পাওয়া যায়। কোন সাইট কী দেয় তা বদলাতে পারে, তাই নিজে একবার দেখে নিন।</li>
+      <li>ভালো সংকেতের জন্য প্রতিটি কোম্পানির অন্তত ৬০–১২০ ট্রেডিং দিনের ডেটা দিন। ৩৫ দিনের কম ডেটা থাকলে সেই কোম্পানি বাদ যায়।</li>
+    </ul>
+  </details>
+</section>
+
+<section id="settings-sec">
+  <div class="sec-h"><h2>২. ফিল্টার ও ঝুঁকির হিসাব</h2></div>
+  <div class="settings">
+    <label class="f">গত ২০ দিনের গড় ভলিউম (ন্যূনতম)<input type="number" id="minVol" value="50000" min="0" step="10000"></label>
+    <label class="f">ন্যূনতম শেয়ারদর (টাকা)<input type="number" id="minPrice" value="0" min="0" step="1"></label>
+    <label class="f">আপনার ট্রেডিং মূলধন (টাকা)<input type="number" id="capital" value="500000" min="0" step="10000"></label>
+    <label class="f">প্রতি ট্রেডে সর্বোচ্চ ঝুঁকি (%)<input type="number" id="riskPct" value="1" min="0.1" max="10" step="0.1"></label>
+    <label class="f">ট্রেডিং খরচ, কেনা-বেচা মিলিয়ে (%)<input type="number" id="cost" value="0.5" min="0" max="5" step="0.05"></label>
+    <label class="f">ব্যাকটেস্টে হোল্ড (কর্মদিবস)<input type="number" id="hold" value="10" min="3" max="30" step="1"></label>
+    <label class="chk"><input type="checkbox" id="hideStale" checked> সাম্প্রতিক ট্রেড নেই এমন কোম্পানি বাদ দিন</label>
+  </div>
+</section>
+
+<section id="results-sec" aria-live="polite">
+  <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
+  <div class="tally" id="tally"></div>
+  <div class="row" style="margin-top:14px">
+    <div class="tabs" id="tabs" role="group" aria-label="সংকেত ফিল্টার" style="margin:0;flex:1 1 auto"></div>
+    <input type="search" id="q" placeholder="কোম্পানির কোড খুঁজুন" aria-label="কোম্পানির কোড খুঁজুন" style="max-width:220px">
+  </div>
+  <div class="tw" style="margin-top:10px"><table id="tbl"></table></div>
+  <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কলামের শিরোনামে ক্লিক করলে সাজানো যায়।</p>
+</section>
+
+<section id="detail" aria-live="polite"></section>
+
+<footer>
+  <p><b>সতর্কতা:</b> এটি শিক্ষামূলক বিশ্লেষণ টুল, বিনিয়োগ পরামর্শ নয়। টেকনিক্যাল সংকেত ভুল হতে পারে এবং অতীতের ফল ভবিষ্যতের নিশ্চয়তা দেয় না। ট্রেডের আগে নিজে যাচাই করুন এবং শুধু সেই টাকা খাটান যা হারালে ক্ষতি সামলাতে পারবেন।</p>
+  <p>DSE-তে সাধারণত শেয়ার কেনার পর T+2 দিনের আগে বিক্রি করা যায় না, তাই স্টপ-লস প্রথম দুই দিন কাজ নাও করতে পারে। সার্কিট ব্রেকার ও লভ্যাংশ বা রাইট শেয়ারের দাম-সমন্বয় এখানে ধরা হয়নি। এসব ডেটায় ফাঁক তৈরি করে সংকেত বিকৃত করতে পারে। শর্ট সেলিং নেই, তাই "বিক্রি" সংকেত মানে যাদের কাছে শেয়ার আছে তাদের জন্য বের হওয়ার সতর্কতা।</p>
+</footer>
+</div>
+
+<script>
+/*CORE_START*/
+const num=v=>{if(v==null)return NaN;const s=String(v).replace(/[,\s৳]/g,'');if(s===''||s==='-')return NaN;return parseFloat(s)};
+const r1=x=>Math.round(x*10)/10;
+function splitLine(line,d){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===d&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out.map(s=>s.trim())}
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'').trim();
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2)return{headers:[],rows:[]};
+  let d=',',best=-1;for(const c of [',','\t',';','|']){const n=lines[0].split(c).length;if(n>best){best=n;d=c}}
+  return{headers:splitLine(lines[0],d),rows:lines.slice(1).map(l=>splitLine(l,d))};
+}
+const norm=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+const p2=n=>String(n).padStart(2,'0');
+function parseDate(s){
+  if(!s)return null;s=String(s).trim();let m;
+  if(m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))return`${m[1]}-${p2(m[2])}-${p2(m[3])}`;
+  if(m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/)){let day=+m[1],mon=+m[2];if(mon>12){const t=day;day=mon;mon=t}return`${m[3]}-${p2(mon)}-${p2(day)}`}
+  if(m=s.match(/^(\d{1,2})[-\s]([A-Za-z]{3})[a-z]*[-\s,]+(\d{2,4})/)){const mo=MON[m[2].toLowerCase()];if(mo){const y=m[3].length===2?'20'+m[3]:m[3];return`${y}-${p2(mo)}-${p2(m[1])}`}}
+  const t=Date.parse(s);if(!isNaN(t)){const x=new Date(t);return`${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`}
+  return null;
+}
+const AL={date:['date','tradingdate','day','timestamp','time'],sym:['tradingcode','code','symbol','ticker','scrip','instrument','company','name'],
+  open:['openp','open','openprice','openingprice','opening'],high:['high','highprice','max','h'],low:['low','lowprice','min','l'],
+  close:['closep','close','closeprice','closingprice','adjclose'],ltp:['ltp','lasttradeprice','last','price'],vol:['volume','vol','totalvolume','qty','quantity'],ycp:['ycp','yclose','prevclose','previousclose']};
+const findCol=(h,names)=>{for(const n of names){const i=h.indexOf(n);if(i>=0)return i}return -1};
+
+/* MAP: symbol -> Map(date -> bar) */
+function ingest(MAP,text,fname){
+  const p=parseCSV(text);if(!p.rows.length)return 0;
+  const h=p.headers.map(norm);const ix={};for(const k in AL)ix[k]=findCol(h,AL[k]);
+  if(ix.date<0||(ix.close<0&&ix.ltp<0))throw new Error(`"${fname}" ফাইলে তারিখ বা ক্লোজ/LTP কলাম পাওয়া যায়নি`);
+  const fb=fname.replace(/\.[^.]+$/,'').toUpperCase();let cnt=0;
+  for(const r of p.rows){
+    const d=parseDate(r[ix.date]);if(!d)continue;
+    let c=ix.close>=0?num(r[ix.close]):NaN;if(!(c>0)&&ix.ltp>=0)c=num(r[ix.ltp]);if(!(c>0))continue;
+    const yc=ix.ycp>=0?num(r[ix.ycp]):NaN,o=ix.open>=0?num(r[ix.open]):NaN,hi=ix.high>=0?num(r[ix.high]):NaN,lo=ix.low>=0?num(r[ix.low]):NaN,v=ix.vol>=0?num(r[ix.vol]):0;
+    let O=o>0?o:(yc>0?yc:c);let H=hi>0?hi:Math.max(O,c),L=lo>0?lo:Math.min(O,c);if(!(o>0)&&hi>0&&lo>0)O=Math.min(Math.max(O,L),H);H=Math.max(H,O,c);L=Math.min(L,O,c);
+    const sym=ix.sym>=0?String(r[ix.sym]).trim().toUpperCase():fb;if(!sym)continue;
+    (MAP[sym]||(MAP[sym]=new Map())).set(d,{d,o:O,h:H,l:L,c,v:v>0?v:0});cnt++;
+  }
+  return cnt;
+}
+function finalize(MAP){const out={};for(const s in MAP)out[s]=[...MAP[s].values()].sort((a,b)=>a.d<b.d?-1:1);return out}
+
+/* indicators */
+function SMA(a,n){const o=Array(a.length).fill(null);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
+function EMA(a,n){const o=Array(a.length).fill(null),k=2/(n+1);let prev=null;const buf=[];for(let i=0;i<a.length;i++){const v=a[i];if(v==null)continue;if(prev==null){buf.push(v);if(buf.length===n){prev=buf.reduce((x,y)=>x+y,0)/n;o[i]=prev}}else{prev=v*k+prev*(1-k);o[i]=prev}}return o}
+function RSI(c,n=14){const o=Array(c.length).fill(null);if(c.length<=n)return o;let g=0,l=0;for(let i=1;i<=n;i++){const d=c[i]-c[i-1];if(d>=0)g+=d;else l-=d}g/=n;l/=n;o[n]=l===0?100:100-100/(1+g/l);for(let i=n+1;i<c.length;i++){const d=c[i]-c[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;o[i]=l===0?100:100-100/(1+g/l)}return o}
+function ATR(b,n=14){const o=Array(b.length).fill(null);if(b.length<=n)return o;const tr=b.map((x,i)=>i===0?x.h-x.l:Math.max(x.h-x.l,Math.abs(x.h-b[i-1].c),Math.abs(x.l-b[i-1].c)));let a=0;for(let i=1;i<=n;i++)a+=tr[i];a/=n;o[n]=a;for(let i=n+1;i<b.length;i++){a=(a*(n-1)+tr[i])/n;o[i]=a}return o}
+function rollPrior(a,n,fn){const o=Array(a.length).fill(null);for(let i=n;i<a.length;i++){let m=a[i-1];for(let k=i-n;k<i;k++)m=fn(m,a[k]);o[i]=m}return o}
+function compute(b){
+  const c=b.map(x=>x.c),v=b.map(x=>x.v);
+  const e12=EMA(c,12),e26=EMA(c,26);
+  const macd=c.map((_,i)=>e12[i]!=null&&e26[i]!=null?e12[i]-e26[i]:null);
+  const sig=EMA(macd,9);const hist=macd.map((m,i)=>m!=null&&sig[i]!=null?m-sig[i]:null);
+  return{c,v,sma20:SMA(c,20),sma50:SMA(c,50),ema9:EMA(c,9),ema21:EMA(c,21),rsi:RSI(c),macd,sig,hist,atr:ATR(b),vavg:SMA(v,20),
+    hh20:rollPrior(b.map(x=>x.h),20,Math.max),ll10:rollPrior(b.map(x=>x.l),10,Math.min)};
+}
+function crossUp(a,b,i,look){for(let k=i;k>i-look&&k>0;k--){if(a[k]!=null&&b[k]!=null&&a[k-1]!=null&&b[k-1]!=null&&a[k-1]<=b[k-1]&&a[k]>b[k])return true}return false}
+function crossDn(a,b,i,look){for(let k=i;k>i-look&&k>0;k--){if(a[k]!=null&&b[k]!=null&&a[k-1]!=null&&b[k-1]!=null&&a[k-1]>=b[k-1]&&a[k]<b[k])return true}return false}
+
+/* scoring: returns {buy,sell,rb[],rs[]} */
+function scoreAt(b,I,i){
+  if(i<30)return null;
+  const r={buy:0,sell:0,rb:[],rs:[]};
+  const B=(p,t)=>{r.buy+=p;r.rb.push(t)},S=(p,t)=>{r.sell+=p;r.rs.push(t)};
+  const c=I.c[i],pc=I.c[i-1],s20=I.sma20[i],s50=I.sma50[i],rsi=I.rsi[i],rp=I.rsi[i-1];
+  const vr=I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1;
+  const e9=I.ema9,e21=I.ema21,m=I.macd,sg=I.sig,h=I.hist;
+  if(s20!=null){
+    if(c>s20&&s50!=null&&s20>s50)B(2,'ট্রেন্ড ঊর্ধ্বমুখী: দাম SMA20 ও SMA50 এর উপরে, আর SMA20 > SMA50');
+    else if(c>s20)B(1,'দাম SMA20 এর উপরে আছে');
+    if(c<s20&&s50!=null&&s20<s50)S(2,'ট্রেন্ড নিম্নমুখী: দাম SMA20 ও SMA50 এর নিচে');
+    else if(c<s20)S(1,'দাম SMA20 এর নিচে নেমেছে');
+  }
+  if(crossUp(e9,e21,i,3))B(2,'EMA9 সম্প্রতি EMA21 কে উপরের দিকে ক্রস করেছে');
+  else if(e9[i]!=null&&e21[i]!=null&&e9[i]>e21[i])B(1,'EMA9 > EMA21, স্বল্পমেয়াদি মোমেন্টাম পজিটিভ');
+  if(crossDn(e9,e21,i,3))S(2,'EMA9 সম্প্রতি EMA21 কে নিচের দিকে ক্রস করেছে');
+  else if(e9[i]!=null&&e21[i]!=null&&e9[i]<e21[i])S(1,'EMA9 < EMA21, স্বল্পমেয়াদি মোমেন্টাম নেগেটিভ');
+  if(crossUp(m,sg,i,3))B(2,'MACD সিগন্যাল লাইনকে উপরে ক্রস করেছে');
+  else if(h[i]!=null&&h[i-1]!=null&&h[i]>0&&h[i]>h[i-1])B(1,'MACD হিস্টোগ্রাম পজিটিভ এবং বাড়ছে');
+  if(crossDn(m,sg,i,3))S(2,'MACD সিগন্যাল লাইনকে নিচে ক্রস করেছে');
+  else if(h[i]!=null&&h[i-1]!=null&&h[i]<0&&h[i]<h[i-1])S(1,'MACD হিস্টোগ্রাম নেগেটিভ এবং কমছে');
+  let dipped=false;
+  if(rsi!=null&&rp!=null){
+    for(let k=Math.max(0,i-4);k<i;k++)if(I.rsi[k]!=null&&I.rsi[k]<35)dipped=true;
+    if(dipped&&rsi>rp&&rsi<55)B(2,`RSI ওভারসোল্ড (৩৫ এর নিচ) থেকে ঘুরে উঠছে, এখন ${rsi.toFixed(0)}`);
+    else if(rsi>=40&&rsi<=65&&rsi>rp)B(1,`RSI ${rsi.toFixed(0)}: সুস্থ মোমেন্টাম, বাড়ছে`);
+    if(rsi>70&&rsi<rp)S(2,`RSI ${rsi.toFixed(0)}: ওভারবট জোন থেকে নামতে শুরু করেছে`);
+    else if(rsi>75)S(1,`RSI ${rsi.toFixed(0)}: ওভারবট, নতুন কেনা ঝুঁকিপূর্ণ`);
+    else if(rsi<40&&rsi<rp&&!dipped)S(1,`RSI ${rsi.toFixed(0)}: দুর্বল ও কমছে`);
+    if(rsi>75)r.buy=Math.max(0,r.buy-2);
+  }
+  let vDone=false;const hh=I.hh20[i],ll=I.ll10[i];
+  if(hh!=null&&c>hh){B(2,`২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট`);if(vr>=1.5){B(1,`ব্রেকআউটে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);}vDone=true}
+  if(ll!=null&&c<ll){S(2,`১০ দিনের সর্বনিম্ন ${ll.toFixed(1)} ভেঙে ব্রেকডাউন`);if(vr>=1.5)S(1,`ব্রেকডাউনে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);vDone=true}
+  if(!vDone&&vr>=1.3){if(c>pc)B(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম বেড়েছে`);else if(c<pc)S(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম কমেছে`)}
+  if(s20!=null&&s50!=null&&s20>s50&&c>=s20*0.97&&c<=s20*1.03&&rsi!=null&&rsi<50&&I.c[i]>pc)B(2,'আপট্রেন্ডে SMA20 সাপোর্টের কাছ থেকে পুলব্যাক-বাউন্স');
+  return r;
+}
+function classify(r){
+  if(!r)return'NA';const d=r.buy-r.sell;
+  if(r.buy>=7&&d>=4)return'STRONG_BUY';if(r.buy>=5&&d>=3)return'BUY';
+  if(r.sell>=7&&-d>=4)return'STRONG_SELL';if(r.sell>=5&&-d>=3)return'SELL';
+  if(r.buy>=4&&d>=2)return'WATCH';return'NEUTRAL';
+}
+function plan(I,i){
+  const c=I.c[i],a=I.atr[i]||c*0.03;
+  let stop=Math.max((I.ll10[i]!=null?I.ll10[i]:c-3*a)-0.25*a,c-2.5*a);
+  if(stop>c-1.0*a)stop=c-1.2*a;
+  const risk=c-stop;
+  return{entry:r1(c),stop:r1(stop),t1:r1(c+2*risk),t2:r1(c+3*risk),riskPct:risk/c*100,rr:2};
+}
+function backtest(b,I,hold,tplus){
+  hold=hold||10;tplus=tplus==null?2:tplus;const rets=[];let nextOk=0;
+  for(let i=50;i<b.length-hold-2;i++){
+    if(i<nextOk)continue;
+    const cl=classify(scoreAt(b,I,i));if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
+    const pl=plan(I,i),e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
+    let exit=null;
+    for(let k=e+tplus;k<=e+hold&&k<b.length;k++){
+      if(b[k].l<=pl.stop){exit=Math.min(b[k].o,pl.stop);break}
+      if(b[k].h>=pl.t1){exit=Math.max(b[k].o,pl.t1);break}
+    }
+    if(exit==null)exit=b[Math.min(e+hold,b.length-1)].c;
+    rets.push((exit/entry-1)*100);nextOk=i+hold;
+  }
+  return rets;
+}
+function btStats(rets){
+  const n=rets.length;if(!n)return{n:0,win:null,avg:null};
+  const w=rets.filter(x=>x>0);const lo=rets.filter(x=>x<=0);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+  return{n,win:w.length/n*100,avg:avg(rets),avgWin:avg(w),avgLoss:avg(lo)};
+}
+
+/* demo data (কাল্পনিক) */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function genDemo(){
+  const rnd=mulberry(42);const gauss=()=>Math.sqrt(-2*Math.log(rnd()+1e-9))*Math.cos(2*Math.PI*rnd());
+  const pats=[
+    [[70,.0018,.013,1],[22,.0035,.012,1.1],[10,-.006,.011,.8],[8,.004,.012,1.3]],
+    [[110,.0004,.010,1],[10,.002,.009,1],[28,.0075,.016,1.9]],
+    [[60,.0015,.012,1],[40,-.0035,.014,1.1],[30,-.0045,.015,1.2],[8,.0,.012,.9],[12,.007,.016,1.5]],
+    [[100,.0003,.011,1],[20,-.0015,.010,.9],[10,-.004,.014,1.7]],
+    [[50,.0025,.012,1],[40,.004,.014,1.2],[26,.0065,.017,1.5]],
+    [[80,-.003,.013,1],[40,-.004,.015,1.2],[20,-.001,.012,.9]],
+    [[90,.0,.009,1],[30,.0002,.008,.7]],
+    [[60,.002,.012,1],[30,.0035,.013,1.2],[20,.0,.011,.9],[10,-.003,.012,.9]],
+    [[85,.0012,.012,1],[25,.0012,.011,.8],[10,-.0045,.012,1.0]],
+    [[100,-.0015,.012,1],[20,-.0075,.015,1.6],[10,.005,.014,1.4]],
+    [[70,.003,.013,1],[35,.0022,.012,1],[15,.003,.012,1]],
+    [[120,.0006,.010,1],[10,.0,.008,.6]]
+  ];
+  const total=pats[0].reduce((s,x)=>s+x[0],0);const dates=[];
+  const dt=new Date();dt.setHours(12,0,0,0);
+  while(dates.length<total){const wd=dt.getDay();if(wd!==5&&wd!==6)dates.unshift(`${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}`);dt.setDate(dt.getDate()-1)}
+  const MAP={};
+  pats.forEach((segs,pi)=>{
+    const sym='DEMO'+p2(pi+1);let p=40+rnd()*260;const base=60000+rnd()*400000;let di=0;MAP[sym]=new Map();
+    for(const[n,drift,vol,vm]of segs)for(let k=0;k<n;k++){
+      const o=p*(1+gauss()*.003),ret=drift+gauss()*vol,c=Math.max(2,p*(1+ret));
+      const h=Math.max(o,c)*(1+rnd()*.008),l=Math.min(o,c)*(1-rnd()*.008);
+      const v=Math.round(base*(.7+rnd()*.6)*vm*(1+Math.abs(ret)*18));
+      const d=dates[di++];MAP[sym].set(d,{d,o:+o.toFixed(1),h:+h.toFixed(1),l:+l.toFixed(1),c:+c.toFixed(1),v});p=c;
+    }
+  });
+  return MAP;
+}
+/*CORE_END*/
+
+/* ================= UI ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:2},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:3},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:4},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:5}};
+const TABS=[['all','সব'],['buy','কেনার সংকেত'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
+let MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
+const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
+
+/* settings persistence (best-effort) */
+const SK=['minVol','minPrice','capital','riskPct','hold','cost'];
+try{const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');SK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]})}catch(e){}
+function saveSettings(){try{const s={};SK.forEach(k=>s[k]=$('#'+k).value);localStorage.setItem('dse-scan-settings',JSON.stringify(s))}catch(e){}}
+
+function setMsg(t,cls){const m=$('#msg');m.textContent=t;m.className='msg '+(cls||'')}
+async function handleFiles(files){
+  let total=0,errs=[];
+  for(const f of files){try{total+=ingest(MAP,await f.text(),f.name)}catch(e){errs.push(e.message)}}
+  afterIngest(total,errs);
+}
+function afterIngest(total,errs){
+  if(errs&&errs.length)setMsg(errs.join(' | '),'err');
+  else if(!total)setMsg('কোনো বৈধ সারি পাওয়া যায়নি। কলামের নাম ও তারিখের ফরম্যাট দেখে নিন।','err');
+  else setMsg(`${fmtInt(total)}টি সারি যোগ হয়েছে।`,'ok');
+  if(total)analyze();
+}
+const drop=$('#drop'),fileIn=$('#file');
+drop.addEventListener('click',()=>fileIn.click());
+drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileIn.click()}});
+fileIn.addEventListener('change',()=>{handleFiles([...fileIn.files]);fileIn.value=''});
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
+$('#btnPaste').addEventListener('click',()=>{const t=$('#paste').value;if(!t.trim()){setMsg('আগে CSV পেস্ট করুন।','err');return}try{afterIngest(ingest(MAP,t,'PASTE'),[])}catch(e){setMsg(e.message,'err')}});
+$('#btnDemo').addEventListener('click',()=>{MAP=genDemo();setMsg('ডেমো ডেটা লোড হয়েছে। এটি কাল্পনিক ডেটা, আসল বাজার নয়।','ok');analyze()});
+$('#btnClear').addEventListener('click',()=>{MAP={};DB={};RES=[];selected=null;maxDate='';setMsg('');render();$('#detail').className='';$('#detail').innerHTML=''});
+
+function analyze(){
+  DB=finalize(MAP);RES=[];maxDate='';
+  for(const s in DB){const b=DB[s];if(b.length&&b[b.length-1].d>maxDate)maxDate=b[b.length-1].d}
+  const hold=+$('#hold').value||10;
+  for(const sym in DB){
+    const b=DB[sym];if(b.length<35)continue;
+    const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i),cl=classify(sc),pl=plan(I,i);
+    const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
+    const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
+    const cost=+$('#cost').value||0;const bt=btStats(backtest(b,I,hold,2).map(x=>x-cost));
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell});
+  }
+  selected=null;$('#detail').className='';$('#detail').innerHTML='';
+  render();
+}
+function baseList(){
+  const minV=+$('#minVol').value||0,minP=+$('#minPrice').value||0,hs=$('#hideStale').checked,q=$('#q').value.trim().toUpperCase();
+  return RES.filter(r=>r.avgVol>=minV&&r.close>=minP&&(!hs||!r.stale)&&(!q||r.sym.includes(q)));
+}
+const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
+function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
+
+function render(){
+  const base=baseList();
+  const cnt=f=>base.filter(f).length;
+  const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH');
+  let allN=0,allW=0;base.forEach(r=>{if(r.bt.n){allN+=r.bt.n;allW+=r.bt.win/100*r.bt.n}});
+  $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>সর্বশেষ ডেটার তারিখ`:'<b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে';
+  $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>কেনার সংকেত</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div>`;
+  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
+  const list=base.filter(tabOK);
+  const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1}[sortKey]||(r=>r.rank);
+  list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
+  const cols=[['sym','কোম্পানি'],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত'],['buy','কেনার স্কোর','n'],['sell','বিক্রির স্কোর','n'],['rsi','RSI','n'],['vr','ভলিউম/গড়','n'],['stop','স্টপ-লস','n',1],['t1','টার্গেট ১','n',1],['win','অতীত জয়ের হার','n']];
+  if(!RES.length){$('#tbl').innerHTML='<tbody><tr><td class="empty">এখনও ডেটা নেই। উপরে CSV দিন, অথবা "ডেমো ডেটা দিয়ে দেখুন" চাপুন।</td></tr></tbody>';return}
+  const th=cols.map(([k,t,n,ns])=>`<th class="${n||''}" data-k="${ns?'':k}" ${sortKey===k?`aria-sort="${sortDir>0?'ascending':'descending'}"`:''}>${t}<span class="ar">${sortKey===k?(sortDir>0?'▲':'▼'):''}</span></th>`).join('');
+  const rows=list.map(r=>{
+    const s=SIG[r.cl],showPlan=r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WATCH';
+    const ch=r.chg;
+    return`<tr data-s="${esc(r.sym)}" tabindex="0" class="${selected===r.sym?'sel':''}"><td class="sym">${esc(r.sym)}</td><td class="n">${fmt(r.close)}</td><td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td><td><span class="badge ${s.c}">${s.t}</span></td><td class="n">${meter(r.buy,14,'mb')}${r.buy}</td><td class="n">${meter(r.sell,12,'ms')}${r.sell}</td><td class="n">${r.rsi==null?'–':r.rsi.toFixed(0)}</td><td class="n">${r.vr.toFixed(1)}x</td><td class="n">${showPlan?fmt(r.pl.stop):'–'}</td><td class="n">${showPlan?fmt(r.pl.t1):'–'}</td><td class="n">${r.bt.n?r.bt.win.toFixed(0)+'% <span class="muted">('+r.bt.n+')</span>':'–'}</td></tr>`;
+  }).join('');
+  $('#tbl').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows||'<tr><td colspan="11" class="empty">এই ফিল্টারে কোনো কোম্পানি মেলেনি।</td></tr>'}</tbody>`;
+}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render()});
+$('#tbl').addEventListener('click',e=>{
+  const th=e.target.closest('th');
+  if(th&&th.dataset.k){const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='sym'||k==='rank')?1:-1}render();return}
+  const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s);
+});
+$('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
+['minVol','minPrice','hideStale','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
+['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();if(selected)openDetail(selected,true)}));
+['hold','cost'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
+
+$('#btnExport').addEventListener('click',()=>{
+  if(!RES.length)return;
+  const rows=[['symbol','date','close','change_pct','signal','buy_score','sell_score','rsi','vol_ratio','entry','stop','target1','target2','risk_pct','bt_trades','bt_win_pct']];
+  baseList().forEach(r=>rows.push([r.sym,r.b[r.b.length-1].d,r.close,r.chg.toFixed(2),r.cl,r.buy,r.sell,r.rsi==null?'':r.rsi.toFixed(1),r.vr.toFixed(2),r.pl.entry,r.pl.stop,r.pl.t1,r.pl.t2,r.pl.riskPct.toFixed(2),r.bt.n,r.bt.n?r.bt.win.toFixed(0):'']));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`scan-${maxDate||'result'}.csv`;a.click()}catch(e){setMsg('ডাউনলোড এই ভিউয়ারে কাজ করছে না।','err')}
+});
+
+/* detail */
+function chartSVG(b,I,pl,showPlan){
+  const N=Math.min(90,b.length),s=b.length-N,W=860,Hp=270,Hv=56,Hr=78,gap=14,mL=6,mR=58,H=Hp+gap+Hv+gap+Hr+22;
+  const cw=(W-mL-mR)/N,X=k=>mL+cw*(k-s+.5);
+  let lo=Infinity,hi=-Infinity;
+  for(let k=s;k<b.length;k++){lo=Math.min(lo,b[k].l);hi=Math.max(hi,b[k].h)}
+  if(showPlan){lo=Math.min(lo,pl.stop);hi=Math.max(hi,pl.t1)}
+  const pad=(hi-lo)*.06||1;lo-=pad;hi+=pad;
+  const Y=v=>4+(Hp-8)*(1-(v-lo)/(hi-lo));
+  let g='';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g+=`<line class="grid" x1="${mL}" x2="${W-mR}" y1="${y}" y2="${y}"/><text x="${W-mR+6}" y="${y+3.5}">${v.toFixed(1)}</text>`}
+  let cd='';
+  for(let k=s;k<b.length;k++){const x=X(k),u=b[k].c>=b[k].o,bw=Math.max(1.5,cw*.62);
+    cd+=`<line class="${u?'c-up':'c-dn'}" x1="${x}" x2="${x}" y1="${Y(b[k].h)}" y2="${Y(b[k].l)}"/><rect class="${u?'c-up':'c-dn'}" x="${x-bw/2}" y="${Math.min(Y(b[k].o),Y(b[k].c))}" width="${bw}" height="${Math.max(1,Math.abs(Y(b[k].o)-Y(b[k].c)))}"/>`}
+  const path=arr=>{let d='',pen=false;for(let k=s;k<b.length;k++){if(arr[k]==null){pen=false;continue}d+=(pen?'L':'M')+X(k).toFixed(1)+' '+Y(arr[k]).toFixed(1)+' ';pen=true}return d};
+  let pln='';
+  if(showPlan){[[pl.t1,'var(--up)','টার্গেট'],[pl.entry,'var(--muted)','এন্ট্রি'],[pl.stop,'var(--down)','স্টপ']].forEach(([v,c,t])=>{const y=Y(v);pln+=`<line class="plan" x1="${mL}" x2="${W-mR}" y1="${y}" y2="${y}" style="stroke:${c}"/><text x="${mL+4}" y="${y-4}" style="fill:${c}">${t} ${v.toFixed(1)}</text>`})}
+  const vTop=Hp+gap;let mv=0;for(let k=s;k<b.length;k++)mv=Math.max(mv,b[k].v);mv=mv||1;
+  let vb='';for(let k=s;k<b.length;k++){const h=Hv*b[k].v/mv;vb+=`<rect class="${b[k].c>=b[k].o?'v-up':'v-dn'}" x="${X(k)-cw*.31}" y="${vTop+Hv-h}" width="${cw*.62}" height="${h}"/>`}
+  const rTop=vTop+Hv+gap,Yr=v=>rTop+Hr*(1-v/100);
+  let rs=`<line class="grid" x1="${mL}" x2="${W-mR}" y1="${Yr(70)}" y2="${Yr(70)}"/><line class="grid" x1="${mL}" x2="${W-mR}" y1="${Yr(30)}" y2="${Yr(30)}"/><text x="${W-mR+6}" y="${Yr(70)+3.5}">70</text><text x="${W-mR+6}" y="${Yr(30)+3.5}">30</text><text x="${mL+4}" y="${rTop+10}">RSI 14</text>`;
+  let rd='',pen=false;for(let k=s;k<b.length;k++){if(I.rsi[k]==null){pen=false;continue}rd+=(pen?'L':'M')+X(k).toFixed(1)+' '+Yr(I.rsi[k]).toFixed(1)+' ';pen=true}
+  rs+=`<path class="rsi" d="${rd}"/>`;
+  let ax='';const step=Math.ceil(N/6);for(let k=s;k<b.length;k+=step)ax+=`<text x="${X(k)}" y="${H-6}" text-anchor="middle">${b[k].d.slice(5)}</text>`;
+  return`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="শেষ ${N} দিনের ক্যান্ডেলস্টিক চার্ট, SMA20, SMA50, ভলিউম ও RSI">${g}${cd}<path class="ln50" d="${path(I.sma50)}"/><path class="ln20" d="${path(I.sma20)}"/>${pln}${vb}${rs}${ax}</svg>`;
+}
+function openDetail(sym,keepScroll){
+  const r=RES.find(x=>x.sym===sym);if(!r)return;selected=sym;
+  const {b,I,pl,sc,cl,bt}=r,i=b.length-1,s=SIG[cl],isBuy=cl==='BUY'||cl==='STRONG_BUY'||cl==='WATCH';
+  const cap=+$('#capital').value||0,rp=(+$('#riskPct').value||1)/100,perShare=pl.entry-pl.stop;
+  const qty=perShare>0?Math.floor(cap*rp/perShare):0,cost=qty*pl.entry,maxLoss=qty*perShare;
+  const li=a=>a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="muted" style="font-size:14px">কোনো সংকেত নেই</p>';
+  const planHTML=isBuy?`<dl class="kv"><dt>এন্ট্রি (সর্বশেষ ক্লোজ)</dt><dd>${fmt(pl.entry)}</dd><dt>স্টপ-লস</dt><dd class="down">${fmt(pl.stop)}</dd><dt>টার্গেট ১ (১:২)</dt><dd class="up">${fmt(pl.t1)}</dd><dt>টার্গেট ২ (১:৩)</dt><dd class="up">${fmt(pl.t2)}</dd><dt>প্রতি শেয়ারে ঝুঁকি</dt><dd>${fmt(perShare)} টাকা (${pl.riskPct.toFixed(1)}%)</dd></dl>
+  <dl class="kv" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><dt>আপনার ঝুঁকি-সীমায় শেয়ার সংখ্যা</dt><dd>${fmtInt(qty)}</dd><dt>মোট বিনিয়োগ</dt><dd>${fmtInt(cost)} টাকা</dd><dt>স্টপ লাগলে সম্ভাব্য ক্ষতি</dt><dd>${fmtInt(maxLoss)} টাকা</dd></dl>${cost>cap&&cap>0?'<p class="note" style="color:var(--down)">এই সংখ্যার বিনিয়োগ আপনার মূলধনের বেশি। শেয়ার কমাতে হবে।</p>':''}<p class="note">স্টপ-লস ঠিক হয়েছে ১০ দিনের সুইং-লো ও ATR থেকে। টার্গেট ঝুঁকির ২ ও ৩ গুণ। এগুলো শুরুর ধারণা মাত্র, বাজার দেখে নিজে বদলান।</p>`
+  :`<p class="muted" style="font-size:14px">এই মুহূর্তে কেনার প্ল্যান দেখানো হচ্ছে না, কারণ সংকেত "${s.t}"।${cl==='SELL'||cl==='STRONG_SELL'?' আপনার কাছে এই শেয়ার থাকলে এক্সিট বা স্টপ উপরে তোলার কথা ভাবুন।':''}</p>`;
+  const btHTML=bt.n?`<dl class="kv"><dt>অতীতের কেনা-সংকেত</dt><dd>${bt.n}টি</dd><dt>জয়ের হার</dt><dd>${bt.win.toFixed(0)}%</dd><dt>গড় রিটার্ন</dt><dd class="${bt.avg>=0?'up':'down'}">${bt.avg>=0?'+':''}${bt.avg.toFixed(1)}%</dd><dt>গড় লাভ / গড় লোকসান</dt><dd>+${bt.avgWin.toFixed(1)}% / ${bt.avgLoss.toFixed(1)}%</dd></dl><p class="note">নিয়ম: সংকেতের পরদিন ওপেনে কেনা, T+2 পর থেকে স্টপ/টার্গেট ১ ধরা, নইলে ${+$('#hold').value||10} দিন পর ক্লোজে বের। প্রতি ট্রেড থেকে ${+$('#cost').value||0}% খরচ বাদ দেওয়া হয়েছে। ${bt.n<8?'নমুনা খুব ছোট, তাই এর উপর ভরসা করবেন না।':''}</p>`:'<p class="muted" style="font-size:14px">এই কোম্পানির ডেটায় অতীতে কেনার সংকেত তৈরি হয়নি বা ডেটা যথেষ্ট নয়।</p>';
+  const el=$('#detail');
+  el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
+  <div class="dgrid"><div>
+    <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span>নিচে: ভলিউম ও RSI</span></div>
+    ${chartSVG(b,I,pl,isBuy)}
+    <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান।</p>
+  </div><div>
+    <div class="blk"><h3>ট্রেড প্ল্যান</h3>${planHTML}</div>
+    <div class="blk"><h3>কেনার পক্ষে কারণ (স্কোর ${sc.buy})</h3>${li(sc.rb)}</div>
+    <div class="blk"><h3>বিক্রি বা সতর্কতার কারণ (স্কোর ${sc.sell})</h3>${li(sc.rs)}</div>
+    <div class="blk"><h3>এই কোম্পানিতে সংকেতের ইতিহাস</h3>${btHTML}</div>
+  </div></div>`;
+  el.className='show';
+  document.querySelectorAll('#tbl tr.sel').forEach(x=>x.classList.remove('sel'));
+  const row=document.querySelector(`#tbl tr[data-s="${CSS.escape(sym)}"]`);if(row)row.classList.add('sel');
+  if(!keepScroll)el.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+render();
+
+/* ====== স্বয়ংক্রিয় ডেটা: GitHub Actions প্রতিদিন data/prices.csv আপডেট করে ====== */
+async function autoLoad(){
+  if(!/^https?:$/.test(location.protocol))return;
+  const info=$('#autoinfo');info.textContent='স্বয়ংক্রিয় ডেটা লোড হচ্ছে…';
+  try{
+    const rc=await fetch('data/prices.csv',{cache:'no-cache'});
+    if(!rc.ok)throw new Error('HTTP '+rc.status);
+    const text=await rc.text();MAP={};
+    const n=ingest(MAP,text,'prices.csv');
+    if(!n)throw new Error('ফাইল খালি');
+    let meta=null;try{const rm=await fetch('data/meta.json',{cache:'no-cache'});if(rm.ok)meta=await rm.json()}catch(e){}
+    analyze();
+    const last=meta&&meta.last_date?meta.last_date:maxDate;
+    const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
+    const upd=meta&&meta.updated_utc?new Date(meta.updated_utc).toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}):'';
+    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
+  }catch(e){
+    info.textContent='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি ('+e.message+'). নিচে নিজে CSV দিন, অথবা প্রথমবার ডেটা-ডাউনলোডের ধাপ সম্পন্ন হয়েছে কি না দেখুন।';
+  }
+}
+autoLoad();
+</script>
+</body>
+</html>
