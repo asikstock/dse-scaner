@@ -123,6 +123,8 @@ table.mini th{cursor:default;position:static}
 .ptb td{text-align:right;font-weight:600}
 .chart .zone{fill:var(--warn);opacity:.16}
 .chart .sr{stroke-width:1;stroke-dasharray:2 3;opacity:.8}
+table.plan{min-width:1040px}
+table.plan th{cursor:default;position:static}
 .empty{padding:34px 16px;text-align:center;color:var(--muted)}
 
 /* detail */
@@ -225,6 +227,21 @@ footer p{max-width:90ch;margin-bottom:6px}
 </section>
 
 <section id="detail" aria-live="polite"></section>
+
+<section id="planner-sec">
+  <div class="sec-h"><h2>৪. আমার মূলধনে কী কেনা যেত? (পোর্টফোলিও প্ল্যানার)</h2>
+    <div class="row"><button data-cap="100000">১ লক্ষ টাকা</button><button data-cap="500000">৫ লক্ষ টাকা</button></div></div>
+  <p class="muted" style="font-size:14px;margin-bottom:14px;max-width:80ch">আপনার মূলধন ও ঝুঁকি-নিয়ম মেনে আজকের সংকেত থেকে কোন কোম্পানিতে কতটি শেয়ার কিনলে কত টাকা লাগত, আর স্টপ লাগলে মোট কত ক্ষতি হতো তা হিসাব করে। মূলধন ও প্রতি ট্রেডের ঝুঁকি উপরের "ফিল্টার ও ঝুঁকির হিসাব" অংশ থেকে আসে। এটি নিয়মভিত্তিক গণনা, কেনার পরামর্শ নয়।</p>
+  <div class="settings">
+    <label class="f">সর্বোচ্চ কয়টি কোম্পানি<input type="number" id="pMaxN" value="5" min="1" max="20" step="1"></label>
+    <label class="f">একটি কোম্পানিতে সর্বোচ্চ (% মূলধন)<input type="number" id="pMaxPct" value="25" min="5" max="100" step="5"></label>
+    <label class="f">স্টপ সর্বোচ্চ কত % দূরে হলে নেবেন<input type="number" id="pMaxStop" value="10" min="2" max="30" step="1"></label>
+    <label class="f">সব ট্রেডের মোট ঝুঁকি (% মূলধন)<input type="number" id="pTotRisk" value="5" min="1" max="20" step="0.5"></label>
+    <label class="f">গড় দৈনিক ভলিউমের সর্বোচ্চ কত %<input type="number" id="pLiq" value="5" min="0.5" max="50" step="0.5"></label>
+    <label class="chk"><input type="checkbox" id="pWait" checked> "পুলব্যাকের অপেক্ষা" শেয়ারও ধরুন (লিমিট অর্ডার)</label>
+  </div>
+  <div id="plannerOut" style="margin-top:18px"></div>
+</section>
 
 <footer>
   <p><b>সতর্কতা:</b> এটি শিক্ষামূলক বিশ্লেষণ টুল, বিনিয়োগ পরামর্শ নয়। টেকনিক্যাল সংকেত ভুল হতে পারে এবং অতীতের ফল ভবিষ্যতের নিশ্চয়তা দেয় না। ট্রেডের আগে নিজে যাচাই করুন এবং শুধু সেই টাকা খাটান যা হারালে ক্ষতি সামলাতে পারবেন।</p>
@@ -472,7 +489,7 @@ const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFrac
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
 /* settings persistence (best-effort) */
-const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct'];
+const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'];
 try{const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');SK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]})}catch(e){}
 function saveSettings(){try{const s={};SK.forEach(k=>s[k]=$('#'+k).value);localStorage.setItem('dse-scan-settings',JSON.stringify(s))}catch(e){}}
 
@@ -521,7 +538,47 @@ function baseList(){
 const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
 
+
+/* ===== পোর্টফোলিও প্ল্যানার: ঝুঁকি-ভিত্তিক শেয়ার সংখ্যা ===== */
+function renderPlanner(){
+  const el=$('#plannerOut');
+  if(!RES.length){el.innerHTML='<p class="muted">ডেটা লোড হলে এখানে হিসাব আসবে।</p>';return}
+  const cap=+$('#capital').value||0;
+  if(cap<=0){el.innerHTML='<p class="muted">উপরের "আপনার ট্রেডিং মূলধন" ঘরে টাকার অঙ্ক দিন।</p>';return}
+  const rk=(+$('#riskPct').value||1)/100,maxN=+$('#pMaxN').value||5,maxPct=(+$('#pMaxPct').value||25)/100,maxStop=+$('#pMaxStop').value||10,
+    totR=(+$('#pTotRisk').value||5)/100,liq=(+$('#pLiq').value||5)/100,wait=$('#pWait').checked,costP=(+$('#cost').value||0)/100;
+  const elig=baseList().filter(r=>(r.cl==='BUY'||r.cl==='STRONG_BUY'||(wait&&r.cl==='WAIT'))&&r.view.risk<=maxStop);
+  elig.sort((a,b)=>b.buy-a.buy||a.view.risk-b.view.risk);
+  let cash=cap,riskLeft=cap*totR;const pos=[];
+  for(const r of elig){
+    if(pos.length>=maxN)break;
+    const wt=r.cl==='WAIT',entry=wt?r.ep.pull.hi:r.pl.entry,stop=wt?r.ep.pull.stop:r.pl.stop,t1=wt?r.ep.pull.t1:r.pl.t1,ps=entry-stop;
+    if(!(ps>0))continue;
+    const caps=[['প্রতি ট্রেডের ঝুঁকি-সীমা',Math.floor(cap*rk/ps)],['একক-কোম্পানির সীমা',Math.floor(cap*maxPct/entry)],['ভলিউম (লিকুইডিটি) সীমা',Math.floor(r.avgVol*liq)],['অবশিষ্ট নগদ',Math.floor(cash/entry)],['মোট ঝুঁকির সীমা',Math.floor(riskLeft/ps)]];
+    let lim=caps[0];for(const c of caps)if(c[1]<lim[1])lim=c;
+    const q=lim[1];
+    if(q<1||q*entry<cap*0.03)continue;
+    pos.push({r,wt,entry,stop,t1,q,cost:q*entry,loss:q*ps,gain:q*(t1-entry),lim:lim[0]});
+    cash-=q*entry;riskLeft-=q*ps;
+  }
+  const head=`<p style="margin-bottom:10px"><b>মূলধন ${fmtInt(cap)} টাকা</b> · প্রতি ট্রেডে ঝুঁকি ${(rk*100).toFixed(1)}% (${fmtInt(cap*rk)} টাকা) · যোগ্য সংকেত ${elig.length}টি</p>`;
+  if(!pos.length){
+    el.innerHTML=head+(elig.length?`<div class="warnbox">আজ ${elig.length}টি যোগ্য সংকেত আছে, কিন্তু সীমাগুলোর (শেয়ারের ন্যূনতম আকার, ভলিউম, ঝুঁকি) মধ্যে একটিও আঁটেনি। সীমা শিথিল করার আগে ভেবে দেখুন কেন সেগুলো রেখেছিলেন।</div>`:`<div class="warnbox">আজ আপনার নিয়ম অনুযায়ী (সংকেত, স্টপ দূরত্ব, ফিল্টার) কেনার মতো কিছু নেই। আজ না কেনাও একটা বৈধ সিদ্ধান্ত।</div>`);
+    return;
+  }
+  const inv=pos.reduce((a,p)=>a+p.cost,0),loss=pos.reduce((a,p)=>a+p.loss,0),gain=pos.reduce((a,p)=>a+p.gain,0),fees=inv*costP;
+  const rows=pos.map(p=>`<tr data-s="${esc(p.r.sym)}" tabindex="0"><td class="sym">${esc(p.r.sym)}</td><td><span class="badge ${SIG[p.r.cl].c}">${SIG[p.r.cl].t}</span></td><td>${p.wt?'লিমিট অর্ডার, জোনে নামলে':'পরদিন বাজারদরে'}</td><td class="n">${fmt(p.entry)}</td><td class="n"><b>${fmtInt(p.q)}</b></td><td class="n">${fmtInt(p.cost)}</td><td class="n">${(p.cost/cap*100).toFixed(1)}%</td><td class="n down">${fmt(p.stop)}</td><td class="n down">−${fmtInt(p.loss)} <span class="muted">(${(p.loss/cap*100).toFixed(2)}%)</span></td><td class="n up">${fmt(p.t1)}</td><td class="n up">+${fmtInt(p.gain)}</td><td>${p.lim}</td></tr>`).join('');
+  el.innerHTML=head+`<div class="tally"><div><b>${pos.length}</b><span>কোম্পানি (যোগ্য ${elig.length}টি থেকে)</span></div><div><b>${fmtInt(inv)}</b><span>মোট বিনিয়োগ, টাকা (${(inv/cap*100).toFixed(0)}%)</span></div><div><b>${fmtInt(cap-inv)}</b><span>নগদ থাকবে, টাকা</span></div><div class="t-sell"><b>−${fmtInt(loss)}</b><span>সব স্টপ লাগলে ক্ষতি (${(loss/cap*100).toFixed(1)}%)</span></div><div class="t-buy"><b>+${fmtInt(gain)}</b><span>সব টার্গেট ১ ছুঁলে লাভ</span></div></div>
+  <div class="tw" style="margin-top:12px"><table class="plan"><thead><tr><th>কোম্পানি</th><th>সংকেত</th><th>কেনার ধরন</th><th class="n">এন্ট্রি দাম</th><th class="n">শেয়ার সংখ্যা</th><th class="n">বিনিয়োগ (টাকা)</th><th class="n">মূলধনের %</th><th class="n">স্টপ-লস</th><th class="n">স্টপ লাগলে ক্ষতি</th><th class="n">টার্গেট ১</th><th class="n">টার্গেটে লাভ</th><th>কোন সীমায় আটকাল</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <ul class="note" style="padding-left:18px;margin-top:10px">
+    <li>বাছাইয়ের ক্রম: কেনার স্কোর বেশি থেকে কম, স্কোর সমান হলে স্টপ কাছে থাকা আগে। এরপর প্রতিটির শেয়ার সংখ্যা সবচেয়ে কঠোর সীমা অনুযায়ী ঠিক হয়। মূলধনের ৩% এর কম হলে সেই কোম্পানি বাদ।</li>
+    <li>স্টপ কত দূরে তার উপর শেয়ার সংখ্যা নির্ভর করে: স্টপ যত দূরে, শেয়ার তত কম। প্রতিটি ট্রেডে ক্ষতি আপনার ঝুঁকি-সীমার মধ্যে থাকে।</li>
+    <li>লিমিট অর্ডারের শেয়ারে দাম জোনে না নামলে কেনাই হবে না, তখন ঐ টাকা পড়ে থাকবে। "সব স্টপ লাগলে ক্ষতি" ধরা হয়েছে সবগুলো কেনা হলে।</li>
+    <li>এই টুলে কোম্পানির খাত (ব্যাংক, ওষুধ ইত্যাদি) নেই। একই খাতের কয়েকটি শেয়ার একসাথে নামে, তাই নিজে মিলিয়ে নিন। কেনার আগে খবর, লভ্যাংশ বা রেকর্ড ডেট ও ক্যাটাগরি দেখুন। ব্রোকারেজ, কমিশন ও সরকারি খরচের আসল হার আপনার ব্রোকারের কাছ থেকে নিন। সেটিংসের খরচ ${(costP*100).toFixed(2)}% ধরে আনুমানিক খরচ প্রায় ${fmtInt(fees)} টাকা।</li>
+  </ul>`;
+}
 function render(){
+  renderPlanner();
   const base=baseList();
   const cnt=f=>base.filter(f).length;
   const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH');
@@ -571,7 +628,11 @@ $('#tbl').addEventListener('click',e=>{
 });
 $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
 ['minVol','minPrice','hideStale','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
-['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();if(selected)openDetail(selected,true)}));
+['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
+['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
+$('#pWait').addEventListener('change',renderPlanner);
+document.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{$('#capital').value=b.dataset.cap;saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
+$('#plannerOut').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
 ['hold','cost','extPct'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 
 $('#btnExport').addEventListener('click',()=>{
