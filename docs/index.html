@@ -92,7 +92,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:38px
 
 /* table */
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:860px;font-size:14.5px}
+table{border-collapse:collapse;width:100%;min-width:1250px;font-size:14.5px}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
 th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg);position:sticky;top:0;cursor:pointer;user-select:none}
 th[aria-sort]{color:var(--ink)}
@@ -112,6 +112,10 @@ td.sym{font-weight:700;letter-spacing:.01em}
 .meter{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
 .meter i{width:5px;height:14px;background:var(--meter-off);border-radius:1px}
 .meter.mb i.on{background:var(--up)} .meter.ms i.on{background:var(--down)}
+.tabs button[aria-pressed="true"] .muted{color:inherit;opacity:.75}
+table.mini{min-width:540px}
+table.mini th{cursor:default;position:static}
+.tg{display:inline-block;font-size:12.5px;padding:1px 8px;border-radius:999px;background:var(--flat-bg);margin-right:4px}
 .empty{padding:34px 16px;text-align:center;color:var(--muted)}
 
 /* detail */
@@ -202,10 +206,12 @@ footer p{max-width:90ch;margin-bottom:6px}
 <section id="results-sec" aria-live="polite">
   <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
   <div class="tally" id="tally"></div>
+  <div id="pstats" style="margin-top:18px"></div>
   <div class="row" style="margin-top:14px">
     <div class="tabs" id="tabs" role="group" aria-label="সংকেত ফিল্টার" style="margin:0;flex:1 1 auto"></div>
     <input type="search" id="q" placeholder="কোম্পানির কোড খুঁজুন" aria-label="কোম্পানির কোড খুঁজুন" style="max-width:220px">
   </div>
+  <div class="tabs" id="ptypes" role="group" aria-label="সংকেতের ধরন" style="margin:2px 0 0"></div>
   <div class="tw" style="margin-top:10px"><table id="tbl"></table></div>
   <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কলামের শিরোনামে ক্লিক করলে সাজানো যায়।</p>
 </section>
@@ -284,8 +290,8 @@ function crossDn(a,b,i,look){for(let k=i;k>i-look&&k>0;k--){if(a[k]!=null&&b[k]!
 /* scoring: returns {buy,sell,rb[],rs[]} */
 function scoreAt(b,I,i){
   if(i<30)return null;
-  const r={buy:0,sell:0,rb:[],rs:[]};
-  const B=(p,t)=>{r.buy+=p;r.rb.push(t)},S=(p,t)=>{r.sell+=p;r.rs.push(t)};
+  const r={buy:0,sell:0,rb:[],rs:[],tags:[]};
+  const B=(p,t)=>{r.buy+=p;r.rb.push(t)},S=(p,t)=>{r.sell+=p;r.rs.push(t)},T=t=>{if(!r.tags.includes(t))r.tags.push(t)};
   const c=I.c[i],pc=I.c[i-1],s20=I.sma20[i],s50=I.sma50[i],rsi=I.rsi[i],rp=I.rsi[i-1];
   const vr=I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1;
   const e9=I.ema9,e21=I.ema21,m=I.macd,sg=I.sig,h=I.hist;
@@ -295,18 +301,18 @@ function scoreAt(b,I,i){
     if(c<s20&&s50!=null&&s20<s50)S(2,'ট্রেন্ড নিম্নমুখী: দাম SMA20 ও SMA50 এর নিচে');
     else if(c<s20)S(1,'দাম SMA20 এর নিচে নেমেছে');
   }
-  if(crossUp(e9,e21,i,3))B(2,'EMA9 সম্প্রতি EMA21 কে উপরের দিকে ক্রস করেছে');
+  if(crossUp(e9,e21,i,3)){B(2,'EMA9 সম্প্রতি EMA21 কে উপরের দিকে ক্রস করেছে');T('momentum')}
   else if(e9[i]!=null&&e21[i]!=null&&e9[i]>e21[i])B(1,'EMA9 > EMA21, স্বল্পমেয়াদি মোমেন্টাম পজিটিভ');
   if(crossDn(e9,e21,i,3))S(2,'EMA9 সম্প্রতি EMA21 কে নিচের দিকে ক্রস করেছে');
   else if(e9[i]!=null&&e21[i]!=null&&e9[i]<e21[i])S(1,'EMA9 < EMA21, স্বল্পমেয়াদি মোমেন্টাম নেগেটিভ');
-  if(crossUp(m,sg,i,3))B(2,'MACD সিগন্যাল লাইনকে উপরে ক্রস করেছে');
+  if(crossUp(m,sg,i,3)){B(2,'MACD সিগন্যাল লাইনকে উপরে ক্রস করেছে');T('momentum')}
   else if(h[i]!=null&&h[i-1]!=null&&h[i]>0&&h[i]>h[i-1])B(1,'MACD হিস্টোগ্রাম পজিটিভ এবং বাড়ছে');
   if(crossDn(m,sg,i,3))S(2,'MACD সিগন্যাল লাইনকে নিচে ক্রস করেছে');
   else if(h[i]!=null&&h[i-1]!=null&&h[i]<0&&h[i]<h[i-1])S(1,'MACD হিস্টোগ্রাম নেগেটিভ এবং কমছে');
   let dipped=false;
   if(rsi!=null&&rp!=null){
     for(let k=Math.max(0,i-4);k<i;k++)if(I.rsi[k]!=null&&I.rsi[k]<35)dipped=true;
-    if(dipped&&rsi>rp&&rsi<55)B(2,`RSI ওভারসোল্ড (৩৫ এর নিচ) থেকে ঘুরে উঠছে, এখন ${rsi.toFixed(0)}`);
+    if(dipped&&rsi>rp&&rsi<55){B(2,`RSI ওভারসোল্ড (৩৫ এর নিচ) থেকে ঘুরে উঠছে, এখন ${rsi.toFixed(0)}`);T('bounce')}
     else if(rsi>=40&&rsi<=65&&rsi>rp)B(1,`RSI ${rsi.toFixed(0)}: সুস্থ মোমেন্টাম, বাড়ছে`);
     if(rsi>70&&rsi<rp)S(2,`RSI ${rsi.toFixed(0)}: ওভারবট জোন থেকে নামতে শুরু করেছে`);
     else if(rsi>75)S(1,`RSI ${rsi.toFixed(0)}: ওভারবট, নতুন কেনা ঝুঁকিপূর্ণ`);
@@ -314,10 +320,10 @@ function scoreAt(b,I,i){
     if(rsi>75)r.buy=Math.max(0,r.buy-2);
   }
   let vDone=false;const hh=I.hh20[i],ll=I.ll10[i];
-  if(hh!=null&&c>hh){B(2,`২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট`);if(vr>=1.5){B(1,`ব্রেকআউটে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);}vDone=true}
-  if(ll!=null&&c<ll){S(2,`১০ দিনের সর্বনিম্ন ${ll.toFixed(1)} ভেঙে ব্রেকডাউন`);if(vr>=1.5)S(1,`ব্রেকডাউনে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);vDone=true}
+  if(hh!=null&&c>hh){T('breakout');B(2,`২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট`);if(vr>=1.5){B(1,`ব্রেকআউটে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);}vDone=true}
+  if(ll!=null&&c<ll){T('breakdown');S(2,`১০ দিনের সর্বনিম্ন ${ll.toFixed(1)} ভেঙে ব্রেকডাউন`);if(vr>=1.5)S(1,`ব্রেকডাউনে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);vDone=true}
   if(!vDone&&vr>=1.3){if(c>pc)B(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম বেড়েছে`);else if(c<pc)S(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম কমেছে`)}
-  if(s20!=null&&s50!=null&&s20>s50&&c>=s20*0.97&&c<=s20*1.03&&rsi!=null&&rsi<50&&I.c[i]>pc)B(2,'আপট্রেন্ডে SMA20 সাপোর্টের কাছ থেকে পুলব্যাক-বাউন্স');
+  if(s20!=null&&s50!=null&&s20>s50&&c>=s20*0.97&&c<=s20*1.03&&rsi!=null&&rsi<50&&I.c[i]>pc){B(2,'আপট্রেন্ডে SMA20 সাপোর্টের কাছ থেকে পুলব্যাক-বাউন্স');T('pullback')}
   return r;
 }
 function classify(r){
@@ -337,7 +343,7 @@ function backtest(b,I,hold,tplus){
   hold=hold||10;tplus=tplus==null?2:tplus;const rets=[];let nextOk=0;
   for(let i=50;i<b.length-hold-2;i++){
     if(i<nextOk)continue;
-    const cl=classify(scoreAt(b,I,i));if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
+    const sc0=scoreAt(b,I,i),cl=classify(sc0);if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
     const pl=plan(I,i),e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
     let exit=null;
     for(let k=e+tplus;k<=e+hold&&k<b.length;k++){
@@ -345,7 +351,7 @@ function backtest(b,I,hold,tplus){
       if(b[k].h>=pl.t1){exit=Math.max(b[k].o,pl.t1);break}
     }
     if(exit==null)exit=b[Math.min(e+hold,b.length-1)].c;
-    rets.push((exit/entry-1)*100);nextOk=i+hold;
+    rets.push({ret:(exit/entry-1)*100,tags:sc0.tags.filter(t=>t!=='breakdown')});nextOk=i+hold;
   }
   return rets;
 }
@@ -396,7 +402,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:2},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:3},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:4},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:5}};
 const TABS=[['all','সব'],['buy','কেনার সংকেত'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
-let MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
+const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন'};
+let ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
@@ -437,8 +444,8 @@ function analyze(){
     const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i),cl=classify(sc),pl=plan(I,i);
     const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
     const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
-    const cost=+$('#cost').value||0;const bt=btStats(backtest(b,I,hold,2).map(x=>x-cost));
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell});
+    const cost=+$('#cost').value||0;const trades=backtest(b,I,hold,2).map(t=>({ret:t.ret-cost,tags:t.tags}));const bt=btStats(trades.map(t=>t.ret));
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:pl.riskPct,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   render();
@@ -454,23 +461,39 @@ function render(){
   const base=baseList();
   const cnt=f=>base.filter(f).length;
   const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH');
-  let allN=0,allW=0;base.forEach(r=>{if(r.bt.n){allN+=r.bt.n;allW+=r.bt.win/100*r.bt.n}});
+  let allN=0,allW=0,allS=0;base.forEach(r=>{if(r.bt.n){allN+=r.bt.n;allW+=r.bt.win/100*r.bt.n;allS+=r.bt.avg*r.bt.n}});
   $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>সর্বশেষ ডেটার তারিখ`:'<b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে';
-  $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>কেনার সংকেত</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div>`;
+  $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>কেনার সংকেত</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div><div class="${allN&&allS<0?'t-sell':allN?'t-buy':''}"><b>${allN?(allS/allN>=0?'+':'')+(allS/allN).toFixed(2)+'%':'–'}</b><span>অতীত সংকেতের গড় রিটার্ন (খরচ বাদে)</span></div>`;
+  renderPstats(base);
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
-  const list=base.filter(tabOK);
-  const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1}[sortKey]||(r=>r.rank);
+  const pool=base.filter(tabOK);
+  const list=pool.filter(r=>ptype==='all'||r.dtags.includes(ptype));
+  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
+  const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
-  const cols=[['sym','কোম্পানি'],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত'],['buy','কেনার স্কোর','n'],['sell','বিক্রির স্কোর','n'],['rsi','RSI','n'],['vr','ভলিউম/গড়','n'],['stop','স্টপ-লস','n',1],['t1','টার্গেট ১','n',1],['win','অতীত জয়ের হার','n']];
+  const cols=[['sym','কোম্পানি'],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত'],['pt','ধরন','',1],['buy','কেনার স্কোর','n'],['sell','বিক্রির স্কোর','n'],['rsi','RSI','n'],['vr','ভলিউম/গড়','n'],['risk','স্টপ কত % দূরে','n'],['stop','স্টপ-লস','n',1],['t1','টার্গেট ১','n',1],['win','অতীত জয়ের হার','n'],['avg','অতীত গড় রিটার্ন','n']];
   if(!RES.length){$('#tbl').innerHTML='<tbody><tr><td class="empty">এখনও ডেটা নেই। উপরে CSV দিন, অথবা "ডেমো ডেটা দিয়ে দেখুন" চাপুন।</td></tr></tbody>';return}
   const th=cols.map(([k,t,n,ns])=>`<th class="${n||''}" data-k="${ns?'':k}" ${sortKey===k?`aria-sort="${sortDir>0?'ascending':'descending'}"`:''}>${t}<span class="ar">${sortKey===k?(sortDir>0?'▲':'▼'):''}</span></th>`).join('');
   const rows=list.map(r=>{
     const s=SIG[r.cl],showPlan=r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WATCH';
-    const ch=r.chg;
-    return`<tr data-s="${esc(r.sym)}" tabindex="0" class="${selected===r.sym?'sel':''}"><td class="sym">${esc(r.sym)}</td><td class="n">${fmt(r.close)}</td><td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td><td><span class="badge ${s.c}">${s.t}</span></td><td class="n">${meter(r.buy,14,'mb')}${r.buy}</td><td class="n">${meter(r.sell,12,'ms')}${r.sell}</td><td class="n">${r.rsi==null?'–':r.rsi.toFixed(0)}</td><td class="n">${r.vr.toFixed(1)}x</td><td class="n">${showPlan?fmt(r.pl.stop):'–'}</td><td class="n">${showPlan?fmt(r.pl.t1):'–'}</td><td class="n">${r.bt.n?r.bt.win.toFixed(0)+'% <span class="muted">('+r.bt.n+')</span>':'–'}</td></tr>`;
+    const ch=r.chg,tg=r.dtags.map(t=>`<span class="tg">${PT[t]}</span>`).join('')||'<span class="muted">–</span>';
+    return`<tr data-s="${esc(r.sym)}" tabindex="0" class="${selected===r.sym?'sel':''}"><td class="sym">${esc(r.sym)}</td><td class="n">${fmt(r.close)}</td><td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td><td><span class="badge ${s.c}">${s.t}</span></td><td>${tg}</td><td class="n">${meter(r.buy,14,'mb')}${r.buy}</td><td class="n">${meter(r.sell,12,'ms')}${r.sell}</td><td class="n">${r.rsi==null?'–':r.rsi.toFixed(0)}</td><td class="n">${r.vr.toFixed(1)}x</td><td class="n ${showPlan&&r.risk>8?'down':''}">${showPlan?r.risk.toFixed(1)+'%':'–'}</td><td class="n">${showPlan?fmt(r.pl.stop):'–'}</td><td class="n">${showPlan?fmt(r.pl.t1):'–'}</td><td class="n">${r.bt.n?r.bt.win.toFixed(0)+'% <span class="muted">('+r.bt.n+')</span>':'–'}</td><td class="n ${r.bt.n?(r.bt.avg>=0?'up':'down'):''}">${r.bt.n?(r.bt.avg>=0?'+':'')+r.bt.avg.toFixed(1)+'%':'–'}</td></tr>`;
   }).join('');
-  $('#tbl').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows||'<tr><td colspan="11" class="empty">এই ফিল্টারে কোনো কোম্পানি মেলেনি।</td></tr>'}</tbody>`;
+  $('#tbl').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows||'<tr><td colspan="14" class="empty">এই ফিল্টারে কোনো কোম্পানি মেলেনি।</td></tr>'}</tbody>`;
 }
+function renderPstats(base){
+  const el=$('#pstats');if(!RES.length){el.innerHTML='';return}
+  const isBuy=r=>r.cl==='BUY'||r.cl==='STRONG_BUY';
+  const line=(label,f,today)=>{
+    const x=[];base.forEach(r=>r.trades.forEach(t=>{if(f(t))x.push(t.ret)}));const n=x.length;
+    if(!n)return`<tr><td>${label}</td><td class="n">0</td><td class="n">–</td><td class="n">–</td><td class="n">${today}</td></tr>`;
+    const w=x.filter(v=>v>0).length/n*100,av=x.reduce((a,b)=>a+b,0)/n;
+    return`<tr><td>${label}${n<30?' <span class="muted">(নমুনা কম)</span>':''}</td><td class="n">${n}</td><td class="n">${w.toFixed(0)}%</td><td class="n ${av>=0?'up':'down'}">${av>=0?'+':''}${av.toFixed(2)}%</td><td class="n">${today}</td></tr>`;
+  };
+  const rows=['breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
+  el.innerHTML=`<h3 style="margin-bottom:8px">কোন ধরনের সংকেত অতীতে কেমন চলেছে</h3><div class="tw"><table class="mini"><thead><tr><th>ধরন</th><th class="n">অতীত সংকেত</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th><th class="n">আজকের কেনার সংকেত</th></tr></thead><tbody>${line('সব কেনা-সংকেত একসাথে',()=>true,base.filter(isBuy).length)}${rows}</tbody></table></div><p class="note">খরচ বাদ দিয়ে, ${+$('#hold').value||10} দিন হোল্ড ধরে। একটি সংকেত একাধিক ধরনের হতে পারে, তাই সারিগুলো যোগ করলে মোট মিলবে না। ৩০টির কম সংকেতে ফল ভাগ্যের উপর নির্ভর করতে পারে।</p>`;
+}
+$('#ptypes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ptype=b.dataset.p;render()});
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render()});
 $('#tbl').addEventListener('click',e=>{
   const th=e.target.closest('th');
@@ -484,8 +507,8 @@ $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.c
 
 $('#btnExport').addEventListener('click',()=>{
   if(!RES.length)return;
-  const rows=[['symbol','date','close','change_pct','signal','buy_score','sell_score','rsi','vol_ratio','entry','stop','target1','target2','risk_pct','bt_trades','bt_win_pct']];
-  baseList().forEach(r=>rows.push([r.sym,r.b[r.b.length-1].d,r.close,r.chg.toFixed(2),r.cl,r.buy,r.sell,r.rsi==null?'':r.rsi.toFixed(1),r.vr.toFixed(2),r.pl.entry,r.pl.stop,r.pl.t1,r.pl.t2,r.pl.riskPct.toFixed(2),r.bt.n,r.bt.n?r.bt.win.toFixed(0):'']));
+  const rows=[['symbol','date','close','change_pct','signal','buy_score','sell_score','rsi','vol_ratio','entry','stop','target1','target2','risk_pct','types','bt_trades','bt_win_pct','bt_avg_ret_pct']];
+  baseList().forEach(r=>rows.push([r.sym,r.b[r.b.length-1].d,r.close,r.chg.toFixed(2),r.cl,r.buy,r.sell,r.rsi==null?'':r.rsi.toFixed(1),r.vr.toFixed(2),r.pl.entry,r.pl.stop,r.pl.t1,r.pl.t2,r.pl.riskPct.toFixed(2),r.dtags.join('|'),r.bt.n,r.bt.n?r.bt.win.toFixed(0):'',r.bt.n?r.bt.avg.toFixed(2):'']));
   const csv=rows.map(r=>r.join(',')).join('\n');
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`scan-${maxDate||'result'}.csv`;a.click()}catch(e){setMsg('ডাউনলোড এই ভিউয়ারে কাজ করছে না।','err')}
 });
