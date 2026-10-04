@@ -143,14 +143,45 @@ def parse_date(s):
     return None
 
 
-def snapshot_time(text):
-    m = re.search(r'On\s+([A-Z][a-z]{2})\s+(\d{1,2}),\s*(\d{4})\s+at\s+(\d{1,2}):(\d{2})\s*([AP]M)', text)
-    if not m:
-        return None
+def _mk(mon, day, year, hh=None, mi=None, ap=None):
     try:
-        return datetime.strptime(f'{m[1]} {m[2]} {m[3]} {m[4]}:{m[5]} {m[6]}', '%b %d %Y %I:%M %p')
+        if hh is None:
+            return datetime.strptime(f'{mon[:3]} {day} {year}', '%b %d %Y')
+        return datetime.strptime(f'{mon[:3]} {day} {year} {hh}:{mi} {ap.upper()}', '%b %d %Y %I:%M %p')
     except ValueError:
         return None
+
+
+def snapshot_dt(text):
+    """পেজের তারিখ-সময় খোঁজে। (datetime, সময়-পাওয়া-গেছে কি না) অথবা (None, False) দেয়।"""
+    pats = [r'On\s+([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),?\s*(\d{4})\s+at\s+(\d{1,2}):(\d{2})\s*([AaPp][Mm])',
+            r'([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),?\s*(\d{4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AaPp][Mm])']
+    for pat in pats:
+        m = re.search(pat, text)
+        if m:
+            dt = _mk(m[1], m[2], m[3], m[4], m[5], m[6])
+            if dt:
+                return dt, True
+    m = re.search(r'([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),?\s*(\d{4})', text)
+    if m:
+        dt = _mk(m[1], m[2], m[3])
+        if dt:
+            return dt, False
+    m = re.search(r'(20\d{2})-(\d{2})-(\d{2})', text)
+    if m:
+        try:
+            return datetime(int(m[1]), int(m[2]), int(m[3])), False
+        except ValueError:
+            pass
+    return None, False
+
+
+def snapshot_time(text):
+    return snapshot_dt(text)[0]
+
+
+def now_dhaka():
+    return datetime.now(DHAKA)
 
 
 def to_record(d, date_str):
@@ -214,7 +245,7 @@ def fetch_snapshot():
             rows, text = extract(http_get(url))
             if len(rows) >= 50:
                 log(f'{url}: {len(rows)} সারি পাওয়া গেছে')
-                return base, rows, snapshot_time(text)
+                return base, rows, text
             errs.append(f'{url}: মাত্র {len(rows)} সারি (পেজের গঠন বদলে যেতে পারে)')
         except Exception as e:
             errs.append(str(e))
@@ -234,24 +265,52 @@ def fetch_archive(base, code, start, end):
 
 
 def run_daily(a):
-    base, rows, ts = fetch_snapshot()
+    base, rows, text = fetch_snapshot()
+    now = now_dhaka()
+    today = now.date()
+    force = getattr(a, 'force', False)
+    ts, has_time = snapshot_dt(text)
+    if ts is not None and (ts.date() > today or (today - ts.date()).days > 10):
+        log(f'সতর্কতা: পেজে পাওয়া তারিখ {ts.date()} অস্বাভাবিক, তাই অগ্রাহ্য করা হলো।')
+        ts = None
     if ts is None:
-        log('সতর্কতা: পেজ থেকে তারিখ/সময় পড়া যায়নি, তাই নিরাপত্তার জন্য থামছি। (--force দিলে আজকের তারিখ ধরা হবে)')
-        if not a.force:
-            return 1
-        ts = datetime.now(DHAKA).replace(tzinfo=None)
-    now = datetime.now(DHAKA)
-    ch, cm = (int(x) for x in a.cutoff.split(':'))
-    if ts.date() == now.date() and (ts.hour, ts.minute) < (ch, cm) and not a.force:
-        log(f'পেজের সময় {ts:%H:%M}, যা {a.cutoff} এর আগে। বাজারের চূড়ান্ত দাম এখনও আসেনি, এবার কিছু যোগ করা হচ্ছে না।')
+        hint = re.search(r'.{0,60}\b20\d\d\b.{0,40}', text)
+        log('সতর্কতা: পেজ থেকে তারিখ পড়া যায়নি।' + (f' পেজে পাওয়া কাছাকাছি লেখা: "{hint.group(0).strip()}"' if hint else ''))
+        if now.weekday() in (4, 5) and not force:
+            log('আজ শুক্র বা শনিবার, বাজার বন্ধ। কিছু যোগ করা হচ্ছে না।')
+            return 0
+        if (now.hour, now.minute) < (14, 45) and not force:
+            log('এখনও ১৪:৪৫ হয়নি, বাজারের চূড়ান্ত দাম আসেনি। কিছু যোগ করা হচ্ছে না।')
+            return 0
+        ts, has_time = datetime(today.year, today.month, today.day), False
+        log(f'আজকের তারিখ ({today}) ধরে এগোচ্ছি। ছুটির দিন হলে নিচের "হুবহু একই ডেটা" পরীক্ষা তা আটকাবে।')
+    else:
+        log(f'পেজের তারিখ-সময়: {ts:%Y-%m-%d %H:%M}' + ('' if has_time else ' (সময় পাওয়া যায়নি)'))
+    ch, cm = (int(x) for x in getattr(a, 'cutoff', '14:20').split(':'))
+    if has_time and ts.date() == today and (ts.hour, ts.minute) < (ch, cm) and not force:
+        log(f'পেজের সময় {ts:%H:%M}, যা {ch:02d}:{cm:02d} এর আগে। বাজারের চূড়ান্ত দাম এখনও আসেনি, এবার কিছু যোগ করা হচ্ছে না।')
         return 0
-    recs = [r for r in (to_record(d, ts.date().isoformat()) for d in rows) if r]
+    date_str = ts.date().isoformat()
+    recs = [r for r in (to_record(d, date_str) for d in rows) if r]
     if len(recs) < 50:
         log(f'ত্রুটি: বৈধ রেকর্ড মাত্র {len(recs)}টি। পেজের গঠন বদলেছে কি না দেখুন।')
         return 1
     data = load_csv()
+    stored = {k[0] for k in data}
+    prev_dates = sorted(d for d in stored if d < date_str)
+    if date_str not in stored and prev_dates:
+        prev, same, tot = prev_dates[-1], 0, 0
+        for r in recs:
+            o = data.get((prev, r['TRADING CODE']))
+            if o:
+                tot += 1
+                if o['CLOSEP'] == r['CLOSEP'] and o['VOLUME'] == r['VOLUME']:
+                    same += 1
+        if tot >= 50 and same / tot >= 0.95:
+            log(f'পেজের দাম ও ভলিউম {prev} তারিখের ডেটার হুবহু একই ({same}/{tot})। ছুটির দিন বা পেজ আপডেট হয়নি, তাই {date_str} যোগ করা হলো না।')
+            return 0
     merge(data, recs)
-    log(f'{ts.date()} তারিখের {len(recs)}টি কোম্পানির ডেটা যোগ হয়েছে')
+    log(f'{date_str} তারিখের {len(recs)}টি কোম্পানির ডেটা যোগ হয়েছে')
     save(data, a.keep, base)
     return 0
 
@@ -289,7 +348,7 @@ def main():
     p.add_argument('--codes', default='', help='কমা দিয়ে নির্দিষ্ট কোম্পানির কোড')
     p.add_argument('--keep', type=int, default=320, help='সর্বাধিক কত ট্রেডিং-দিন রাখবে')
     p.add_argument('--sleep', type=float, default=1.5, help='প্রতি কোম্পানির মাঝে বিরতি (সেকেন্ড)')
-    p.add_argument('--cutoff', default='14:30', help='এর আগের (ঢাকা সময়) আংশিক ডেটা নেবে না')
+    p.add_argument('--cutoff', default='14:20', help='এর আগের (ঢাকা সময়) আংশিক ডেটা নেবে না')
     p.add_argument('--force', action='store_true')
     a = p.parse_args()
     try:
