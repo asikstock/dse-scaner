@@ -776,6 +776,133 @@ async function autoLoad(){
     info.textContent='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি ('+e.message+'). নিচে নিজে CSV দিন, অথবা প্রথমবার ডেটা-ডাউনলোডের ধাপ সম্পন্ন হয়েছে কি না দেখুন।';
   }
 }
+
+/* ========== EARLY INDICATOR ADD-ON (ওয়েটেড স্কোরিং ইঞ্জিন) ========== */
+(function(){
+  const _compute  = compute;
+  const _scoreAt  = scoreAt;
+  const _classify = classify;
+
+  /* -------- নতুন ইন্ডিকেটর ফাংশন -------- */
+  function STOCH(b,n,d){ n=n||14; d=d||3;
+    var K=Array(b.length).fill(null), D=Array(b.length).fill(null);
+    for(var i=n-1;i<b.length;i++){
+      var hi=-Infinity, lo=Infinity;
+      for(var k=i-n+1;k<=i;k++){ if(b[k].h>hi)hi=b[k].h; if(b[k].l<lo)lo=b[k].l; }
+      K[i]=hi===lo?50:((b[i].c-lo)/(hi-lo))*100;
+    }
+    for(var i2=d-1;i2<b.length;i2++){
+      var s=0,cnt=0;
+      for(var k2=i2-d+1;k2<=i2;k2++) if(K[k2]!=null){ s+=K[k2]; cnt++; }
+      if(cnt===d) D[i2]=s/d;
+    }
+    return {K:K,D:D};
+  }
+  function BOLLINGER(c,n,k){ n=n||20; k=k||2;
+    var mid=SMA(c,n),
+        upper=Array(c.length).fill(null),
+        lower=Array(c.length).fill(null),
+        width=Array(c.length).fill(null);
+    for(var i=n-1;i<c.length;i++){
+      var s=0; for(var j=i-n+1;j<=i;j++) s+=c[j];
+      var m=s/n, v=0;
+      for(var j2=i-n+1;j2<=i;j2++) v+=(c[j2]-m)*(c[j2]-m);
+      var sd=Math.sqrt(v/n);
+      mid[i]=m; upper[i]=m+k*sd; lower[i]=m-k*sd;
+      width[i]=m>0?((upper[i]-lower[i])/m)*100:0;
+    }
+    return {mid:mid,upper:upper,lower:lower,width:width};
+  }
+  function rsiBullDivergence(b,I,i){
+    if(i<25) return false;
+    var rsi=I.rsi;
+    if(rsi[i]==null||rsi[i]>=40) return false;
+    var s=Math.max(3,i-30), lows=[];
+    for(var k=s;k<=i-2;k++){
+      if(b[k].l<=b[k-1].l && b[k].l<=b[k-2].l && b[k].l<=b[k+1].l && b[k].l<=b[k+2].l && rsi[k]!=null)
+        lows.push({i:k,price:b[k].l,rsi:rsi[k]});
+    }
+    if(lows.length<2) return false;
+    var a=lows[lows.length-2], c=lows[lows.length-1];
+    return c.price<a.price && c.rsi>a.rsi+1.5 && b[i].c<=a.price*1.02;
+  }
+  function histSlope2(I,i){
+    var h=I.hist;
+    if(i<3) return false;
+    return h[i]!=null && h[i-1]!=null && h[i-2]!=null
+        && h[i]<0 && h[i]>h[i-1] && h[i-1]>h[i-2];
+  }
+  function stochBullCross(I,i){
+    var K=I.stochK, D=I.stochD;
+    if(i<3) return false;
+    if(K[i]==null||D[i]==null||K[i-1]==null||D[i-1]==null) return false;
+    if(!(K[i-1]<=D[i-1] && K[i]>D[i])) return false;
+    for(var k=i;k>i-4 && k>=0;k--) if(K[k]!=null && K[k]<20) return true;
+    return false;
+  }
+  function bbSqueezeBounce(b,I,i){
+    if(i<60) return false;
+    var w=I.bbWidth, lo=I.bbLower;
+    if(w[i]==null||lo[i]==null||w[i-1]==null||lo[i-1]==null) return false;
+    var s=Math.max(0,i-100), arr=[];
+    for(var k=s;k<=i;k++) if(w[k]!=null) arr.push(w[k]);
+    if(arr.length<50) return false;
+    arr.sort(function(x,y){return x-y});
+    var p20=arr[Math.floor(arr.length*0.2)];
+    var isSqueeze = w[i]<=p20*1.15;
+    var touched = b[i-1].l<=lo[i-1] || b[i].l<=lo[i];
+    var bounced = b[i].c>lo[i] && b[i].c>b[i].o;
+    return isSqueeze && touched && bounced;
+  }
+  function earlyScore(b,I,i){
+    if(i<60) return null;
+    var s=0, why=[];
+    if(rsiBullDivergence(b,I,i)){ s+=3;   why.push('RSI bull divergence (+3)'); }
+    if(histSlope2(I,i)){          s+=1.5; why.push('MACD hist slope ঘুরছে (+1.5)'); }
+    if(stochBullCross(I,i)){      s+=1.5; why.push('Stochastic oversold cross (+1.5)'); }
+    if(bbSqueezeBounce(b,I,i)){   s+=1;   why.push('BB squeeze bounce (+1)'); }
+    var vr = I.vavg[i-1] ? I.v[i]/I.vavg[i-1] : 0;
+    if(vr>=1.3 && b[i].c>b[i-1].c){ s+=1.5; why.push('ভলিউম '+vr.toFixed(1)+'x (+1.5)'); }
+    if(I.sma20[i]!=null && I.sma50[i]!=null && I.sma20[i]>I.sma50[i] && b[i].c>=I.sma20[i]){
+      s+=1.5; why.push('ট্রেন্ড ঊর্ধ্বমুখী (+1.5)');
+    }
+    return {score:Math.min(10,s), why:why};
+  }
+
+  /* -------- compute() override: নতুন ইন্ডিকেটর হিসাব -------- */
+  compute = function(b){
+    var I = _compute(b);
+    var st = STOCH(b);
+    var bb = BOLLINGER(b.map(function(x){return x.c}));
+    I.stochK=st.K; I.stochD=st.D;
+    I.bbMid=bb.mid; I.bbUpper=bb.upper; I.bbLower=bb.lower; I.bbWidth=bb.width;
+    return I;
+  };
+
+  /* -------- scoreAt() override: আর্লি স্কোর যোগ -------- */
+  scoreAt = function(b,I,i){
+    var r = _scoreAt(b,I,i);
+    if(r===null) return null;
+    var es = earlyScore(b,I,i);
+    r.early = es || {score:0, why:[]};
+    if(es && es.score>0){
+      r.rb.push('⚡ আর্লি স্কোর '+es.score.toFixed(1)+'/১০');
+      for(var k=0;k<es.why.length;k++) r.rb.push('⚡ '+es.why[k]);
+      if(es.score>=7.5) r.tags.push('early-buy');
+    }
+    return r;
+  };
+
+  /* -------- classify() override: ৭.৫+ হলে STRONG_BUY -------- */
+  classify = function(r){
+    if(!r) return 'NA';
+    if(r.early && r.early.score>=7.5) return 'STRONG_BUY';
+    if(r.early && r.early.score>=6)   return 'BUY';
+    return _classify(r);
+  };
+})();
+/* ========== END EARLY INDICATOR ADD-ON ========== */
+
 autoLoad();
 </script>
 </body>
