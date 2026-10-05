@@ -113,6 +113,7 @@ table.mini{min-width:540px}
 table.mini th{cursor:default;position:static}
 .tg{display:inline-block;font-size:12.5px;padding:1px 8px;border-radius:999px;background:var(--flat-bg);margin-right:4px}
 .tg-early{background:#fff4d6;color:#8a5a00;font-weight:600}
+.tg-candle{background:#e8f2ff;color:#27408b;font-weight:600}
 .ptb{width:100%;min-width:0;font-size:13.5px;margin-top:6px}
 .ptb th,.ptb td{padding:5px 8px;white-space:normal;position:static;cursor:default;background:transparent}
 .ptb thead th{font-weight:600;color:var(--ink);border-bottom:1px solid var(--line)}
@@ -149,6 +150,8 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-weight:600}
 :root[data-theme="dark"] .early-panel{background:linear-gradient(135deg,#2a2210,#1a1608);border-color:#5a4a1f}
 .early-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#8a5a00}
 :root[data-theme="dark"] .early-panel h4{color:#e6b450}
+.candle-panel{background:linear-gradient(135deg,#e8f2ff,#d6e4f7);border:1px solid #9fb8dd;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.candle-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#27408b}
 .early-bar{height:8px;background:var(--line2);border-radius:4px;overflow:hidden;margin:6px 0}
 .early-bar i{display:block;height:100%;background:linear-gradient(90deg,#d4a017,#e6b450);transition:width .3s}
 .early-list{margin:6px 0 0;padding-left:18px;font-size:13.5px}
@@ -606,12 +609,89 @@ function genDemo(){
 })();
 /* ========== END EARLY INDICATOR ADD-ON ========== */
 
+/* ========== CANDLESTICK & PRICE ACTION PATTERNS ========== */
+(function(){
+  const _scoreAt = scoreAt;
+
+  function bodyAbs(c){ return Math.abs(c.c - c.o); }
+  function upperShadow(c){ return c.h - Math.max(c.o, c.c); }
+  function lowerShadow(c){ return Math.min(c.o, c.c) - c.l; }
+  function rangeAbs(c){ return c.h - c.l; }
+
+  /* ১. Bullish Engulfing: বর্তমান সবুজ ক্যান্ডেল আগেরটিকে ঢাকে + বডি ≥ ১.৫× */
+  function bullishEngulfing(b, i){
+    if(i < 1) return false;
+    const cur = b[i], prev = b[i-1];
+    const prevBody = bodyAbs(prev), curBody = bodyAbs(cur);
+    if(curBody <= 0 || prevBody <= 0) return false;
+    if(cur.c <= cur.o) return false;
+    if(cur.c <= prev.o) return false;
+    if(curBody < prevBody * 1.5) return false;
+    if(cur.o > Math.min(prev.o, prev.c)) return false;
+    return true;
+  }
+
+  /* ২. Bullish Pin Bar / Hammer: নিচের শ্যাডো ≥ ২× বডি, উপরের শ্যাডো ছোট */
+  function bullishPinBar(b, i){
+    if(i < 0) return false;
+    const c = b[i];
+    const body = bodyAbs(c), ls = lowerShadow(c), us = upperShadow(c), range = rangeAbs(c);
+    if(range <= 0) return false;
+    if(body > 0){
+      if(ls < 2 * body) return false;
+    } else {
+      if(ls < range * 0.6) return false;
+    }
+    if(body > 0 && us > body * 0.6 && us > range * 0.15) return false;
+    if(body === 0 && us > range * 0.15) return false;
+    if(body / range > 0.45) return false;
+    return true;
+  }
+
+  /* ৩. Volume Consolidation Breakout: ১০ দিনের হাই ভাঙে + ভলিউম ≥ ২× (২০ দিনের গড়) */
+  function volConsolidationBreakout(b, I, i){
+    if(i < 20) return false;
+    let hh = -Infinity;
+    for(let k = i-10; k < i; k++){ if(b[k].h > hh) hh = b[k].h; }
+    if(!(hh > 0)) return false;
+    if(b[i].c <= hh) return false;
+    const avg = I.vavg[i-1];
+    if(!avg) return false;
+    if(b[i].v < 2 * avg) return false;
+    return true;
+  }
+
+  scoreAt = function(b, I, i){
+    const r = _scoreAt(b, I, i);
+    if(r === null) return null;
+
+    if(bullishEngulfing(b, i)){
+      r.buy += 2;
+      r.rb.push('🕯️ Bullish Engulfing ক্যান্ডেল (+২)');
+      if(!r.tags.includes('engulfing')) r.tags.push('engulfing');
+    }
+    if(bullishPinBar(b, i)){
+      r.buy += 2;
+      r.rb.push('📍 Bullish Pin Bar / Hammer (+২)');
+      if(!r.tags.includes('pinbar')) r.tags.push('pinbar');
+    }
+    if(volConsolidationBreakout(b, I, i)){
+      r.buy += 2;
+      r.rb.push('🚀 ভলিউম কনসোলিডেশন ব্রেকআউট (২০-দিনের গড়ের ২×+) (+২)');
+      if(!r.tags.includes('vol-breakout')) r.tags.push('vol-breakout');
+      if(!r.tags.includes('breakout')) r.tags.push('breakout');
+    }
+    return r;
+  };
+})();
+/* ========== END CANDLESTICK PATTERNS ========== */
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WAIT:{t:'পুলব্যাকের অপেক্ষা',c:'b-w',rank:2},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:3},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:4},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:5},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:6}};
 const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
-const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই'};
+const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট'};
 let FUND=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
@@ -741,7 +821,7 @@ function render(){
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
   const pool=base.filter(tabOK);
   const list=pool.filter(r=>ptype==='all'||r.dtags.includes(ptype));
-  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','early-buy','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
+  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','early-buy','engulfing','pinbar','vol-breakout','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
   const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,early:r=>(r.early?r.early.score:-1),rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk,cat:r=>r.cat||'~',eps:r=>r.eps==null?-999:r.eps}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
   const cols=[['sym','কোম্পানি'],['cat','ক্যাট.'],['eps','EPS (সর্বশেষ)','n'],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত'],['early','⚡ আর্লি','n'],['pt','ধরন','',1],['buy','কেনার স্কোর','n'],['sell','বিক্রির স্কোর','n'],['rsi','RSI','n'],['vr','ভলিউম/গড়','n'],['en','এন্ট্রি / জোন','n',1],['risk','স্টপ কত % দূরে','n'],['stop','স্টপ-লস','n',1],['t1','টার্গেট ১','n',1],['sr','সাপোর্ট / রেজিস্ট্যান্স','n',1],['win','অতীত জয়ের হার','n'],['avg','অতীত গড় রিটার্ন','n']];
@@ -749,7 +829,7 @@ function render(){
   const th=cols.map(([k,t,n,ns])=>`<th class="${n||''}" data-k="${ns?'':k}" ${sortKey===k?`aria-sort="${sortDir>0?'ascending':'descending'}"`:''}>${t}<span class="ar">${sortKey===k?(sortDir>0?'▲':'▼'):''}</span></th>`).join('');
   const rows=list.map(r=>{
     const s=SIG[r.cl],showPlan=r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WATCH'||r.cl==='WAIT',v=r.view;
-    const ch=r.chg,tg=r.dtags.map(t=>`<span class="tg ${t==='early-buy'?'tg-early':''}">${PT[t]}</span>`).join('')||'<span class="muted">–</span>';
+    const ch=r.chg,tg=r.dtags.map(t=>{const cls=t==='early-buy'?'tg-early':(['engulfing','pinbar','vol-breakout'].includes(t)?'tg-candle':'');return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
     const sr=`${r.ep.nearS?fmt(r.ep.nearS.p):'–'} / ${r.ep.nearR?fmt(r.ep.nearR.p):'নতুন উচ্চতা'}`;
     const es=r.early&&r.early.score;
     const esCell=es>=7.5?`<span class="badge b-e">⚡ ${es.toFixed(1)}</span>`:es>0?`<span class="muted">${es.toFixed(1)}</span>`:'<span class="muted">–</span>';
@@ -764,7 +844,7 @@ function renderPstats(base){
   const cells=s=>s?`<td class="n">${s.n}</td><td class="n">${s.w.toFixed(0)}%</td><td class="n ${s.av>=0?'up':'down'}">${s.av>=0?'+':''}${s.av.toFixed(2)}%</td>`:'<td class="n">0</td><td class="n">–</td><td class="n">–</td>';
   const small=s=>s&&s.n<30?' <span class="muted">(নমুনা কম)</span>':'';
   const line=(label,f,today)=>{const x=[];base.forEach(r=>r.trades.forEach(t=>{if(f(t))x.push(t.ret)}));const s=st(x);return`<tr><td>${label}${small(s)}</td>${cells(s)}<td class="n">${today}</td></tr>`};
-  const rows=['early-buy','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
+  const rows=['early-buy','engulfing','pinbar','vol-breakout','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
   const T=[],P=[];let extN=0;base.forEach(r=>{r.trades.forEach(t=>T.push(t));r.pulls.forEach(t=>P.push(t.ret));extN+=r.extN});
   const sN=st(T.filter(t=>!t.ext).map(t=>t.ret)),sE=st(T.filter(t=>t.ext).map(t=>t.ret)),sP=st(P);
   const per=(s,den)=>s&&den?`<td class="n ${s.sum/den>=0?'up':'down'}">${s.sum/den>=0?'+':''}${(s.sum/den).toFixed(2)}%</td>`:'<td class="n">–</td>';
@@ -857,10 +937,12 @@ function openDetail(sym,keepScroll){
   const early=r.early||{score:0,why:[]};
   const earlyPct=Math.min(100,(early.score/10)*100);
   const earlyPanel=early.score>0?`<div class="early-panel"><h4>⚡ আর্লি সিগন্যাল স্কোর: ${early.score.toFixed(1)} / ১০ ${early.score>=7.5?'<span class="badge b-e" style="margin-left:6px">বাই সংকেত</span>':''}</h4><div class="early-bar"><i style="width:${earlyPct}%"></i></div><ul class="early-list">${early.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:'';
+  const patTags=(r.dtags||[]).filter(t=>['engulfing','pinbar','vol-breakout'].includes(t));
+  const patPanel=patTags.length?`<div class="candle-panel"><h4>🕯️ আজকের ক্যান্ডেলস্টিক প্যাটার্ন</h4><ul class="early-list">${patTags.map(t=>`<li><b>${PT[t]}</b></li>`).join('')}</ul></div>`:'';
   const el=$('#detail');
   el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
   <div class="dgrid"><div>
-    ${earlyPanel}
+    ${earlyPanel}${patPanel}
     <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--up);height:2px"></i>সাপোর্ট</span><span><i style="background:var(--down);height:2px"></i>রেজিস্ট্যান্স</span><span>নিচে: ভলিউম ও RSI</span></div>
     ${chartSVG(b,I,dispPlan,buyish,ep,cl==='WAIT')}
     <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান।</p>
