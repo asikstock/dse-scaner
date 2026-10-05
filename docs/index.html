@@ -87,7 +87,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:38px
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:1720px;font-size:14.5px}
+table{border-collapse:collapse;width:100%;min-width:1820px;font-size:14.5px}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
 th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg);position:sticky;top:0;cursor:pointer;user-select:none}
 th[aria-sort]{color:var(--ink)}
@@ -108,7 +108,6 @@ td.sym{font-weight:700;letter-spacing:.01em}
 .meter{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
 .meter i{width:5px;height:14px;background:var(--meter-off);border-radius:1px}
 .meter.mb i.on{background:var(--up)} .meter.ms i.on{background:var(--down)}
-.meter.me i.on{background:#d4a017}
 .tabs button[aria-pressed="true"] .muted{color:inherit;opacity:.75}
 table.mini{min-width:540px}
 table.mini th{cursor:default;position:static}
@@ -594,7 +593,6 @@ function genDemo(){
     return r;
   };
 
-  /* উন্নত classify: বিক্রি সংকেতে জোর করে BUY বানাবে না */
   classify = function(r){
     if(!r) return 'NA';
     var base = _classify(r);
@@ -848,4 +846,63 @@ function openDetail(sym,keepScroll){
   const zoneTxt=ep.extended?`<p class="note">পুলব্যাক জোনের উপরের সীমা ${fmt(c2.hi)} (${esc(c2.hiL)}), নিচের সীমা ${fmt(c2.lo)} (${esc(c2.loL)})। স্টপ জোনের নিচে ${fmt(c2.stop)}-এ। শেয়ার সংখ্যা ও লাভ-ঝুঁকি জোনের উপরের দামে কিনলে ধরে হিসাব করা।</p>`:'';
   const planHTML=buyish?extBox+planTbl+zoneTxt+`<p class="note">স্টপ-লস ঠিক হয়েছে সুইং-লো ও ATR থেকে। টার্গেট ঝুঁকির ২ ও ৩ গুণ। এগুলো শুরুর ধারণা মাত্র, বাজার দেখে নিজে বদলান।</p>`
     :`<p class="muted" style="font-size:14px">এই মুহূর্তে কেনার প্ল্যান দেখানো হচ্ছে না, কারণ সংকেত "${s.t}"।${cl==='SELL'||cl==='STRONG_SELL'?' আপনার কাছে এই শেয়ার থাকলে এক্সিট বা স্টপ উপরে তোলার কথা ভাবুন।':''}</p>`;
- 
+  const lvl=(arr,emptyTxt)=>arr.length?`<ul>${arr.slice(0,3).map(x=>`<li><b>${fmt(x.p)}</b> <span class="muted">${esc(x.label)}${x.n?`, ${x.n}টি সুইং-পয়েন্ট`:''}</span></li>`).join('')}</ul>`:`<p class="muted" style="font-size:14px;margin:4px 0 0">${emptyTxt}</p>`;
+  const srHTML=`<p style="margin:6px 0 0;font-weight:600">রেজিস্ট্যান্স (উপরে)</p>${lvl(ep.res,'গত ১২০ ট্রেডিং-দিনে দামের উপরে কোনো প্রতিরোধ নেই, অর্থাৎ নতুন উচ্চতায়। এমন জায়গায় লক্ষ্য ঠিক করা কঠিন, তাই ঝুঁকি-ভিত্তিক টার্গেট ধরুন।')}<p style="margin:8px 0 0;font-weight:600">সাপোর্ট (নিচে)</p>${lvl(ep.sup,'কাছাকাছি কোনো সাপোর্ট পাওয়া যায়নি।')}<p class="note">লেভেলগুলো গত ১২০ ট্রেডিং-দিনের সুইং হাই/লো থেকে ধরা। এগুলোকে সুনির্দিষ্ট দাম নয়, একটা এলাকা হিসেবে দেখুন।</p>`;
+  const li=a=>a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="muted" style="font-size:14px">কোনো সংকেত নেই</p>';
+  const btHTML=bt.n?`<dl class="kv"><dt>অতীতের কেনা-সংকেত</dt><dd>${bt.n}টি</dd><dt>জয়ের হার</dt><dd>${bt.win.toFixed(0)}%</dd><dt>গড় রিটার্ন</dt><dd class="${bt.avg>=0?'up':'down'}">${bt.avg>=0?'+':''}${bt.avg.toFixed(1)}%</dd><dt>গড় লাভ / গড় লোকসান</dt><dd>+${bt.avgWin.toFixed(1)}% / ${bt.avgLoss.toFixed(1)}%</dd></dl><p class="note">নিয়ম: সংকেতের পরদিন ওপেনে কেনা, T+2 পর থেকে স্টপ/টার্গেট ১ ধরা, নইলে ${+$('#hold').value||10} দিন পর ক্লোজে বের। প্রতি ট্রেড থেকে ${+$('#cost').value||0}% খরচ বাদ দেওয়া হয়েছে। ${bt.n<8?'নমুনা খুব ছোট, তাই এর উপর ভরসা করবেন না।':''}</p>`:'<p class="muted" style="font-size:14px">এই কোম্পানির ডেটায় অতীতে কেনার সংকেত তৈরি হয়নি বা ডেটা যথেষ্ট নয়।</p>';
+  const f=r.f;
+  const fundWarn=(r.cat==='Z'?'<div class="warnbox" style="margin-bottom:8px"><b>Z ক্যাটাগরি:</b> বিক্রি করতে T+3 পর্যন্ত অপেক্ষা করতে হয়, ধারে কেনা যায় না, লেনদেন কম। স্টপ-লস সময়মতো কাজ নাও করতে পারে।</div>':'')+(r.eps!=null&&r.eps<=0?`<div class="warnbox" style="margin-bottom:8px"><b>সর্বশেষ EPS ঋণাত্মক:</b> কোম্পানি এখন লোকসানে চলছে (${esc(r.epsP)} পর্যন্ত EPS ${r.eps.toFixed(2)})। সংকেত শুধু দাম ও ভলিউম দেখে, লাভ-লোকসান দেখে না।</div>`:'');
+  const fundHTML=f?fundWarn+`<dl class="kv"><dt>মার্কেট ক্যাটাগরি</dt><dd>${esc(f.cat||'–')}</dd>${f.eps.map((v,k)=>v==null?'':`<dt>EPS (${EPS_NAMES[k]})</dt><dd class="${v<0?'down':''}">${v.toFixed(2)}</dd>`).join('')}${f.pe!=null?`<dt>P/E (অনিরীক্ষিত)</dt><dd>${f.pe}</dd>`:''}</dl><p class="note">EPS-এর ৬ মাস, ৯ মাস ও বার্ষিক সংখ্যা ক্রমযোগ (সঞ্চিত), আলাদা কোয়ার্টার নয়। "–" মানে ঐ সময়ের ফল এখনও আসেনি।</p>`:`<p class="muted" style="font-size:14px">ক্যাটাগরি ও EPS তথ্য লোড হয়নি।</p>`;
+  const dispPlan=cl==='WAIT'?{entry:c2.hi,stop:c2.stop,t1:c2.t1}:pl;
+  const early=r.early||{score:0,why:[]};
+  const earlyPct=Math.min(100,(early.score/10)*100);
+  const earlyPanel=early.score>0?`<div class="early-panel"><h4>⚡ আর্লি সিগন্যাল স্কোর: ${early.score.toFixed(1)} / ১০ ${early.score>=7.5?'<span class="badge b-e" style="margin-left:6px">বাই সংকেত</span>':''}</h4><div class="early-bar"><i style="width:${earlyPct}%"></i></div><ul class="early-list">${early.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:'';
+  const el=$('#detail');
+  el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
+  <div class="dgrid"><div>
+    ${earlyPanel}
+    <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--up);height:2px"></i>সাপোর্ট</span><span><i style="background:var(--down);height:2px"></i>রেজিস্ট্যান্স</span><span>নিচে: ভলিউম ও RSI</span></div>
+    ${chartSVG(b,I,dispPlan,buyish,ep,cl==='WAIT')}
+    <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান।</p>
+  </div><div>
+    <div class="blk"><h3>কোম্পানির মৌলিক অবস্থা</h3>${fundHTML}</div>
+    <div class="blk"><h3>ট্রেড প্ল্যান</h3>${planHTML}</div>
+    <div class="blk"><h3>সাপোর্ট ও রেজিস্ট্যান্স</h3>${srHTML}</div>
+    <div class="blk"><h3>কেনার পক্ষে কারণ (স্কোর ${sc.buy})</h3>${li(sc.rb)}</div>
+    <div class="blk"><h3>বিক্রি বা সতর্কতার কারণ (স্কোর ${sc.sell})</h3>${li(sc.rs)}</div>
+    <div class="blk"><h3>এই কোম্পানিতে সংকেতের ইতিহাস</h3>${btHTML}</div>
+  </div></div>`;
+  el.className='show';
+  document.querySelectorAll('#tbl tr.sel').forEach(x=>x.classList.remove('sel'));
+  const row0=document.querySelector(`#tbl tr[data-s="${CSS.escape(sym)}"]`);if(row0)row0.classList.add('sel');
+  if(!keepScroll)el.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+render();
+
+/* ====== স্বয়ংক্রিয় ডেটা: GitHub Actions প্রতিদিন data/prices.csv আপডেট করে ====== */
+async function autoLoad(){
+  if(!/^https?:$/.test(location.protocol))return;
+  const info=$('#autoinfo');info.textContent='স্বয়ংক্রিয় ডেটা লোড হচ্ছে…';
+  try{
+    const rc=await fetch('data/prices.csv',{cache:'no-cache'});
+    if(!rc.ok)throw new Error('HTTP '+rc.status);
+    const text=await rc.text();MAP={};
+    const n=ingest(MAP,text,'prices.csv');
+    if(!n)throw new Error('ফাইল খালি');
+    let meta=null;try{const rm=await fetch('data/meta.json',{cache:'no-cache'});if(rm.ok)meta=await rm.json()}catch(e){}
+    try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
+    analyze();
+    const last=meta&&meta.last_date?meta.last_date:maxDate;
+    const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
+    const upd=meta&&meta.updated_utc?new Date(meta.updated_utc).toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}):'';
+    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
+    info.innerHTML+=FUND?` ক্যাটাগরি ও EPS তথ্য: ${Object.keys(FUND).length}টি কোম্পানি।`:' ক্যাটাগরি ও EPS তথ্য এখনও আসেনি, তাই Z ও লোকসানি ফিল্টার কাজ করছে না।';
+  }catch(e){
+    info.innerHTML='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি (<b>'+esc(e.message)+'</b>)। নিচে "ডেমো ডেটা দিয়ে দেখুন" চাপুন, অথবা CSV ফাইল দিন।';
+  }
+}
+
+autoLoad();
+</script>
+</body>
+</html>
