@@ -1072,4 +1072,55 @@ function openDetail(sym,keepScroll){
   const wt=r.weekly;
   let weeklyPanel='';
   if(wt && wt.state !== 'unknown'){
-    const stateText = {bull:'ঊর্ধ্বমুখী (দাম SMA20 উপরে,
+    const stateText = {bull:'ঊর্ধ্বমুখী (দাম SMA20 উপরে, SMA20 বাড়ছে)',bear:'নিম্নমুখী (দাম SMA20 নিচে, SMA20 কমছে)','bullish-neutral':'সামান্য ইতিবাচক (দাম SMA20 উপরে)','bearish-neutral':'সামান্য দুর্বল (দাম SMA20 নিচে)',neutral:'নিরপেক্ষ'}[wt.state]||wt.state;
+    weeklyPanel=`<div class="weekly-panel"><h4>📅 সাপ্তাহিক ট্রেন্ড: ${stateText}</h4><dl class="kv" style="margin-top:4px"><dt>সাপ্তাহিক SMA20</dt><dd>${fmt(wt.sma20)}</dd><dt>সাপ্তাহিক ক্লোজ</dt><dd>${fmt(wt.close)}</dd><dt>SMA20 স্লোপ</dt><dd class="${wt.slope>=0?'up':'down'}">${wt.slope>=0?'+':''}${wt.slope.toFixed(2)}%</dd></dl></div>`;
+  }
+  const el=$('#detail');
+  el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
+  <div class="dgrid"><div>
+    ${weeklyPanel}${earlyPanel}${bullPanel}${bearPanel}
+    <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--up);height:2px"></i>সাপোর্ট</span><span><i style="background:var(--down);height:2px"></i>রেজিস্ট্যান্স</span><span>নিচে: ভলিউম ও RSI</span></div>
+    ${chartSVG(b,I,dispPlan,buyish,ep,cl==='WAIT')}
+    <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান।</p>
+  </div><div>
+    <div class="blk"><h3>কোম্পানির মৌলিক অবস্থা</h3>${fundHTML}</div>
+    <div class="blk"><h3>ট্রেড প্ল্যান</h3>${planHTML}</div>
+    <div class="blk"><h3>সাপোর্ট ও রেজিস্ট্যান্স</h3>${srHTML}</div>
+    <div class="blk"><h3>কেনার পক্ষে কারণ (স্কোর ${sc.buy})</h3>${li(sc.rb)}</div>
+    <div class="blk"><h3>বিক্রি বা সতর্কতার কারণ (স্কোর ${sc.sell})</h3>${li(sc.rs)}</div>
+    <div class="blk"><h3>এই কোম্পানিতে সংকেতের ইতিহাস</h3>${btHTML}</div>
+  </div></div>`;
+  el.className='show';
+  document.querySelectorAll('#tbl tr.sel').forEach(x=>x.classList.remove('sel'));
+  const row0=document.querySelector(`#tbl tr[data-s="${CSS.escape(sym)}"]`);if(row0)row0.classList.add('sel');
+  if(!keepScroll)el.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+render();
+
+/* ====== স্বয়ংক্রিয় ডেটা: GitHub Actions প্রতিদিন data/prices.csv আপডেট করে ====== */
+async function autoLoad(){
+  if(!/^https?:$/.test(location.protocol))return;
+  const info=$('#autoinfo');info.textContent='স্বয়ংক্রিয় ডেটা লোড হচ্ছে…';
+  try{
+    const rc=await fetch('data/prices.csv',{cache:'no-cache'});
+    if(!rc.ok)throw new Error('HTTP '+rc.status);
+    const text=await rc.text();MAP={};
+    const n=ingest(MAP,text,'prices.csv');
+    if(!n)throw new Error('ফাইল খালি');
+    let meta=null;try{const rm=await fetch('data/meta.json',{cache:'no-cache'});if(rm.ok)meta=await rm.json()}catch(e){}
+    try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
+    analyze();
+    const last=meta&&meta.last_date?meta.last_date:maxDate;
+    const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
+    const upd=meta&&meta.updated_utc?new Date(meta.updated_utc).toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}):'';
+    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
+    info.innerHTML+=FUND?` ক্যাটাগরি ও EPS তথ্য: ${Object.keys(FUND).length}টি কোম্পানি।`:' ক্যাটাগরি ও EPS তথ্য এখনও আসেনি, তাই Z ও লোকসানি ফিল্টার কাজ করছে না।';
+  }catch(e){
+    info.innerHTML='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি (<b>'+esc(e.message)+'</b>)। নিচে "ডেমো ডেটা দিয়ে দেখুন" চাপুন, অথবা CSV ফাইল দিন।';
+  }
+}
+
+autoLoad();
+</script>
+</body>
+</html>
