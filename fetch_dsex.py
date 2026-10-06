@@ -2,8 +2,8 @@
 """DSEX দৈনিক ক্লোজ নামিয়ে data/dsex.csv-তে জমা করে। শুধু Python stdlib লাগে।
 
 ব্যবহার:
-    python fetch_dsex.py          # শেষ ১০ দিনের ডেটা আপডেট
-    python fetch_dsex.py 400      # শেষ ৪০০ দিন (ব্যাকফিল)
+    python fetch_dsex.py          # CSV না থাকলে ৪০০ দিন, থাকলে শেষ ১০ দিন
+    python fetch_dsex.py 800      # নিজে দিন সংখ্যা ঠিক করতে
 
 অন্য স্ক্রিপ্ট থেকে:
     from fetch_dsex import get_latest_dsex
@@ -22,7 +22,7 @@ import urllib.request
 ARCHIVE_URL = ("https://www.dse.com.bd/api/live/data-archive/market-summary"
                "?from={f}&to={t}")
 HOME_URL = "https://www.dse.com.bd/"
-CSV_PATH = os.environ.get("DSEX_CSV", "data/dsex.csv")
+CSV_PATH = os.environ.get("DSEX_CSV", "docs/data/dsex.csv")
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -177,9 +177,12 @@ def save_csv(rows):
             w.writerow([d, f"{rows[d]:.2f}"])
 
 
-def get_latest_dsex(days_back=10):
-    """(তারিখ, মান) ফেরত দেয়। CSV-ও আপডেট করে।"""
+def get_latest_dsex(days_back=None):
+    """(তারিখ, মান) ফেরত দেয়। CSV-ও আপডেট করে।
+    CSV না থাকলে নিজে থেকে ৪০০ দিনের ইতিহাস নামায়, থাকলে শেষ ১০ দিন।"""
     rows = load_csv()
+    if days_back is None:
+        days_back = 10 if rows else 400
     new, errors = {}, []
     try:
         new = from_archive(days_back)
@@ -202,7 +205,7 @@ def get_latest_dsex(days_back=10):
 
 
 if __name__ == "__main__":
-    days = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    days = int(sys.argv[1]) if len(sys.argv) > 1 else None
     date, value, fresh = get_latest_dsex(days)
     print(f"DSEX {date}: {value:.2f}  ({'নতুন' if fresh else 'পুরনো/ক্যাশ'})")
     sys.exit(0 if fresh else 1)
