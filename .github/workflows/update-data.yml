@@ -40,6 +40,9 @@ jobs:
 
       - name: টেস্ট চালান
         run: python tests/test_update_data.py
+        
+      - name: ইনডেক্স ডিবাগ
+        run: python scripts/debug_index.py
 
       - name: ইতিহাস নামান (শুধু প্রথমবার)
         if: ${{ github.event.inputs.bootstrap == 'true' }}
