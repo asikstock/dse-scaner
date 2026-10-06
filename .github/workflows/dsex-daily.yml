@@ -1,0 +1,32 @@
+name: DSEX Daily Close
+
+on:
+  schedule:
+    # ঢাকা সময় ৩:৩০ PM (UTC ০৯:৩০), রবি–বৃহস্পতি (DSE-র ট্রেডিং দিন)
+    - cron: "30 9 * * 0-4"
+  workflow_dispatch:   # Actions ট্যাব থেকে হাতে চালানোর বোতাম
+
+permissions:
+  contents: write      # CSV কমিট করার জন্য
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch DSEX close
+        run: python fetch_dsex.py 10
+
+      - name: Commit CSV
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/dsex.csv || true
+          git diff --cached --quiet || git commit -m "DSEX update $(date -u +%F)"
+          git push || true
