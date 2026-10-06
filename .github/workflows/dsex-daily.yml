@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Fetch DSEX close
-        run: python fetch_dsex.py 400
+        run: python fetch_dsex.py 10
 
       - name: Commit CSV
         if: always()
