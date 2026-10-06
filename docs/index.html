@@ -105,6 +105,7 @@ td.sym{font-weight:700;letter-spacing:.01em}
 .b-s,.b-ss{background:var(--down-bg);color:var(--down)}
 .b-sb{box-shadow:inset 0 0 0 1.5px var(--up)} .b-ss{box-shadow:inset 0 0 0 1.5px var(--down)}
 .b-e{background:#fff4d6;color:#8a5a00;box-shadow:inset 0 0 0 1.5px #b8860b}
+.b-wk{background:#e0f0ff;color:#0a4d8c;box-shadow:inset 0 0 0 1.5px #3a8bd8}
 .meter{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
 .meter i{width:5px;height:14px;background:var(--meter-off);border-radius:1px}
 .meter.mb i.on{background:var(--up)} .meter.ms i.on{background:var(--down)}
@@ -114,6 +115,8 @@ table.mini th{cursor:default;position:static}
 .tg{display:inline-block;font-size:12.5px;padding:1px 8px;border-radius:999px;background:var(--flat-bg);margin-right:4px}
 .tg-early{background:#fff4d6;color:#8a5a00;font-weight:600}
 .tg-candle{background:#e8f2ff;color:#27408b;font-weight:600}
+.tg-bear{background:#f8e0dd;color:#c0392b;font-weight:600}
+.tg-weekly{background:#e0f0ff;color:#0a4d8c;font-weight:600}
 .ptb{width:100%;min-width:0;font-size:13.5px;margin-top:6px}
 .ptb th,.ptb td{padding:5px 8px;white-space:normal;position:static;cursor:default;background:transparent}
 .ptb thead th{font-weight:600;color:var(--ink);border-bottom:1px solid var(--line)}
@@ -152,6 +155,10 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-weight:600}
 :root[data-theme="dark"] .early-panel h4{color:#e6b450}
 .candle-panel{background:linear-gradient(135deg,#e8f2ff,#d6e4f7);border:1px solid #9fb8dd;border-radius:6px;padding:10px 14px;margin-bottom:14px}
 .candle-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#27408b}
+.bear-panel{background:linear-gradient(135deg,#fbe6e2,#f5cfc8);border:1px solid #d89583;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.bear-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#9e2f1f}
+.weekly-panel{background:linear-gradient(135deg,#e0f0ff,#c8e0f5);border:1px solid #7fb2d9;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.weekly-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#0a4d8c}
 .early-bar{height:8px;background:var(--line2);border-radius:4px;overflow:hidden;margin:6px 0}
 .early-bar i{display:block;height:100%;background:linear-gradient(90deg,#d4a017,#e6b450);transition:width .3s}
 .early-list{margin:6px 0 0;padding-left:18px;font-size:13.5px}
@@ -220,6 +227,7 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="exZ" checked> Z ক্যাটাগরি বাদ দিন</label>
     <label class="chk"><input type="checkbox" id="exLoss" checked> সর্বশেষ EPS ঋণাত্মক (লোকসানি) বাদ দিন</label>
     <label class="chk"><input type="checkbox" id="exQLoss"> সর্বশেষ কোয়ার্টারে লস হলেও বাদ দিন</label>
+    <label class="chk"><input type="checkbox" id="exWeekBear" checked> 📅 সাপ্তাহিক নিম্নমুখী ট্রেন্ডে কেনার সংকেত দেখাবেন না</label>
   </div>
 </section>
 
@@ -686,12 +694,132 @@ function genDemo(){
 })();
 /* ========== END CANDLESTICK PATTERNS ========== */
 
+/* ========== BEARISH CANDLESTICK PATTERNS + WEEKLY TIMEFRAME FILTER ========== */
+(function(){
+  const _scoreAt = scoreAt;
+
+  function bodyAbs(c){ return Math.abs(c.c - c.o); }
+  function upperShadow(c){ return c.h - Math.max(c.o, c.c); }
+  function lowerShadow(c){ return Math.min(c.o, c.c) - c.l; }
+  function rangeAbs(c){ return c.h - c.l; }
+
+  /* 🐻 Bearish Engulfing: বর্তমান লাল ক্যান্ডেল আগেরটিকে ঢাকে + বডি ≥ ১.৫× */
+  function bearishEngulfing(b, i){
+    if(i < 1) return false;
+    const cur = b[i], prev = b[i-1];
+    const prevBody = bodyAbs(prev), curBody = bodyAbs(cur);
+    if(curBody <= 0 || prevBody <= 0) return false;
+    if(cur.c >= cur.o) return false;                       /* current লাল */
+    if(cur.c >= prev.o) return false;                      /* close < prev open */
+    if(curBody < prevBody * 1.5) return false;
+    if(cur.o < Math.max(prev.o, prev.c)) return false;     /* open আগের বডির ভেতরে বা উপরে */
+    return true;
+  }
+
+  /* 💫 Shooting Star: উপরের শ্যাডো ≥ ২× বডি, নিচের শ্যাডো ছোট */
+  function shootingStar(b, i){
+    if(i < 0) return false;
+    const c = b[i];
+    const body = bodyAbs(c), ls = lowerShadow(c), us = upperShadow(c), range = rangeAbs(c);
+    if(range <= 0) return false;
+    if(body > 0){
+      if(us < 2 * body) return false;
+    } else {
+      if(us < range * 0.6) return false;
+    }
+    if(body > 0 && ls > body * 0.6 && ls > range * 0.15) return false;
+    if(body === 0 && ls > range * 0.15) return false;
+    if(body / range > 0.45) return false;
+    return true;
+  }
+
+  /* সাপ্তাহিক ক্যান্ডেল তৈরি (প্রতি ৫ ট্রেডিং দিন = ১ সপ্তাহ) */
+  function makeWeekly(b){
+    const weekly = [];
+    for(let i = 0; i + 4 < b.length; i += 5){
+      const chunk = b.slice(i, i + 5);
+      weekly.push({
+        o: chunk[0].o,
+        h: Math.max.apply(null, chunk.map(x => x.h)),
+        l: Math.min.apply(null, chunk.map(x => x.l)),
+        c: chunk[chunk.length - 1].c,
+        v: chunk.reduce((s, x) => s + x.v, 0),
+        d: chunk[chunk.length - 1].d
+      });
+    }
+    return weekly;
+  }
+
+  /* সাপ্তাহিক SMA স্লোপ (%) */
+  function weeklySlope(w, period){
+    if(w.length < period + 2) return 0;
+    const closes = w.map(x => x.c);
+    const now = closes.slice(-period).reduce((a, b) => a + b, 0) / period;
+    const prev = closes.slice(-period - 1, -1).reduce((a, b) => a + b, 0) / period;
+    if (prev === 0) return 0;
+    return (now - prev) / prev * 100;
+  }
+
+  /* সাপ্তাহিক ট্রেন্ড নির্ধারণ */
+  function weeklyTrend(b){
+    const w = makeWeekly(b);
+    if (w.length < 22) return {state:'unknown', slope:0, close:0, sma20:0, w:w};
+    const closes = w.map(x => x.c);
+    const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    const lastClose = w[w.length - 1].c;
+    const slope = weeklySlope(w, 20);
+    let state = 'neutral';
+    if (lastClose > sma20 && slope > 0.05) state = 'bull';
+    else if (lastClose < sma20 && slope < -0.05) state = 'bear';
+    else if (lastClose > sma20) state = 'bullish-neutral';
+    else if (lastClose < sma20) state = 'bearish-neutral';
+    return {state, slope, close:lastClose, sma20, w};
+  }
+
+  scoreAt = function(b, I, i){
+    const r = _scoreAt(b, I, i);
+    if(r === null) return null;
+
+    /* Bearish প্যাটার্ন */
+    if(bearishEngulfing(b, i)){
+      r.sell += 2;
+      r.rs.push('🐻 Bearish Engulfing ক্যান্ডেল (+২ বিক্রি)');
+      if(!r.tags.includes('bear-engulfing')) r.tags.push('bear-engulfing');
+    }
+    if(shootingStar(b, i)){
+      r.sell += 2;
+      r.rs.push('💫 Shooting Star / Inverted Hammer (+২ বিক্রি)');
+      if(!r.tags.includes('shooting-star')) r.tags.push('shooting-star');
+    }
+
+    /* সাপ্তাহিক টাইমফ্রেম ফিল্টার */
+    const wt = weeklyTrend(b);
+    r.weekly = wt;
+    if (wt.state === 'bull'){
+      r.tags.push('weekly-bull');
+      if (r.buy > 0){ r.buy += 1.5; r.rb.push('📅 সাপ্তাহিক ট্রেন্ড ঊর্ধ্বমুখী (SMA20 ↑, দাম উপরে) (+১.৫ বোনাস)'); }
+    } else if (wt.state === 'bear'){
+      r.tags.push('weekly-bear');
+      if (r.buy > 0){ r.buy = Math.max(0, r.buy - 2); r.rs.push('📅 সাপ্তাহিক ট্রেন্ড নিম্নমুখী — কেনার সংকেতে সতর্কতা (−২)'); }
+      if (r.sell > 0){ r.sell += 1.5; r.rs.push('📅 সাপ্তাহিক ট্রেন্ড নিম্নমুখী (SMA20 ↓, দাম নিচে) (+১.৫ বোনাস)'); }
+    } else if (wt.state === 'bearish-neutral'){
+      r.tags.push('weekly-bear');
+      r.rs.push('📅 সাপ্তাহিক ট্রেন্ড দুর্বল (দাম SMA20 এর নিচে)');
+    } else if (wt.state === 'bullish-neutral'){
+      r.tags.push('weekly-bull');
+      r.rb.push('📅 সাপ্তাহিক ট্রেন্ড কিছুটা ইতিবাচক (দাম SMA20 এর উপরে)');
+    }
+    return r;
+  };
+})();
+/* ========== END BEARISH PATTERNS + WEEKLY FILTER ========== */
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WAIT:{t:'পুলব্যাকের অপেক্ষা',c:'b-w',rank:2},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:3},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:4},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:5},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:6}};
 const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
-const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট'};
+const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী'};
 let FUND=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
@@ -733,7 +861,7 @@ function analyze(){
     const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
     const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
     const cost=+$('#cost').value||0;const bR=backtest(b,I,hold,2),trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext})),pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));const bt=btStats(trades.map(t=>t.ret));
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]}});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -741,8 +869,8 @@ function analyze(){
 }
 function baseList(){
   const minV=+$('#minVol').value||0,minP=+$('#minPrice').value||0,hs=$('#hideStale').checked,q=$('#q').value.trim().toUpperCase();
-  const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked;
-  return RES.filter(r=>r.avgVol>=minV&&r.close>=minP&&(!hs||!r.stale)&&(!q||r.sym.includes(q))&&(!noZ||r.cat!=='Z')&&(!noL||!(r.eps!=null&&r.eps<=0))&&(!noQ||!(r.lastQ!=null&&r.lastQ<0)));
+  const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked,noWB=$('#exWeekBear').checked;
+  return RES.filter(r=>r.avgVol>=minV&&r.close>=minP&&(!hs||!r.stale)&&(!q||r.sym.includes(q))&&(!noZ||r.cat!=='Z')&&(!noL||!(r.eps!=null&&r.eps<=0))&&(!noQ||!(r.lastQ!=null&&r.lastQ<0))&&(!noWB||!((r.cl==='BUY'||r.cl==='STRONG_BUY')&&r.weekly&&r.weekly.state==='bear')));
 }
 const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=7.5)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
@@ -816,12 +944,12 @@ function render(){
   const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH'),ne=cnt(r=>r.early&&r.early.score>=7.5);
   let allN=0,allW=0,allS=0;base.forEach(r=>{if(r.bt.n){allN+=r.bt.n;allW+=r.bt.win/100*r.bt.n;allS+=r.bt.avg*r.bt.n}});
   $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>সর্বশেষ ডেটার তারিখ`:'<b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে';
-  $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>এখনই কেনার সংকেত</span></div><div><b>${ne}</b><span>⚡ আর্লি বাই (স্কোর ≥৭.৫)</span></div><div><b>${cnt(r=>r.cl==='WAIT')}</b><span>পুলব্যাকের অপেক্ষা</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div><div class="${allN&&allS<0?'t-sell':allN?'t-buy':''}"><b>${allN?(allS/allN>=0?'+':'')+(allS/allN).toFixed(2)+'%':'–'}</b><span>অতীত সংকেতের গড় রিটার্ন (খরচ বাদে)</span></div>`;
+  $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>এখনই কেনার সংকেত</span></div><div><b>${ne}</b><span>⚡ আর্লি বাই (স্কোর ≥৭.৫)</span></div><div><b>${cnt(r=>r.cl==='WAIT')}</b><span>পুলব্যাকের অপেক্ষা</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${cnt(r=>r.weekly&&r.weekly.state==='bull')}</b><span>📅 সাপ্তাহিক ঊর্ধ্বমুখী</span></div><div><b>${cnt(r=>r.weekly&&r.weekly.state==='bear')}</b><span>📅 সাপ্তাহিক নিম্নমুখী</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div><div class="${allN&&allS<0?'t-sell':allN?'t-buy':''}"><b>${allN?(allS/allN>=0?'+':'')+(allS/allN).toFixed(2)+'%':'–'}</b><span>অতীত সংকেতের গড় রিটার্ন (খরচ বাদে)</span></div>`;
   renderPstats(base);
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
   const pool=base.filter(tabOK);
   const list=pool.filter(r=>ptype==='all'||r.dtags.includes(ptype));
-  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','early-buy','engulfing','pinbar','vol-breakout','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
+  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','early-buy','engulfing','pinbar','vol-breakout','bear-engulfing','shooting-star','weekly-bull','weekly-bear','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
   const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,early:r=>(r.early?r.early.score:-1),rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk,cat:r=>r.cat||'~',eps:r=>r.eps==null?-999:r.eps}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
   const cols=[['sym','কোম্পানি'],['cat','ক্যাট.'],['eps','EPS (সর্বশেষ)','n'],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত'],['early','⚡ আর্লি','n'],['pt','ধরন','',1],['buy','কেনার স্কোর','n'],['sell','বিক্রির স্কোর','n'],['rsi','RSI','n'],['vr','ভলিউম/গড়','n'],['en','এন্ট্রি / জোন','n',1],['risk','স্টপ কত % দূরে','n'],['stop','স্টপ-লস','n',1],['t1','টার্গেট ১','n',1],['sr','সাপোর্ট / রেজিস্ট্যান্স','n',1],['win','অতীত জয়ের হার','n'],['avg','অতীত গড় রিটার্ন','n']];
@@ -829,7 +957,7 @@ function render(){
   const th=cols.map(([k,t,n,ns])=>`<th class="${n||''}" data-k="${ns?'':k}" ${sortKey===k?`aria-sort="${sortDir>0?'ascending':'descending'}"`:''}>${t}<span class="ar">${sortKey===k?(sortDir>0?'▲':'▼'):''}</span></th>`).join('');
   const rows=list.map(r=>{
     const s=SIG[r.cl],showPlan=r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WATCH'||r.cl==='WAIT',v=r.view;
-    const ch=r.chg,tg=r.dtags.map(t=>{const cls=t==='early-buy'?'tg-early':(['engulfing','pinbar','vol-breakout'].includes(t)?'tg-candle':'');return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
+    const ch=r.chg,tg=r.dtags.map(t=>{let cls='';if(t==='early-buy')cls='tg-early';else if(['engulfing','pinbar','vol-breakout'].includes(t))cls='tg-candle';else if(['bear-engulfing','shooting-star'].includes(t))cls='tg-bear';else if(['weekly-bull','weekly-bear'].includes(t))cls='tg-weekly';return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
     const sr=`${r.ep.nearS?fmt(r.ep.nearS.p):'–'} / ${r.ep.nearR?fmt(r.ep.nearR.p):'নতুন উচ্চতা'}`;
     const es=r.early&&r.early.score;
     const esCell=es>=7.5?`<span class="badge b-e">⚡ ${es.toFixed(1)}</span>`:es>0?`<span class="muted">${es.toFixed(1)}</span>`:'<span class="muted">–</span>';
@@ -844,7 +972,7 @@ function renderPstats(base){
   const cells=s=>s?`<td class="n">${s.n}</td><td class="n">${s.w.toFixed(0)}%</td><td class="n ${s.av>=0?'up':'down'}">${s.av>=0?'+':''}${s.av.toFixed(2)}%</td>`:'<td class="n">0</td><td class="n">–</td><td class="n">–</td>';
   const small=s=>s&&s.n<30?' <span class="muted">(নমুনা কম)</span>':'';
   const line=(label,f,today)=>{const x=[];base.forEach(r=>r.trades.forEach(t=>{if(f(t))x.push(t.ret)}));const s=st(x);return`<tr><td>${label}${small(s)}</td>${cells(s)}<td class="n">${today}</td></tr>`};
-  const rows=['early-buy','engulfing','pinbar','vol-breakout','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
+  const rows=['early-buy','engulfing','pinbar','vol-breakout','weekly-bull','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
   const T=[],P=[];let extN=0;base.forEach(r=>{r.trades.forEach(t=>T.push(t));r.pulls.forEach(t=>P.push(t.ret));extN+=r.extN});
   const sN=st(T.filter(t=>!t.ext).map(t=>t.ret)),sE=st(T.filter(t=>t.ext).map(t=>t.ret)),sP=st(P);
   const per=(s,den)=>s&&den?`<td class="n ${s.sum/den>=0?'up':'down'}">${s.sum/den>=0?'+':''}${(s.sum/den).toFixed(2)}%</td>`:'<td class="n">–</td>';
@@ -861,7 +989,7 @@ $('#tbl').addEventListener('click',e=>{
   const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s);
 });
 $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
-['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
+['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
 ['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 $('#pWait').addEventListener('change',renderPlanner);
@@ -871,8 +999,8 @@ $('#plannerOut').addEventListener('click',e=>{const tr=e.target.closest('tr[data
 
 $('#btnExport').addEventListener('click',()=>{
   if(!RES.length)return;
-  const rows=[['symbol','date','close','change_pct','signal','early_score','buy_score','sell_score','rsi','vol_ratio','entry','stop','target1','target2','risk_pct','types','bt_trades','bt_win_pct','bt_avg_ret_pct','support','resistance','category','eps_latest']];
-  baseList().forEach(r=>rows.push([r.sym,r.b[r.b.length-1].d,r.close,r.chg.toFixed(2),r.cl,(r.early?r.early.score.toFixed(1):''),r.buy,r.sell,r.rsi==null?'':r.rsi.toFixed(1),r.vr.toFixed(2),String(r.view.entry).replace(/,/g,''),r.view.stop,r.view.t1,r.view.t2,r.view.risk.toFixed(2),r.dtags.join('|'),r.bt.n,r.bt.n?r.bt.win.toFixed(0):'',r.bt.n?r.bt.avg.toFixed(2):'',r.ep.nearS?r.ep.nearS.p.toFixed(1):'',r.ep.nearR?r.ep.nearR.p.toFixed(1):'',r.cat,r.eps==null?'':r.eps]));
+  const rows=[['symbol','date','close','change_pct','signal','early_score','buy_score','sell_score','rsi','vol_ratio','entry','stop','target1','target2','risk_pct','types','weekly_trend','bt_trades','bt_win_pct','bt_avg_ret_pct','support','resistance','category','eps_latest']];
+  baseList().forEach(r=>rows.push([r.sym,r.b[r.b.length-1].d,r.close,r.chg.toFixed(2),r.cl,(r.early?r.early.score.toFixed(1):''),r.buy,r.sell,r.rsi==null?'':r.rsi.toFixed(1),r.vr.toFixed(2),String(r.view.entry).replace(/,/g,''),r.view.stop,r.view.t1,r.view.t2,r.view.risk.toFixed(2),r.dtags.join('|'),(r.weekly?r.weekly.state:''),r.bt.n,r.bt.n?r.bt.win.toFixed(0):'',r.bt.n?r.bt.avg.toFixed(2):'',r.ep.nearS?r.ep.nearS.p.toFixed(1):'',r.ep.nearR?r.ep.nearR.p.toFixed(1):'',r.cat,r.eps==null?'':r.eps]));
   const csv=rows.map(r=>r.join(',')).join('\n');
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`scan-${maxDate||'result'}.csv`;a.click()}catch(e){setMsg('ডাউনলোড এই ভিউয়ারে কাজ করছে না।','err')}
 });
@@ -937,54 +1065,11 @@ function openDetail(sym,keepScroll){
   const early=r.early||{score:0,why:[]};
   const earlyPct=Math.min(100,(early.score/10)*100);
   const earlyPanel=early.score>0?`<div class="early-panel"><h4>⚡ আর্লি সিগন্যাল স্কোর: ${early.score.toFixed(1)} / ১০ ${early.score>=7.5?'<span class="badge b-e" style="margin-left:6px">বাই সংকেত</span>':''}</h4><div class="early-bar"><i style="width:${earlyPct}%"></i></div><ul class="early-list">${early.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:'';
-  const patTags=(r.dtags||[]).filter(t=>['engulfing','pinbar','vol-breakout'].includes(t));
-  const patPanel=patTags.length?`<div class="candle-panel"><h4>🕯️ আজকের ক্যান্ডেলস্টিক প্যাটার্ন</h4><ul class="early-list">${patTags.map(t=>`<li><b>${PT[t]}</b></li>`).join('')}</ul></div>`:'';
-  const el=$('#detail');
-  el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
-  <div class="dgrid"><div>
-    ${earlyPanel}${patPanel}
-    <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--up);height:2px"></i>সাপোর্ট</span><span><i style="background:var(--down);height:2px"></i>রেজিস্ট্যান্স</span><span>নিচে: ভলিউম ও RSI</span></div>
-    ${chartSVG(b,I,dispPlan,buyish,ep,cl==='WAIT')}
-    <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান।</p>
-  </div><div>
-    <div class="blk"><h3>কোম্পানির মৌলিক অবস্থা</h3>${fundHTML}</div>
-    <div class="blk"><h3>ট্রেড প্ল্যান</h3>${planHTML}</div>
-    <div class="blk"><h3>সাপোর্ট ও রেজিস্ট্যান্স</h3>${srHTML}</div>
-    <div class="blk"><h3>কেনার পক্ষে কারণ (স্কোর ${sc.buy})</h3>${li(sc.rb)}</div>
-    <div class="blk"><h3>বিক্রি বা সতর্কতার কারণ (স্কোর ${sc.sell})</h3>${li(sc.rs)}</div>
-    <div class="blk"><h3>এই কোম্পানিতে সংকেতের ইতিহাস</h3>${btHTML}</div>
-  </div></div>`;
-  el.className='show';
-  document.querySelectorAll('#tbl tr.sel').forEach(x=>x.classList.remove('sel'));
-  const row0=document.querySelector(`#tbl tr[data-s="${CSS.escape(sym)}"]`);if(row0)row0.classList.add('sel');
-  if(!keepScroll)el.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-}
-render();
-
-/* ====== স্বয়ংক্রিয় ডেটা: GitHub Actions প্রতিদিন data/prices.csv আপডেট করে ====== */
-async function autoLoad(){
-  if(!/^https?:$/.test(location.protocol))return;
-  const info=$('#autoinfo');info.textContent='স্বয়ংক্রিয় ডেটা লোড হচ্ছে…';
-  try{
-    const rc=await fetch('data/prices.csv',{cache:'no-cache'});
-    if(!rc.ok)throw new Error('HTTP '+rc.status);
-    const text=await rc.text();MAP={};
-    const n=ingest(MAP,text,'prices.csv');
-    if(!n)throw new Error('ফাইল খালি');
-    let meta=null;try{const rm=await fetch('data/meta.json',{cache:'no-cache'});if(rm.ok)meta=await rm.json()}catch(e){}
-    try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
-    analyze();
-    const last=meta&&meta.last_date?meta.last_date:maxDate;
-    const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
-    const upd=meta&&meta.updated_utc?new Date(meta.updated_utc).toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}):'';
-    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
-    info.innerHTML+=FUND?` ক্যাটাগরি ও EPS তথ্য: ${Object.keys(FUND).length}টি কোম্পানি।`:' ক্যাটাগরি ও EPS তথ্য এখনও আসেনি, তাই Z ও লোকসানি ফিল্টার কাজ করছে না।';
-  }catch(e){
-    info.innerHTML='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি (<b>'+esc(e.message)+'</b>)। নিচে "ডেমো ডেটা দিয়ে দেখুন" চাপুন, অথবা CSV ফাইল দিন।';
-  }
-}
-
-autoLoad();
-</script>
-</body>
-</html>
+  const bullTags=(r.dtags||[]).filter(t=>['engulfing','pinbar','vol-breakout'].includes(t));
+  const bullPanel=bullTags.length?`<div class="candle-panel"><h4>🕯️ আজকের Bullish প্যাটার্ন</h4><ul class="early-list">${bullTags.map(t=>`<li><b>${PT[t]}</b></li>`).join('')}</ul></div>`:'';
+  const bearTags=(r.dtags||[]).filter(t=>['bear-engulfing','shooting-star'].includes(t));
+  const bearPanel=bearTags.length?`<div class="bear-panel"><h4>🐻 আজকের Bearish প্যাটার্ন</h4><ul class="early-list">${bearTags.map(t=>`<li><b>${PT[t]}</b></li>`).join('')}</ul></div>`:'';
+  const wt=r.weekly;
+  let weeklyPanel='';
+  if(wt && wt.state !== 'unknown'){
+    const stateText = {bull:'ঊর্ধ্বমুখী (দাম SMA20 উপরে,
