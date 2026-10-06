@@ -31,6 +31,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -54,8 +56,13 @@ jobs:
           git add docs/data
           if git diff --cached --quiet; then
             echo "নতুন ডেটা নেই (ছুটির দিন বা আগেই যোগ হয়েছে)"
-          else
-            git commit -m "data: $(date -u +%F)"
-            git pull --rebase
-            git push
+            exit 0
           fi
+          git commit -m "data: $(date -u +%F)"
+          # Conflict এড়াতে আগে remote-এর সাথে মিলিয়ে নিন — আমাদের সংস্করণ প্রাধান্য পাবে
+          git pull --rebase -X ours origin main || {
+            echo "Rebase ব্যর্থ, merge দিয়ে চেষ্টা করছি..."
+            git rebase --abort || true
+            git pull --no-rebase -X ours origin main
+          }
+          git push
