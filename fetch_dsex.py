@@ -175,6 +175,13 @@ def save_csv(rows):
         w.writerow(["date", "dsex_close"])
         for d in sorted(rows):
             w.writerow([d, f"{rows[d]:.2f}"])
+    # পোর্টাল data/index.csv নামে খোঁজে, তাই একই ডেটা সেই নামেও লেখা হয়
+    idx_path = os.path.join(os.path.dirname(CSV_PATH) or ".", "index.csv")
+    with open(idx_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["date", "close"])
+        for d in sorted(rows):
+            w.writerow([d, f"{rows[d]:.2f}"])
 
 
 def get_latest_dsex(days_back=None):
