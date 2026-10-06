@@ -16,6 +16,8 @@ from html.parser import HTMLParser
 
 # DSE নতুন সাইটে গেছে; পুরনো পেজ আপাতত old.dsebd.org-এ চলছে। দুটোই পরপর চেষ্টা করা হয়।
 BASES = ['https://old.dsebd.org', 'https://www.dsebd.org']
+# নতুন DSE ডোমেইন (DSEX ইনডেক্সের জন্য)
+DSE_NEW = 'https://www.dse.com.bd'
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, 'docs', 'data')
@@ -55,7 +57,7 @@ def http_get(url, retries=3, timeout=45):
                 if verify:
                     continue
                 break
-            except Exception as e:  # timeout ইত্যাদি
+            except Exception as e:
                 last = e
                 break
         time.sleep(2 * (k + 1))
@@ -154,7 +156,6 @@ def _mk(mon, day, year, hh=None, mi=None, ap=None):
 
 
 def snapshot_dt(text):
-    """পেজের তারিখ-সময় খোঁজে। (datetime, সময়-পাওয়া-গেছে কি না) অথবা (None, False) দেয়।"""
     pats = [r'On\s+([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),?\s*(\d{4})\s+at\s+(\d{1,2}):(\d{2})\s*([AaPp][Mm])',
             r'([A-Z][a-z]{2,8})\.?\s+(\d{1,2}),?\s*(\d{4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AaPp][Mm])']
     for pat in pats:
@@ -215,7 +216,7 @@ def merge(data, records):
         k = (r['DATE'], r['TRADING CODE'])
         old = data.get(k)
         if old and not r['OPENP'] and old.get('OPENP'):
-            r['OPENP'] = old['OPENP']  # আর্কাইভ থেকে পাওয়া আসল open মুছে ফেলা হবে না
+            r['OPENP'] = old['OPENP']
         data[k] = r
 
 
@@ -262,81 +263,46 @@ def save_index(data):
     log(f"ইনডেক্স সংরক্ষিত: {len(data)} দিন")
 
 
-def parse_index_table(html):
-    """টেবিলে DATE ও DSEX কলাম খুঁজে বের করে {তারিখ: মান} দেয়।"""
-    p = TableParser()
-    p.feed(html)
-    results = {}
-    for rows in p.tables:
-        keys = None
-        hdr = None
-        for i, r in enumerate(rows[:6]):
-            ks = [nk(c) for c in r]
-            if 'DATE' in ks:
-                keys, hdr = ks, i
-                break
-        if keys is None:
-            continue
-        try:
-            date_idx = keys.index('DATE')
-        except ValueError:
-            continue
-        # DSEX কলাম খোঁজা (বিভিন্ন সম্ভাব্য নাম)
-        dsex_idx = None
-        for j, k in enumerate(keys):
-            if k in ('DSEX', 'DSEXINDEX', 'BROADINDEX', 'INDEXVALUE', 'INDEX'):
-                dsex_idx = j
-                break
-        # fallback: DATE এর পরে দ্বিতীয় কলাম সাধারণত DSEX
-        if dsex_idx is None and len(keys) >= 2:
-            dsex_idx = 1 if date_idx != 1 else 2
-        if dsex_idx is None or dsex_idx == date_idx:
-            continue
-        for r in rows[hdr + 1:]:
-            if len(r) != len(keys):
-                continue
-            d = parse_date(r[date_idx])
-            v = fnum(r[dsex_idx])
-            if d and v > 0:
-                results[d] = fmt(v)
-    return results
-
-
-def fetch_index(base, start, end):
-    """DSE থেকে DSEX ইনডেক্স ডেটা নামায়। একাধিক URL চেষ্টা করে।"""
-    candidates = [
-        f'{base}/day_end_archive.php?startDate={start}&endDate={end}&archive=index',
-        f'{base}/day_end_archive.php?startDate={start}&endDate={end}&archive=dsex',
-        f'{base}/index_data.php?startDate={start}&endDate={end}',
-    ]
-    for url in candidates:
+def fetch_dsex_new_site():
+    """নতুন DSE সাইটের হোমপেজ থেকে আজকের DSEX মান বের করে।"""
+    for url in (DSE_NEW + '/', DSE_NEW, 'https://dse.com.bd/'):
         try:
             html = http_get(url)
-            res = parse_index_table(html)
-            if res:
-                log(f'ইনডেক্স পাওয়া গেছে ({len(res)} দিন) — {url.split("?")[0]}')
-                return res
-        except Exception as e:
-            log(f'ইনডেক্স URL ব্যর্থ: {url.split("?")[0]} — {e}')
-    return {}
-
-
-def fetch_dsex_homepage():
-    """হোমপেজ থেকে আজকের DSEX মান বের করে (fallback)।"""
-    for base in BASES:
-        for path in ['/', '/home.php', '/index.php']:
-            try:
-                html = http_get(base + path)
-                # "DSEX" শব্দের পরপরই সংখ্যা (কমা/দশমিক সহ)
-                m = re.search(r'DSEX[^A-Za-z0-9]{1,30}([\d,]+\.\d{1,2})', html, re.IGNORECASE)
+            # DSEX-এর পাশে থাকা সংখ্যা খোঁজার কয়েকটি প্যাটার্ন
+            pats = [
+                r'DSEX[^\d]{0,150}?([4-9][,\.]?\d{3}\.\d{1,2})',
+                r'([4-9][,\.]?\d{3}\.\d{1,2})[^\d]{0,150}?DSEX',
+                r'"DSEX"[^\d]{0,50}?([\d,\.]+)',
+                r'"DSEXIndex"[^\d]{0,50}?([\d,\.]+)',
+                r'"dsex"[^\d]{0,50}?([\d,\.]+)',
+            ]
+            for pat in pats:
+                m = re.findall(pat, html, re.IGNORECASE)
                 if m:
-                    v = fnum(m.group(1))
-                    if 1000 < v < 20000:  # স্যানিটি চেক — DSEX সাধারণত ৪-৮ হাজারে থাকে
-                        log(f'হোমপেজ থেকে DSEX = {v}')
+                    v = fnum(m[0])
+                    if 1000 < v < 20000:  # স্যানিটি চেক
+                        log(f'হোমপেজ ({url}) থেকে DSEX = {v}')
                         return v
-            except Exception:
-                continue
+        except Exception as e:
+            log(f'{url} ব্যর্থ: {e}')
     return None
+
+
+def update_index(date_str):
+    """prices আপডেটের পরপরই index.csv-এ DSEX যোগ করে।"""
+    try:
+        existing = load_index()
+        if date_str in existing:
+            log(f'ইনডেক্স: {date_str} তারিখের DSEX আগেই আছে ({existing[date_str]})')
+            return
+        v = fetch_dsex_new_site()
+        if v:
+            existing[date_str] = fmt(v)
+            save_index(existing)
+        else:
+            log('ইনডেক্স: আজকের DSEX পাওয়া যায়নি। পরবর্তী run-এ আবার চেষ্টা হবে।')
+    except Exception as e:
+        log(f'ইনডেক্স নামানো ব্যর্থ: {e}')
 
 
 # ---------- fetchers ----------
@@ -362,31 +328,9 @@ def fetch_archive(base, code, start, end):
     for d in rows:
         r = to_record(d, parse_date(d.get('DATE')))
         if r:
-            r['TRADING CODE'] = code  # পেজের কোডের বদলে অনুরোধ করা কোড নিশ্চিত করা
+            r['TRADING CODE'] = code
             out.append(r)
     return out
-
-
-def update_index(base, date_str, force_fallback=False):
-    """prices আপডেটের পরপরই index.csv-এ DSEX যোগ করে।"""
-    try:
-        today = now_dhaka().date()
-        start = (today - timedelta(days=10)).isoformat()
-        end = today.isoformat()
-        idx = fetch_index(base, start, end)
-        if not idx or force_fallback:
-            # Fallback: হোমপেজ থেকে আজকের DSEX
-            v = fetch_dsex_homepage()
-            if v:
-                idx[date_str] = fmt(v)
-        if idx:
-            existing = load_index()
-            existing.update(idx)
-            save_index(existing)
-        else:
-            log('ইনডেক্স: কোনো ডেটা পাওয়া যায়নি (পেজের গঠন বদলে থাকতে পারে)।')
-    except Exception as e:
-        log(f'ইনডেক্স নামানো ব্যর্থ: {e}')
 
 
 def run_daily(a):
@@ -408,7 +352,7 @@ def run_daily(a):
             log('এখনও ১৪:৪৫ হয়নি, বাজারের চূড়ান্ত দাম আসেনি। কিছু যোগ করা হচ্ছে না।')
             return 0
         ts, has_time = datetime(today.year, today.month, today.day), False
-        log(f'আজকের তারিখ ({today}) ধরে এগোচ্ছি। ছুটির দিন হলে নিচের "হুবহু একই ডেটা" পরীক্ষা তা আটকাবে।')
+        log(f'আজকের তারিখ ({today}) ধরে এগোচ্ছি।')
     else:
         log(f'পেজের তারিখ-সময়: {ts:%Y-%m-%d %H:%M}' + ('' if has_time else ' (সময় পাওয়া যায়নি)'))
     ch, cm = (int(x) for x in getattr(a, 'cutoff', '14:20').split(':'))
@@ -438,8 +382,8 @@ def run_daily(a):
     log(f'{date_str} তারিখের {len(recs)}টি কোম্পানির ডেটা যোগ হয়েছে')
     save(data, a.keep, base)
 
-    # ========== DSEX ইনডেক্স ডেটাও যোগ করা ==========
-    update_index(base, date_str)
+    # ========== DSEX ইনডেক্সও যোগ করা ==========
+    update_index(date_str)
 
     return 0
 
@@ -468,31 +412,12 @@ def run_bootstrap(a):
         log(f'ব্যর্থ হয়েছে ({len(failed)}টি): ' + ', '.join(failed))
     save(data, a.keep, base)
 
-    # ========== ইতিহাসের DSEX ইনডেক্সও নামানো ==========
-    log('DSEX ইনডেক্স ইতিহাস নামানো হচ্ছে (মাসিক চাংকে)...')
+    # ========== আজকের DSEX মান যোগ করা (ইতিহাস পরে জমা হবে) ==========
+    log('আজকের DSEX মান যোগ করা হচ্ছে (বাকি দিনগুলো প্রতিদিন জমা হবে)...')
     try:
-        existing = load_index()
-        cur = start
-        total_days = 0
-        while cur < end:
-            chunk_end = min(cur + timedelta(days=90), end)
-            res = fetch_index(base, cur.isoformat(), chunk_end.isoformat())
-            existing.update(res)
-            total_days += len(res)
-            log(f'  {cur} → {chunk_end}: {len(res)} দিন')
-            cur = chunk_end + timedelta(days=1)
-            time.sleep(a.sleep)
-        if total_days:
-            save_index(existing)
-        else:
-            log('ইনডেক্স ইতিহাস: কোনো ডেটা পাওয়া যায়নি। শুধু পরের আপডেট থেকে আজকের মান যোগ হবে।')
-            # অন্তত আজকের মান হোমপেজ থেকে নেওয়ার চেষ্টা
-            v = fetch_dsex_homepage()
-            if v:
-                existing[end.isoformat()] = fmt(v)
-                save_index(existing)
+        update_index(end.isoformat())
     except Exception as e:
-        log(f'ইনডেক্স ইতিহাস ব্যর্থ: {e}')
+        log(f'ইনডেক্স ব্যর্থ: {e}')
 
     return 0 if len(failed) < len(codes) else 1
 
