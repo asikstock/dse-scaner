@@ -267,6 +267,25 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="exSideways"> 📊 পার্শ্ববর্তী বাজারে (ADX &lt; ২০) কেনার সংকেত দেখাবেন না</label>
     <label class="chk"><input type="checkbox" id="exRSWeak"> 💪 ইনডেক্সের চেয়ে দুর্বল শেয়ারে (RS &lt; ১০০) কেনার সংকেত দেখাবেন না</label>
     <label class="chk"><input type="checkbox" id="exBelowVwap"> 📈 VWAP-এর নিচে থাকা শেয়ারে কেনার সংকেত দেখাবেন না</label>
+    <label class="chk"><input type="checkbox" id="exMF" checked> 🏦 মিউচুয়াল ফান্ড, বন্ড ও ফান্ড-ইউনিট বাদ দিন</label>
+    <label class="chk"><input type="checkbox" id="exSmallN"> 📉 ৫টির কম ট্রেড-ইতিহাস থাকলে বাদ দিন</label>
+    <fieldset style="grid-column:1/-1;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:6px">
+      <legend style="font-size:13.5px;padding:0 6px;color:var(--muted)">সংকেতের থ্রেশহোল্ড (স্কোর)</legend>
+      <div class="settings">
+        <label class="f">শক্তিশালী কিনুন ≥<input type="number" id="thStrongBuy" value="7" min="3" max="20" step="0.5"></label>
+        <label class="f">শক্তিশালী পার্থক্য ≥<input type="number" id="thStrongBuyDiff" value="4" min="0" max="10" step="0.5"></label>
+        <label class="f">কিনুন ≥<input type="number" id="thBuy" value="5" min="2" max="15" step="0.5"></label>
+        <label class="f">কিনুন পার্থক্য ≥<input type="number" id="thBuyDiff" value="3" min="0" max="10" step="0.5"></label>
+        <label class="f">নজরে রাখুন ≥<input type="number" id="thWatch" value="4" min="1" max="12" step="0.5"></label>
+        <label class="f">নজরে পার্থক্য ≥<input type="number" id="thWatchDiff" value="2" min="0" max="10" step="0.5"></label>
+        <label class="f">শক্তিশালী বিক্রি ≥<input type="number" id="thStrongSell" value="7" min="3" max="20" step="0.5"></label>
+        <label class="f">শক্তিশালী বিক্রয় পার্থক্য ≥<input type="number" id="thStrongSellDiff" value="4" min="0" max="10" step="0.5"></label>
+        <label class="f">বিক্রি ≥<input type="number" id="thSell" value="5" min="2" max="15" step="0.5"></label>
+        <label class="f">বিক্রি পার্থক্য ≥<input type="number" id="thSellDiff" value="3" min="0" max="10" step="0.5"></label>
+        <label class="f">⚡ আর্লি বাই ≥<input type="number" id="thEarlyBuy" value="7.5" min="3" max="10" step="0.5"></label>
+        <label class="f">⚡ আর্লি কিনুন ≥<input type="number" id="thEarlyBuy2" value="6" min="2" max="10" step="0.5"></label>
+      </div>
+    </fieldset>
   </div>
 </section>
 
@@ -275,6 +294,7 @@ footer p{max-width:90ch;margin-bottom:6px}
   <div class="tally" id="tally"></div>
   <p id="fundnote" class="note" style="margin:8px 0 0"></p>
   <div id="pstats" style="margin-top:18px"></div>
+  <div id="baselineOut" style="margin-top:18px"></div>
   <div class="row" style="margin-top:14px">
     <div class="tabs" id="tabs" role="group" aria-label="সংকেত ফিল্টার" style="margin:0;flex:1 1 auto"></div>
     <input type="search" id="q" placeholder="কোম্পানির কোড খুঁজুন" aria-label="কোম্পানির কোড খুঁজুন" style="max-width:220px">
@@ -386,12 +406,26 @@ function stockReturnAt(b,days){
   return (last/past-1)*100;
 }
 function calcRS(b){
+  if(!INDEX) return null;
   const N=20;
-  const sr=stockReturnAt(b,N);
-  const ir=indexReturn(N);
-  if(sr==null||ir==null)return null;
-  const rs=((1+sr/100)/(1+ir/100))*100;
-  return {rs,stockRet:sr,indexRet:ir};
+  if(b.length < N+1) return null;
+  const lastStockDate = b[b.length-1].d;
+  const pastStockDate = b[b.length-1-N].d;
+  const idxDates = Object.keys(INDEX).sort();
+  let endPos = -1;
+  for(let k=idxDates.length-1;k>=0;k--){ if(idxDates[k] <= lastStockDate){ endPos=k; break; } }
+  if(endPos < 0) return null;
+  let startPos = -1;
+  for(let k=endPos;k>=0;k--){ if(idxDates[k] <= pastStockDate){ startPos=k; break; } }
+  if(startPos < 0) return null;
+  const idxLast = INDEX[idxDates[endPos]];
+  const idxPast = INDEX[idxDates[startPos]];
+  if(!(idxPast>0)) return null;
+  const indexRet = (idxLast/idxPast - 1) * 100;
+  const sr = stockReturnAt(b, N);
+  if(sr == null) return null;
+  const rs = ((1+sr/100)/(1+indexRet/100))*100;
+  return {rs, stockRet:sr, indexRet, daysMatched: endPos-startPos};
 }
 
 function SMA(a,n){const o=Array(a.length).fill(null);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
@@ -502,11 +536,27 @@ function scoreAt(b,I,i){
   if(s20!=null&&s50!=null&&s20>s50&&c>=s20*0.97&&c<=s20*1.03&&rsi!=null&&rsi<50&&I.c[i]>pc){B(2,'আপট্রেন্ডে SMA20 সাপোর্টের কাছ থেকে পুলব্যাক-বাউন্স');T('pullback')}
   return r;
 }
+function getThresholds(){
+  const g=(id,def)=>{const el=document.getElementById(id);return el?(+el.value||def):def};
+  return {
+    strongBuy: g('thStrongBuy',7), strongBuyDiff: g('thStrongBuyDiff',4),
+    buy: g('thBuy',5), buyDiff: g('thBuyDiff',3),
+    strongSell: g('thStrongSell',7), strongSellDiff: g('thStrongSellDiff',4),
+    sell: g('thSell',5), sellDiff: g('thSellDiff',3),
+    watch: g('thWatch',4), watchDiff: g('thWatchDiff',2),
+    earlyBuy: g('thEarlyBuy',7.5), earlyBuy2: g('thEarlyBuy2',6)
+  };
+}
 function classify(r){
-  if(!r)return'NA';const d=r.buy-r.sell;
-  if(r.buy>=7&&d>=4)return'STRONG_BUY';if(r.buy>=5&&d>=3)return'BUY';
-  if(r.sell>=7&&-d>=4)return'STRONG_SELL';if(r.sell>=5&&-d>=3)return'SELL';
-  if(r.buy>=4&&d>=2)return'WATCH';return'NEUTRAL';
+  if(!r)return'NA';
+  const d=r.buy-r.sell;
+  const t=getThresholds();
+  if(r.buy>=t.strongBuy && d>=t.strongBuyDiff) return 'STRONG_BUY';
+  if(r.buy>=t.buy && d>=t.buyDiff) return 'BUY';
+  if(r.sell>=t.strongSell && -d>=t.strongSellDiff) return 'STRONG_SELL';
+  if(r.sell>=t.sell && -d>=t.sellDiff) return 'SELL';
+  if(r.buy>=t.watch && d>=t.watchDiff) return 'WATCH';
+  return 'NEUTRAL';
 }
 function plan(I,i){
   const c=I.c[i],a=I.atr[i]||c*0.03;
@@ -563,7 +613,11 @@ function entryPlan(b,I,i){
   return{extended,chg,stretch,why,chase,pull,sup:L.sup,res:L.res,nearS,nearR};
 }
 function backtest(b,I,hold,tplus){
-  hold=hold||10;tplus=tplus==null?2:tplus;const trades=[],pulls=[];let extN=0,nextOk=0;
+  hold=hold||10;tplus=tplus==null?2:tplus;
+  const trades=[],pulls=[];
+  const buckets={'≤5':{n:0,sum:0,w:0},'5-7':{n:0,sum:0,w:0},'7-9':{n:0,sum:0,w:0},'9-11':{n:0,sum:0,w:0},'11+':{n:0,sum:0,w:0}};
+  const randomReturns=[];
+  let extN=0,nextOk=0;
   const exitSim=(f,stop,t1)=>{
     for(let k=f+tplus;k<=f+hold&&k<b.length;k++){
       if(b[k].l<=stop)return Math.min(b[k].o,stop);
@@ -573,10 +627,35 @@ function backtest(b,I,hold,tplus){
   };
   for(let i=50;i<b.length-hold-2;i++){
     if(i<nextOk)continue;
-    const sc0=scoreAt(b,I,i),cl=classify(sc0);if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
+    const sc0=scoreAt(b,I,i);
+    // Random baseline: প্রতি ৫ দিনে
+    if(i%5===0){
+      const e=i+1;
+      if(e<b.length-hold){
+        const eR=b[e].o>0?b[e].o:b[e].c;
+        const xR=b[Math.min(e+hold,b.length-1)].c;
+        if(eR>0) randomReturns.push((xR/eR-1)*100);
+      }
+    }
+    const cl=sc0?classify(sc0):'NA';
+    // Score bucket: buy>=3 সব সিগন্যাল
+    if(sc0 && sc0.buy>=3){
+      const e=i+1;
+      if(e<b.length-hold){
+        const eR=b[e].o>0?b[e].o:b[e].c;
+        const xR=b[Math.min(e+hold,b.length-1)].c;
+        if(eR>0){
+          const rret=(xR/eR-1)*100;
+          const sv=sc0.buy;
+          const key = sv>=11?'11+': sv>=9?'9-11': sv>=7?'7-9': sv>=5?'5-7':'≤5';
+          buckets[key].n++; buckets[key].sum+=rret; if(rret>0) buckets[key].w++;
+        }
+      }
+    }
+    if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
     const pl=plan(I,i),e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
     const ep=entryPlan(b,I,i),tags=sc0.tags.filter(t=>t!=='breakdown');
-    trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended});
+    trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy});
     if(ep.extended){
       extN++;let f=-1,fp=0;
       for(let k=i+1;k<=i+5&&k<b.length;k++){if(b[k].l<=ep.pull.hi){f=k;fp=Math.min(b[k].o>0?b[k].o:ep.pull.hi,ep.pull.hi);break}}
@@ -584,7 +663,8 @@ function backtest(b,I,hold,tplus){
     }
     nextOk=i+hold;
   }
-  return{trades,pulls,extN};
+  const randomAvg = randomReturns.length ? randomReturns.reduce((x,y)=>x+y,0)/randomReturns.length : null;
+  return{trades,pulls,extN,buckets,randomAvg,randomN:randomReturns.length};
 }
 function btStats(rets){
   const n=rets.length;if(!n)return{n:0,win:null,avg:null};
@@ -753,8 +833,9 @@ function genDemo(){
     if(base==='SELL' || base==='STRONG_SELL') return base;
     var e = (r.early && r.early.score) || 0;
     var d = r.buy - r.sell;
-    if(e>=7.5 && d>=0) return 'STRONG_BUY';
-    if(e>=6 && d>=0 && base!=='STRONG_BUY') return 'BUY';
+    var t = getThresholds();
+    if(e>=t.earlyBuy && d>=0) return 'STRONG_BUY';
+    if(e>=t.earlyBuy2 && d>=0 && base!=='STRONG_BUY') return 'BUY';
     return base;
   };
 })();
@@ -926,7 +1007,7 @@ function genDemo(){
       if(!r.tags.includes('shooting-star')) r.tags.push('shooting-star');
     }
 
-    const wt = weeklyTrend(b);
+    const wt = weeklyTrend(b.slice(0, i+1));
     r.weekly = wt;
     if (wt.state === 'bull'){
       r.tags.push('weekly-bull');
@@ -1104,7 +1185,7 @@ let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
-const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'];
+const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'];
 try{const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');SK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]})}catch(e){}
 function saveSettings(){try{const s={};SK.forEach(k=>s[k]=$('#'+k).value);localStorage.setItem('dse-scan-settings',JSON.stringify(s))}catch(e){}}
 
@@ -1137,19 +1218,60 @@ function analyze(){
   const hold=+$('#hold').value||10;EXT_PCT=+$('#extPct').value||5;
   for(const sym in DB){
     const b=DB[sym];if(b.length<35)continue;
-    const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i),cl0=classify(sc),pl=plan(I,i),ep=entryPlan(b,I,i),cl=((cl0==='BUY'||cl0==='STRONG_BUY')&&ep.extended)?'WAIT':cl0,view=cl==='WAIT'?{entry:fmt(ep.pull.lo)+' – '+fmt(ep.pull.hi),stop:ep.pull.stop,t1:ep.pull.t1,t2:ep.pull.t2,risk:ep.pull.riskPct}:{entry:fmt(pl.entry),stop:pl.stop,t1:pl.t1,t2:pl.t2,risk:pl.riskPct};
+    const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i);
+    let cl0=classify(sc);
+    const pl=plan(I,i),ep=entryPlan(b,I,i);
+    const gateTags=[];
+    if(cl0==='BUY'||cl0==='STRONG_BUY'){
+      const vs20=I.v.slice(-20);const avgVol=vs20.reduce((x,y)=>x+y,0)/vs20.length;
+      const volRatio=I.v[i]/avgVol;
+      if(volRatio < 1.0){
+        cl0='WATCH'; gateTags.push('কম ভলিউম');
+        sc.rs.push('⚠️ গেট: আজকের ভলিউম গড়ের '+volRatio.toFixed(2)+'x — কম, WATCH-এ নামানো হলো');
+      }
+      if(pl.riskPct > 8){
+        cl0='WATCH'; gateTags.push('স্টপ দূরে');
+        sc.rs.push('⚠️ গেট: স্টপ '+pl.riskPct.toFixed(1)+'% দূরে — ৮% এর বেশি, WATCH-এ নামানো হলো');
+      }
+      if(I.adx[i]!=null && I.adx[i]<20){
+        cl0='WATCH'; gateTags.push('ADX কম');
+        sc.rs.push('⚠️ গেট: ADX '+I.adx[i].toFixed(0)+' — পার্শ্ববর্তী বাজার, WATCH-এ নামানো হলো');
+      }
+      if(sc.weekly && sc.weekly.state==='bear'){
+        cl0='WATCH'; gateTags.push('সাপ্তাহিক নিম্ন');
+        sc.rs.push('⚠️ গেট: সাপ্তাহিক ট্রেন্ড নিম্নমুখী, WATCH-এ নামানো হলো');
+      }
+      if(ep.extended){ cl0='WAIT'; gateTags.push('উঠে গেছে'); }
+    }
+    const cl=cl0;
+    const view=cl==='WAIT'?{entry:fmt(ep.pull.lo)+' – '+fmt(ep.pull.hi),stop:ep.pull.stop,t1:ep.pull.t1,t2:ep.pull.t2,risk:ep.pull.riskPct}:{entry:fmt(pl.entry),stop:pl.stop,t1:pl.t1,t2:pl.t2,risk:pl.riskPct};
     const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
     const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
-    const cost=+$('#cost').value||0;const bR=backtest(b,I,hold,2),trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext})),pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));const bt=btStats(trades.map(t=>t.ret));
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null});
+    const cost=+$('#cost').value||0;
+    const bR=backtest(b,I,hold,2);
+    const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score}));
+    const pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));
+    const bt=btStats(trades.map(t=>t.ret));
+    const randomAvg = bR.randomAvg!=null ? bR.randomAvg-cost : null;
+    const bucketStats={};
+    for(const k in bR.buckets){
+      const bb=bR.buckets[k];
+      if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
+    }
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:bR.randomAvg,bucketStats:bR.bucketStats});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
   render();
 }
+function isMFSymbol(s){
+  return /MF$|^1STMF|^2NDMF|^3RDMF|GROWTHFUND|INCOMEFUND|MUTUALFUND|BONDFUND|BOND$/.test(String(s).toUpperCase());
+}
 function baseList(){
   const minV=+$('#minVol').value||0,minP=+$('#minPrice').value||0,hs=$('#hideStale').checked,q=$('#q').value.trim().toUpperCase();
   const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked,noWB=$('#exWeekBear').checked,noSW=$('#exSideways').checked,noRSW=$('#exRSWeak').checked,noBV=$('#exBelowVwap').checked;
+  const noMF=$('#exMF')?$('#exMF').checked:true;
+  const noSmallN=$('#exSmallN')?$('#exSmallN').checked:false;
   const minAdx=+$('#minAdx').value||0;
   const max52w=+$('#max52w').value||100;
   const minRS=+$('#minRS').value||0;
@@ -1162,9 +1284,11 @@ function baseList(){
     &&(minAdx<=0||r.adx==null||r.adx>=minAdx)
     &&(max52w>=100||r.p52==null||r.p52<=max52w)
     &&(minRS<=0||r.rsVal==null||r.rsVal>=minRS)
-    &&(maxVwap>=100||r.vwapDist==null||r.vwapDist<=maxVwap));
+    &&(maxVwap>=100||r.vwapDist==null||r.vwapDist<=maxVwap)
+    &&(!noMF||!isMFSymbol(r.sym))
+    &&(!noSmallN||(r.bt&&r.bt.n>=5)));
 }
-const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=7.5)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
+const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
 
 const EPS_NAMES=['Q1','Q2','৬ মাস','Q3','৯ মাস','বার্ষিক'];
@@ -1233,11 +1357,12 @@ function render(){
    $('#fundnote').textContent=FUND?`ক্যাটাগরি ও EPS তথ্য আছে। Z ক্যাটাগরি ${nZ}টি (${$('#exZ').checked?'বাদ':'রাখা'}), সর্বশেষ EPS ঋণাত্মক বা শূন্য ${nL}টি (${$('#exLoss').checked?'বাদ':'রাখা'}), সর্বশেষ কোয়ার্টারে লস ${nQ}টি (${$('#exQLoss').checked?'বাদ':'রাখা'})।`:(RES.length?'ক্যাটাগরি ও EPS তথ্য লোড হয়নি, তাই Z ও লোকসানি ফিল্টার কাজ করছে না।':'')}
   const base=baseList();
   const cnt=f=>base.filter(f).length;
-  const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH'),ne=cnt(r=>r.early&&r.early.score>=7.5);
+  const nb=cnt(r=>r.cl==='STRONG_BUY'||r.cl==='BUY'),ns=cnt(r=>r.cl==='SELL'||r.cl==='STRONG_SELL'),nw=cnt(r=>r.cl==='WATCH'),ne=cnt(r=>r.early&&r.early.score>=getThresholds().earlyBuy);
   let allN=0,allW=0,allS=0;base.forEach(r=>{if(r.bt.n){allN+=r.bt.n;allW+=r.bt.win/100*r.bt.n;allS+=r.bt.avg*r.bt.n}});
   $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>সর্বশেষ ডেটার তারিখ`:'<b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে';
   $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>এখনই কেনার সংকেত</span></div><div><b>${ne}</b><span>⚡ আর্লি বাই (স্কোর ≥৭.৫)</span></div><div><b>${cnt(r=>r.rsVal!=null&&r.rsVal>=110)}</b><span>💪 আউটপারফর্মার (RS≥১১০)</span></div><div><b>${cnt(r=>r.vwapDist!=null&&r.vwapDist>0)}</b><span>📈 VWAP-এর উপরে</span></div><div><b>${cnt(r=>r.adx!=null&&r.adx>=25&&r.pdi>r.ndi)}</b><span>📊 শক্তিশালী ট্রেন্ড</span></div><div><b>${cnt(r=>r.p52!=null&&r.p52<=8)}</b><span>🎯 ৫২W উচ্চতার কাছে</span></div><div><b>${cnt(r=>r.cl==='WAIT')}</b><span>পুলব্যাকের অপেক্ষা</span></div><div><b>${nw}</b><span>নজরে রাখুন</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রির সংকেত</span></div><div><b>${allN?(allW/allN*100).toFixed(0)+'%':'–'}</b><span>অতীত কেনা-সংকেতের জয়ের হার${allN?` (${allN}টি)`:''}</span></div><div class="${allN&&allS<0?'t-sell':allN?'t-buy':''}"><b>${allN?(allS/allN>=0?'+':'')+(allS/allN).toFixed(2)+'%':'–'}</b><span>অতীত সংকেতের গড় রিটার্ন (খরচ বাদে)</span></div>`;
   renderPstats(base);
+  renderBaseline(base);
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
   const pool=base.filter(tabOK);
   const list=pool.filter(r=>ptype==='all'||r.dtags.includes(ptype));
@@ -1279,7 +1404,9 @@ function render(){
     const ch=r.chg,tg=r.dtags.map(t=>{let cls='';if(t==='early-buy')cls='tg-early';else if(['engulfing','pinbar','vol-breakout'].includes(t))cls='tg-candle';else if(['bear-engulfing','shooting-star'].includes(t))cls='tg-bear';else if(['weekly-bull','weekly-bear'].includes(t))cls='tg-weekly';else if(['strong-trend','trending','weak-trend','sideways'].includes(t))cls='tg-trend';else if(t==='52w-high')cls='tg-52w';else if(['rs-strong','rs-good','rs-neutral'].includes(t))cls='tg-rs';else if(t==='rs-weak')cls='tg-rs-weak';else if(['vwap-above','vwap-touch'].includes(t))cls='tg-vwap';return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
     const sr=`${r.ep.nearS?fmt(r.ep.nearS.p):'–'} / ${r.ep.nearR?fmt(r.ep.nearR.p):'নতুন উচ্চতা'}`;
     const es=r.early&&r.early.score;
-    const esCell=es>=7.5?`<span class="badge b-e">⚡ ${es.toFixed(1)}</span>`:es>0?`<span class="muted">${es.toFixed(1)}</span>`:'<span class="muted">–</span>';
+    const th=getThresholds();
+    const esCell=es>=th.earlyBuy?`<span class="badge b-e">⚡ ${es.toFixed(1)}</span>`:es>0?`<span class="muted">${es.toFixed(1)}</span>`:'<span class="muted">–</span>';
+    const gateHtml=(r.gateTags&&r.gateTags.length)?`<span class="tg" style="background:#fff4d6;color:#8a5a00;font-weight:600">⚠️ ${esc(r.gateTags.join(', '))}</span>`:'';
     const adxCell=r.adx==null?'<span class="muted">–</span>':(r.adx>=25?`<b class="up">${r.adx.toFixed(0)}</b>`:r.adx<20?`<span class="muted">${r.adx.toFixed(0)}</span>`:r.adx.toFixed(0));
     const p52Cell=r.p52==null?'<span class="muted">–</span>':(r.p52<=8?`<span class="badge b-52">${r.p52.toFixed(1)}%</span>`:`<span class="muted">${r.p52.toFixed(1)}%</span>`);
     const rsCell=r.rsVal==null?'<span class="muted">–</span>':(r.rsVal>=110?`<span class="badge b-rs">${r.rsVal.toFixed(0)}</span>`:r.rsVal<90?`<span class="down">${r.rsVal.toFixed(0)}</span>`:r.rsVal.toFixed(0));
@@ -1290,7 +1417,7 @@ function render(){
       (want('eps')?`<td class="n ${r.eps!=null&&r.eps<=0?'down':''}">${r.eps==null?'–':r.eps.toFixed(2)}</td>`:'')+
       (want('close')?`<td class="n">${fmt(r.close)}</td>`:'')+
       (want('chg')?`<td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td>`:'')+
-      (want('rank')?`<td><span class="badge ${s.c}">${s.t}</span></td>`:'')+
+      (want('rank')?`<td><span class="badge ${s.c}">${s.t}</span>${gateHtml?' '+gateHtml:''}</td>`:'')+
       (want('early')?`<td class="n">${esCell}</td>`:'')+
       (want('vwap')?`<td class="n">${vwapCell}</td>`:'')+
       (want('rs')?`<td class="n">${rsCell}</td>`:'')+
@@ -1312,6 +1439,49 @@ function render(){
   }).join('');
   $('#tbl').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows||`<tr><td colspan="${cols.length}" class="empty">এই ফিল্টারে কোনো কোম্পানি মেলেনি।</td></tr>`}</tbody>`;
 }
+function renderBaseline(base){
+  const el=document.getElementById('baselineOut');
+  if(!el) return;
+  if(!base.length){ el.innerHTML=''; return; }
+  let totalN=0, stratSum=0, stratWin=0;
+  base.forEach(r=>r.trades.forEach(t=>{ totalN++; stratSum+=t.ret; if(t.ret>0)stratWin++; }));
+  const stratAvg = totalN ? stratSum/totalN : 0;
+  const stratWR = totalN ? stratWin/totalN*100 : 0;
+  const randVals = base.map(r=>r.randomAvg).filter(x=>x!=null);
+  const randAvg = randVals.length ? randVals.reduce((x,y)=>x+y,0)/randVals.length : null;
+  const allB = {'≤5':{n:0,sum:0,w:0},'5-7':{n:0,sum:0,w:0},'7-9':{n:0,sum:0,w:0},'9-11':{n:0,sum:0,w:0},'11+':{n:0,sum:0,w:0}};
+  base.forEach(r=>{
+    if(!r.bucketStats) return;
+    for(const k in r.bucketStats){
+      allB[k].n += r.bucketStats[k].n;
+      allB[k].sum += r.bucketStats[k].avg * r.bucketStats[k].n;
+      allB[k].w += r.bucketStats[k].win/100 * r.bucketStats[k].n;
+    }
+  });
+  let html = '<h3 style="margin:22px 0 8px">🎯 স্ট্র্যাটেজি বনাম র‍্যান্ডম এন্ট্রি</h3>';
+  html += '<div class="tw"><table class="mini"><thead><tr><th>পদ্ধতি</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th></tr></thead><tbody>';
+  html += '<tr><td>স্ক্যানারের সংকেত</td><td class="n">'+totalN+'</td><td class="n">'+stratWR.toFixed(0)+'%</td><td class="n '+(stratAvg>=0?'up':'down')+'">'+(stratAvg>=0?'+':'')+stratAvg.toFixed(2)+'%</td></tr>';
+  if(randAvg != null){
+    const diff = stratAvg - randAvg;
+    html += '<tr><td>এলোমেলো দিনে কেনা (বেসলাইন)</td><td class="n">—</td><td class="n">—</td><td class="n '+(randAvg>=0?'up':'down')+'">'+(randAvg>=0?'+':'')+randAvg.toFixed(2)+'%</td></tr>';
+    html += '<tr><td><b>পার্থক্য (আলফা)</b></td><td class="n">—</td><td class="n">—</td><td class="n '+(diff>=0?'up':'down')+'"><b>'+(diff>=0?'+':'')+diff.toFixed(2)+'%</b></td></tr>';
+  }
+  html += '</tbody></table></div>';
+  html += '<p class="note">সবচেয়ে গুরুত্বপূর্ণ তুলনা: আপনার স্ট্র্যাটেজি এলোমেলো কেনার চেয়ে ভালো না হলে স্ক্যানার আসলে কাজ করছে না। পার্থক্য ১%+ হলে মূল্য আছে।</p>';
+  html += '<h3 style="margin:22px 0 8px">📊 কোন স্কোর-রেঞ্জ ভালো কাজ করে</h3>';
+  html += '<div class="tw"><table class="mini"><thead><tr><th>স্কোর</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th></tr></thead><tbody>';
+  const keys=['≤5','5-7','7-9','9-11','11+'];
+  for(const k of keys){
+    const bb = allB[k];
+    if(!bb.n){ html += '<tr><td>'+k+'</td><td class="n">0</td><td class="n">–</td><td class="n">–</td></tr>'; continue; }
+    const avg = bb.sum/bb.n, wr = bb.w/bb.n*100;
+    html += '<tr><td>'+k+'</td><td class="n">'+bb.n+'</td><td class="n">'+wr.toFixed(0)+'%</td><td class="n '+(avg>=0?'up':'down')+'">'+(avg>=0?'+':'')+avg.toFixed(2)+'%</td></tr>';
+  }
+  html += '</tbody></table></div>';
+  html += '<p class="note">স্কোর বাড়লে রিটার্ন বাড়লে বুঝবেন স্কোরিং কাজ করছে। না বাড়লে সাজসজ্জা মাত্র।</p>';
+  el.innerHTML = html;
+}
+
 function renderPstats(base){
   const el=$('#pstats');if(!RES.length){el.innerHTML='';return}
   const isBuy=r=>r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WAIT';
@@ -1336,9 +1506,10 @@ $('#tbl').addEventListener('click',e=>{
   const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s);
 });
 $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
-['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','minAdx','max52w','minRS','maxVwap','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
+['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
 ['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
+['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 $('#pWait').addEventListener('change',renderPlanner);
 $('#compactCols').addEventListener('change',render);
 document.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{$('#capital').value=b.dataset.cap;saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
@@ -1405,7 +1576,8 @@ function openDetail(sym,keepScroll){
   const lvl=(arr,emptyTxt)=>arr.length?`<ul>${arr.slice(0,3).map(x=>`<li><b>${fmt(x.p)}</b> <span class="muted">${esc(x.label)}${x.n?`, ${x.n}টি সুইং-পয়েন্ট`:''}</span></li>`).join('')}</ul>`:`<p class="muted" style="font-size:14px;margin:4px 0 0">${emptyTxt}</p>`;
   const srHTML=`<p style="margin:6px 0 0;font-weight:600">রেজিস্ট্যান্স (উপরে)</p>${lvl(ep.res,'গত ১২০ ট্রেডিং-দিনে দামের উপরে কোনো প্রতিরোধ নেই, অর্থাৎ নতুন উচ্চতায়। এমন জায়গায় লক্ষ্য ঠিক করা কঠিন, তাই ঝুঁকি-ভিত্তিক টার্গেট ধরুন।')}<p style="margin:8px 0 0;font-weight:600">সাপোর্ট (নিচে)</p>${lvl(ep.sup,'কাছাকাছি কোনো সাপোর্ট পাওয়া যায়নি।')}<p class="note">লেভেলগুলো গত ১২০ ট্রেডিং-দিনের সুইং হাই/লো থেকে ধরা। এগুলোকে সুনির্দিষ্ট দাম নয়, একটা এলাকা হিসেবে দেখুন।</p>`;
   const li=a=>a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="muted" style="font-size:14px">কোনো সংকেত নেই</p>';
-  const btHTML=bt.n?`<dl class="kv"><dt>অতীতের কেনা-সংকেত</dt><dd>${bt.n}টি</dd><dt>জয়ের হার</dt><dd>${bt.win.toFixed(0)}%</dd><dt>গড় রিটার্ন</dt><dd class="${bt.avg>=0?'up':'down'}">${bt.avg>=0?'+':''}${bt.avg.toFixed(1)}%</dd><dt>গড় লাভ / গড় লোকসান</dt><dd>+${bt.avgWin.toFixed(1)}% / ${bt.avgLoss.toFixed(1)}%</dd></dl><p class="note">নিয়ম: সংকেতের পরদিন ওপেনে কেনা, T+2 পর থেকে স্টপ/টার্গেট ১ ধরা, নইলে ${+$('#hold').value||10} দিন পর ক্লোজে বের। প্রতি ট্রেড থেকে ${+$('#cost').value||0}% খরচ বাদ দেওয়া হয়েছে। ${bt.n<8?'নমুনা খুব ছোট, তাই এর উপর ভরসা করবেন না।':''}</p>`:'<p class="muted" style="font-size:14px">এই কোম্পানির ডেটায় অতীতে কেনার সংকেত তৈরি হয়নি বা ডেটা যথেষ্ট নয়।</p>';
+  const smallSampleWarn = (bt.n && bt.n < 15) ? '<div class="warnbox" style="margin-bottom:8px"><b>⚠️ নমুনা খুব ছোট:</b> মাত্র '+bt.n+'টি ট্রেড থেকে হিসাব। ১৫টির কম ট্রেডে ফলাফল ভাগ্যের উপর নির্ভর করে।</div>' : '';
+  const btHTML=bt.n?smallSampleWarn+`<dl class="kv"><dt>অতীতের কেনা-সংকেত</dt><dd>${bt.n}টি</dd><dt>জয়ের হার</dt><dd>${bt.win.toFixed(0)}%</dd><dt>গড় রিটার্ন</dt><dd class="${bt.avg>=0?'up':'down'}">${bt.avg>=0?'+':''}${bt.avg.toFixed(1)}%</dd><dt>গড় লাভ / গড় লোকসান</dt><dd>+${bt.avgWin.toFixed(1)}% / ${bt.avgLoss.toFixed(1)}%</dd></dl><p class="note">নিয়ম: সংকেতের পরদিন ওপেনে কেনা, T+2 পর থেকে স্টপ/টার্গেট ১ ধরা, নইলে ${+$('#hold').value||10} দিন পর ক্লোজে বের। প্রতি ট্রেড থেকে ${+$('#cost').value||0}% খরচ বাদ দেওয়া হয়েছে। ${bt.n<8?'নমুনা খুব ছোট, তাই এর উপর ভরসা করবেন না।':''}</p>`:'<p class="muted" style="font-size:14px">এই কোম্পানির ডেটায় অতীতে কেনার সংকেত তৈরি হয়নি বা ডেটা যথেষ্ট নয়।</p>';
   const f=r.f;
   const fundWarn=(r.cat==='Z'?'<div class="warnbox" style="margin-bottom:8px"><b>Z ক্যাটাগরি:</b> বিক্রি করতে T+3 পর্যন্ত অপেক্ষা করতে হয়, ধারে কেনা যায় না, লেনদেন কম। স্টপ-লস সময়মতো কাজ নাও করতে পারে।</div>':'')+(r.eps!=null&&r.eps<=0?`<div class="warnbox" style="margin-bottom:8px"><b>সর্বশেষ EPS ঋণাত্মক:</b> কোম্পানি এখন লোকসানে চলছে (${esc(r.epsP)} পর্যন্ত EPS ${r.eps.toFixed(2)})। সংকেত শুধু দাম ও ভলিউম দেখে, লাভ-লোকসান দেখে না।</div>`:'');
   const fundHTML=f?fundWarn+`<dl class="kv"><dt>মার্কেট ক্যাটাগরি</dt><dd>${esc(f.cat||'–')}</dd>${f.eps.map((v,k)=>v==null?'':`<dt>EPS (${EPS_NAMES[k]})</dt><dd class="${v<0?'down':''}">${v.toFixed(2)}</dd>`).join('')}${f.pe!=null?`<dt>P/E (অনিরীক্ষিত)</dt><dd>${f.pe}</dd>`:''}</dl><p class="note">EPS-এর ৬ মাস, ৯ মাস ও বার্ষিক সংখ্যা ক্রমযোগ (সঞ্চিত), আলাদা কোয়ার্টার নয়। "–" মানে ঐ সময়ের ফল এখনও আসেনি।</p>`:`<p class="muted" style="font-size:14px">ক্যাটাগরি ও EPS তথ্য লোড হয়নি।</p>`;
