@@ -1289,7 +1289,7 @@ function genDemo(){
     if(r === null) return null;
     const dip = dipScore(b, I, i);
     r.dip = dip || {score:0, why:[], tags:[]};
-    if(dip && dip.score >= 7){
+    if(dip && dip.score >= 6){
       for(const t of dip.tags) if(!r.tags.includes(t)) r.tags.push(t);
       r.buy += dip.score * 0.5;
       r.rb.push(`🎯 DIP-BUY স্কোর: ${dip.score.toFixed(1)}/১০.৫`);
