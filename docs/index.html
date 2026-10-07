@@ -490,7 +490,7 @@ function compute(b){
     hh252[i]=hh; ll252[i]=ll;
   }
   const adxRes=ADX(b,14);
-  return{c,v,sma20:SMA(c,20),sma50:SMA(c,50),ema9:EMA(c,9),ema21:EMA(c,21),rsi:RSI(c),macd,sig,hist,atr:ATR(b),vavg:SMA(v,20),vwap20:VWAP(b,20),
+  return{c,v,sma20:SMA(c,20),sma50:SMA(c,50),sma200:SMA(c,200),ema9:EMA(c,9),ema21:EMA(c,21),rsi:RSI(c),macd,sig,hist,atr:ATR(b),vavg:SMA(v,20),vwap20:VWAP(b,20),
     hh20:rollPrior(b.map(x=>x.h),20,Math.max),ll10:rollPrior(b.map(x=>x.l),10,Math.min),
     adx:adxRes.adx||Array(b.length).fill(null), pdi:adxRes.pdi||Array(b.length).fill(null), ndi:adxRes.ndi||Array(b.length).fill(null),
     hh252, ll252};
@@ -1175,11 +1175,137 @@ function genDemo(){
 })();
 /* ========== END VWAP20 ========== */
 
+/* ========== DIP-BUYING REVERSAL STRATEGY ========== */
+(function(){
+  const _scoreAt = scoreAt;
+
+  function dipScore(b, I, i){
+    if(i < 60) return null;
+    const r = {score:0, why:[], tags:[]};
+    const c = I.c[i], pc = I.c[i-1];
+    const s50 = I.sma50[i], s200 = I.sma200 ? I.sma200[i] : null;
+    const rsi = I.rsi[i];
+
+    // ১. প্রধান ট্রেন্ড ঊর্ধ্বমুখী (+২)
+    if(s200!=null && s50!=null && c > s200 && s50 > s200){
+      r.score += 2;
+      r.why.push('প্রধান ট্রেন্ড ঊর্ধ্বমুখী: দাম SMA200-এর উপরে, SMA50 > SMA200 (+২)');
+      r.tags.push('dip-uptrend');
+    } else {
+      return {score:0, why:['প্রধান ট্রেন্ড ঊর্ধ্বমুখী নয় — dip-buy বাদ'], tags:[]};
+    }
+
+    // ২. RSI ডুবেছে কিন্তু ঘুরছে (+২)
+    if(rsi != null){
+      let recentLow = 999;
+      for(let k=Math.max(0,i-7);k<=i;k++){
+        if(I.rsi[k] != null && I.rsi[k] < recentLow) recentLow = I.rsi[k];
+      }
+      const rsiPrev = I.rsi[i-1];
+      const dipped = recentLow < 42;
+      const turning = rsiPrev != null && rsi > rsiPrev && rsi < 60;
+      if(dipped && turning){
+        r.score += 2;
+        r.why.push(`RSI ${recentLow.toFixed(0)} থেকে ${rsi.toFixed(0)}-এ ঘুরছে (+২)`);
+        r.tags.push('dip-rsi-turn');
+      } else if(dipped && rsi < 45){
+        r.score += 1;
+        r.why.push(`RSI ${rsi.toFixed(0)} — oversold zone-এ, এখনো ঘোরেনি (+১)`);
+      } else {
+        return {score:0, why:['RSI ডুবেনি — dip-buy সুযোগ নেই'], tags:[]};
+      }
+    }
+
+    // ৩. দাম SMA50-এর কাছে (+১.৫)
+    if(s50 != null){
+      const distPct = Math.abs((c - s50) / s50 * 100);
+      if(distPct <= 3){
+        r.score += 1.5;
+        r.why.push(`দাম SMA50-এর মাত্র ${distPct.toFixed(1)}% দূরে — শক্তিশালী সাপোর্ট zone (+১.৫)`);
+        r.tags.push('dip-at-sma50');
+      } else if(distPct <= 6){
+        r.score += 0.5;
+        r.why.push(`দাম SMA50-এর কাছাকাছি (${distPct.toFixed(1)}% দূরে) (+০.৫)`);
+      }
+    }
+
+    // ৪. Reversal Candle (+১.৫)
+    const body = Math.abs(c - b[i].o);
+    const ls = Math.min(b[i].o, c) - b[i].l;
+    const us = b[i].h - Math.max(b[i].o, c);
+    const isGreen = c > b[i].o;
+    const isHammer = isGreen && body > 0 && ls >= 2 * body && us <= body * 0.5;
+    const prevBody = Math.abs(b[i-1].c - b[i-1].o);
+    const isEngulf = isGreen && c > b[i-1].o && b[i].o < b[i-1].c && body > prevBody * 1.2;
+    if(isHammer || isEngulf){
+      r.score += 1.5;
+      r.why.push(isHammer ? 'Bullish Hammer ক্যান্ডেল (+১.৫)' : 'Bullish Engulfing ক্যান্ডেল (+১.৫)');
+      r.tags.push('dip-reversal-candle');
+    }
+
+    // ৫. কম ভলিউমে পড়েছে (+১)
+    if(I.vavg[i-1] != null){
+      let lowVolDays = 0;
+      for(let k=i-3;k<i;k++){
+        if(I.vavg[k] && b[k].v < I.vavg[k] * 0.8) lowVolDays++;
+      }
+      if(lowVolDays >= 2){
+        r.score += 1;
+        r.why.push('dip-এর দিনে ভলিউম গড়ের চেয়ে কম — panic selling নয় (+১)');
+        r.tags.push('dip-quiet');
+      }
+    }
+
+    // ৬. EMA9 > EMA21 (+০.৫)
+    if(I.ema9[i]!=null && I.ema21[i]!=null && I.ema9[i] > I.ema21[i]){
+      r.score += 0.5;
+      r.why.push('EMA9 > EMA21 — স্বল্পমেয়াদি momentum ফিরছে (+০.৫)');
+    }
+
+    // ৭. বাজার ঊর্ধ্বমুখী (+১.৫)
+    if(INDEX){
+      const idxDates = Object.keys(INDEX).sort();
+      const lastDate = b[i].d;
+      let idxPos = -1;
+      for(let k=idxDates.length-1;k>=0;k--){
+        if(idxDates[k] <= lastDate){ idxPos = k; break; }
+      }
+      if(idxPos >= 50){
+        const last50 = idxDates.slice(Math.max(0,idxPos-49), idxPos+1).map(d=>INDEX[d]);
+        const idxAvg = last50.reduce((a,b)=>a+b,0)/last50.length;
+        if(INDEX[idxDates[idxPos]] > idxAvg){
+          r.score += 1.5;
+          r.why.push('বাজার ঊর্ধ্বমুখী (DSEX তার ৫০-দিনের গড়ের উপরে) (+১.৫)');
+          r.tags.push('dip-market-up');
+        }
+      }
+    }
+
+    return r;
+  }
+
+  scoreAt = function(b, I, i){
+    const r = _scoreAt(b, I, i);
+    if(r === null) return null;
+    const dip = dipScore(b, I, i);
+    r.dip = dip || {score:0, why:[], tags:[]};
+    if(dip && dip.score >= 7){
+      for(const t of dip.tags) if(!r.tags.includes(t)) r.tags.push(t);
+      r.buy += dip.score * 0.5;
+      r.rb.push(`🎯 DIP-BUY স্কোর: ${dip.score.toFixed(1)}/১০.৫`);
+      for(const w of dip.why) r.rb.push('🎯 ' + w);
+    }
+    return r;
+  };
+})();
+/* ========== END DIP-BUYING REVERSAL ========== */
+
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WAIT:{t:'পুলব্যাকের অপেক্ষা',c:'b-w',rank:2},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:3},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:4},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:5},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:6}};
-const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
+const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['dip','🎯 ডিপ-বাই'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
 const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী','strong-trend':'📊 শক্তিশালী ট্রেন্ড','trending':'📊 ট্রেন্ডিং','weak-trend':'📊 দুর্বল ট্রেন্ড','sideways':'📊 পার্শ্ববর্তী','52w-high':'🎯 ৫২-সপ্তাহ উচ্চতা','rs-strong':'💪 আউটপারফর্মার','rs-good':'💪 ভালো পারফর্ম','rs-neutral':'💪 মাঝারি','rs-weak':'📉 দুর্বল পারফর্ম','vwap-above':'📈 VWAP-উপরে','vwap-below':'📉 VWAP-নিচে','vwap-touch':'📈 VWAP-টাচ'};
 let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -1258,7 +1384,7 @@ function analyze(){
       const bb=bR.buckets[k];
       if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
     }
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:bR.randomAvg,bucketStats:bR.bucketStats});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:bR.randomAvg,bucketStats:bR.bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -1288,7 +1414,7 @@ function baseList(){
     &&(!noMF||!isMFSymbol(r.sym))
     &&(!noSmallN||(r.bt&&r.bt.n>=5)));
 }
-const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
+const tabOK=(r)=>tab==='all'||(tab==='dip'&&r.dip&&r.dip.score>=7)||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
 
 const EPS_NAMES=['Q1','Q2','৬ মাস','Q3','৯ মাস','বার্ষিক'];
@@ -1376,6 +1502,7 @@ function render(){
     ['close','ক্লোজ','n','core'],
     ['chg','পরিবর্তন','n','core'],
     ['rank','সংকেত','','core'],
+    ['dip','🎯 ডিপ','n','core'],
     ['early','⚡ আর্লি','n','core'],
     ['vwap','📈 VWAP%','n','core'],
     ['rs','💪 RS','n','core'],
@@ -1418,6 +1545,7 @@ function render(){
       (want('close')?`<td class="n">${fmt(r.close)}</td>`:'')+
       (want('chg')?`<td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td>`:'')+
       (want('rank')?`<td><span class="badge ${s.c}">${s.t}</span>${gateHtml?' '+gateHtml:''}</td>`:'')+
+      (want('dip')?`<td class="n">${r.dip&&r.dip.score>=7?`<span class="badge b-e">🎯 ${r.dip.score.toFixed(1)}</span>`:r.dip&&r.dip.score>0?`<span class="muted">${r.dip.score.toFixed(1)}</span>`:'<span class="muted">–</span>'}</td>`:'')+
       (want('early')?`<td class="n">${esCell}</td>`:'')+
       (want('vwap')?`<td class="n">${vwapCell}</td>`:'')+
       (want('rs')?`<td class="n">${rsCell}</td>`:'')+
@@ -1614,6 +1742,12 @@ function openDetail(sym,keepScroll){
   } else if(!INDEX){
     rsPanel=`<div class="rs-panel" style="background:linear-gradient(135deg,#f8e0dd,#f5cfc8);border-color:#d89583"><h4 style="color:#9e2f1f">💪 RS ডেটা নেই</h4><p class="note" style="margin-top:4px">আপেক্ষিক শক্তি (RS) হিসাব করতে <b>data/index.csv</b> ফাইল লাগবে। এতে DSEX সূচকের দৈনিক ক্লোজ (DATE, CLOSE কলামে) থাকবে।</p></div>`;
   }
+  let dipPanel='';
+  if(r.dip && r.dip.score > 0){
+    const verdict = r.dip.score >= 7 ? '🎯 কিনুন — dip reversal' : r.dip.score >= 4 ? '⏳ পর্যবেক্ষণ করুন' : '⛔ এখনো সুযোগ নয়';
+    const pct = Math.min(100, r.dip.score / 10.5 * 100);
+    dipPanel = `<div class="early-panel" style="background:linear-gradient(135deg,#e8f8ec,#d0f0dc);border-color:#7fcf9f"><h4 style="color:#0f7a3a">🎯 DIP-BUY রিভার্সাল স্কোর: ${r.dip.score.toFixed(1)} / ১০.৫ — ${verdict}</h4><div class="early-bar"><i style="width:${pct}%;background:linear-gradient(90deg,#4caf50,#81c784)"></i></div><ul class="early-list">${r.dip.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul><p class="note" style="margin-top:6px">Dip-buying কৌশল: শক্তিশালী ট্রেন্ডে থাকা শেয়ার সাময়িক দুর্বল হলে কিনুন, তারপর ট্রেন্ডে ফিরলে লাভ নিন।</p></div>`;
+  }
   let vwapPanel='';
   if(r.vwap!=null){
     const zone = r.vwapDist>=3?'VWAP থেকে অনেক উপরে (শক্তিশালী)':r.vwapDist>=0.5?'VWAP-এর উপরে (ইতিবাচক)':r.vwapDist>=-0.5?'VWAP-এর ঠিক কাছে (সাপোর্ট টেস্ট)':r.vwapDist>=-3?'VWAP-এর নিচে (সতর্ক)':'VWAP থেকে অনেক নিচে (দুর্বল)';
@@ -1623,7 +1757,7 @@ function openDetail(sym,keepScroll){
   const el=$('#detail');
   el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · VWAP20 ${fmt(I.vwap20[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
   <div class="dgrid"><div>
-    ${weeklyPanel}${rsPanel}${vwapPanel}${adxPanel}${p52Panel}${earlyPanel}${bullPanel}${bearPanel}
+    ${dipPanel}${weeklyPanel}${rsPanel}${vwapPanel}${adxPanel}${p52Panel}${earlyPanel}${bullPanel}${bearPanel}
     <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--vwap)"></i>VWAP20</span><span><i style="background:var(--up);height:2px"></i>সাপোর্ট</span><span><i style="background:var(--down);height:2px"></i>রেজিস্ট্যান্স</span><span>নিচে: ভলিউম ও RSI</span></div>
     ${chartSVG(b,I,dispPlan,buyish,ep,cl==='WAIT')}
     <p class="note">বড় ভলিউমে ব্রেকআউট বেশি নির্ভরযোগ্য, কম ভলিউমের সংকেত থেকে সাবধান। VWAP-এর উপরে থাকা শেয়ার কেনা নিরাপদ।</p>
