@@ -405,27 +405,40 @@ function stockReturnAt(b,days){
   if(!(past>0))return null;
   return (last/past-1)*100;
 }
-function calcRS(b){
+/* ইনডেক্সের তারিখের তালিকা একবার সাজিয়ে রাখা হয় (প্রতি দিনের জন্য আবার সাজানো লাগে না) */
+let _idxDatesCache=null,_idxDatesSrc=null;
+function idxDatesSorted(){
+  if(_idxDatesSrc!==INDEX){_idxDatesSrc=INDEX;_idxDatesCache=INDEX?Object.keys(INDEX).sort():[]}
+  return _idxDatesCache;
+}
+/* সর্বশেষ পজিশন যেখানে তারিখ <= d (বাইনারি সার্চ) */
+function idxPosOnOrBefore(dates,d){
+  let lo=0,hi=dates.length-1,ans=-1;
+  while(lo<=hi){const mid=(lo+hi)>>1;if(dates[mid]<=d){ans=mid;lo=mid+1}else hi=mid-1}
+  return ans;
+}
+/* RS = শেয়ারের ২০ দিনের রিটার্ন বনাম ইনডেক্সের রিটার্ন।
+   গুরুত্বপূর্ণ: i দিলে শুধু b[i] পর্যন্ত (ঐ দিন পর্যন্ত) ডেটা ব্যবহার হয়, ভবিষ্যতের কিছু নয়।
+   i না দিলে শেষ দিন ধরা হয় (আজকের স্ক্যানের জন্য)। */
+function calcRS(b,i){
   if(!INDEX) return null;
+  if(i==null) i=b.length-1;
   const N=20;
-  if(b.length < N+1) return null;
-  const lastStockDate = b[b.length-1].d;
-  const pastStockDate = b[b.length-1-N].d;
-  const idxDates = Object.keys(INDEX).sort();
-  let endPos = -1;
-  for(let k=idxDates.length-1;k>=0;k--){ if(idxDates[k] <= lastStockDate){ endPos=k; break; } }
-  if(endPos < 0) return null;
-  let startPos = -1;
-  for(let k=endPos;k>=0;k--){ if(idxDates[k] <= pastStockDate){ startPos=k; break; } }
-  if(startPos < 0) return null;
-  const idxLast = INDEX[idxDates[endPos]];
-  const idxPast = INDEX[idxDates[startPos]];
-  if(!(idxPast>0)) return null;
-  const indexRet = (idxLast/idxPast - 1) * 100;
-  const sr = stockReturnAt(b, N);
-  if(sr == null) return null;
-  const rs = ((1+sr/100)/(1+indexRet/100))*100;
-  return {rs, stockRet:sr, indexRet, daysMatched: endPos-startPos};
+  if(i<N) return null;
+  const lastStockDate=b[i].d, pastStockDate=b[i-N].d;
+  const idxDates=idxDatesSorted();
+  const endPos=idxPosOnOrBefore(idxDates,lastStockDate);
+  if(endPos<0) return null;
+  const startPos=idxPosOnOrBefore(idxDates,pastStockDate);
+  if(startPos<0) return null;
+  const idxLast=INDEX[idxDates[endPos]], idxPast=INDEX[idxDates[startPos]];
+  if(!(idxPast>0)||!(idxLast>0)) return null;
+  const indexRet=(idxLast/idxPast-1)*100;
+  const p1=b[i].c, p0=b[i-N].c;
+  if(!(p0>0)) return null;
+  const sr=(p1/p0-1)*100;
+  const rs=((1+sr/100)/(1+indexRet/100))*100;
+  return {rs, stockRet:sr, indexRet, daysMatched:endPos-startPos};
 }
 
 function SMA(a,n){const o=Array(a.length).fill(null);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
@@ -626,17 +639,20 @@ function backtest(b,I,hold,tplus){
     return b[Math.min(f+hold,b.length-1)].c;
   };
   for(let i=50;i<b.length-hold-2;i++){
-    if(i<nextOk)continue;
-    const sc0=scoreAt(b,I,i);
-    // Random baseline: প্রতি ৫ দিনে
+    /* Random baseline: প্রতি ৫ দিনে এক দিন ধরা হয়, সংকেত থাকুক বা না থাকুক।
+       স্ট্র্যাটেজির ট্রেডের মতোই: একই plan() থেকে স্টপ ও টার্গেট, পরদিন ওপেনে এন্ট্রি, T+2 নিয়ম, একই hold, একই exitSim।
+       (খরচ analyze()-এ উভয় দিক থেকেই একইভাবে বাদ যায়।)
+       আগে বেসলাইনে স্টপ/টার্গেট/T+2 ছিল না, শুধু hold শেষে ক্লোজে বের হতো, আর সংকেতের পর অপেক্ষার দিনগুলোও বাদ পড়ত। */
     if(i%5===0){
       const e=i+1;
       if(e<b.length-hold){
+        const pr=plan(I,i);
         const eR=b[e].o>0?b[e].o:b[e].c;
-        const xR=b[Math.min(e+hold,b.length-1)].c;
-        if(eR>0) randomReturns.push((xR/eR-1)*100);
+        if(eR>0&&eR>pr.stop) randomReturns.push((exitSim(e,pr.stop,pr.t1)/eR-1)*100);
       }
     }
+    if(i<nextOk)continue;
+    const sc0=scoreAt(b,I,i);
     const cl=sc0?classify(sc0):'NA';
     // Score bucket: buy>=3 সব সিগন্যাল
     if(sc0 && sc0.buy>=3){
@@ -664,7 +680,7 @@ function backtest(b,I,hold,tplus){
     nextOk=i+hold;
   }
   const randomAvg = randomReturns.length ? randomReturns.reduce((x,y)=>x+y,0)/randomReturns.length : null;
-  return{trades,pulls,extN,buckets,randomAvg,randomN:randomReturns.length};
+  return{trades,pulls,extN,buckets,randomAvg,randomReturns,randomN:randomReturns.length};
 }
 function btStats(rets){
   const n=rets.length;if(!n)return{n:0,win:null,avg:null};
@@ -810,6 +826,7 @@ function genDemo(){
     var st = STOCH(b);
     var bb = BOLLINGER(b.map(function(x){return x.c}));
     I.stochK=st.K; I.stochD=st.D;
+    I.sma100=SMA(I.c,100);   /* ডিপ-বাইয়ের জন্য: ২০০ দিনের ডেটা না থাকলে বিকল্প */
     I.bbMid=bb.mid; I.bbUpper=bb.upper; I.bbLower=bb.lower; I.bbWidth=bb.width;
     return I;
   };
@@ -977,35 +994,31 @@ function genDemo(){
     return (now - prev) / prev * 100;
   }
 
-let _idxDatesCache=null,_idxDatesSrc=null;
-function idxDatesSorted(){
-  if(_idxDatesSrc!==INDEX){_idxDatesSrc=INDEX;_idxDatesCache=INDEX?Object.keys(INDEX).sort():[];}
-  return _idxDatesCache;
-}
-function calcRS(b,i){
-  if(!INDEX) return null;
-  if(i==null) i=b.length-1;
-  const N=20;
-  if(i < N) return null;
-  const lastStockDate = b[i].d;
-  const pastStockDate = b[i-N].d;
-  const idxDates = idxDatesSorted();
-  let endPos = -1;
-  for(let k=idxDates.length-1;k>=0;k--){ if(idxDates[k] <= lastStockDate){ endPos=k; break; } }
-  if(endPos < 0) return null;
-  let startPos = -1;
-  for(let k=endPos;k>=0;k--){ if(idxDates[k] <= pastStockDate){ startPos=k; break; } }
-  if(startPos < 0) return null;
-  const idxLast = INDEX[idxDates[endPos]];
-  const idxPast = INDEX[idxDates[startPos]];
-  if(!(idxPast>0)) return null;
-  const indexRet = (idxLast/idxPast - 1) * 100;
-  const p1=b[i].c, p0=b[i-N].c;
-  if(!(p0>0)) return null;
-  const sr = (p1/p0 - 1) * 100;
-  const rs = ((1+sr/100)/(1+indexRet/100))*100;
-  return {rs, stockRet:sr, indexRet, daysMatched: endPos-startPos};
-}
+  /* সাপ্তাহিক ট্রেন্ড: প্রতি ৫ ট্রেডিং-দিন = ১ সপ্তাহ (ডেটার শুরু থেকে গোনা)।
+     b-এর শেষ পর্যন্ত যতগুলো সম্পূর্ণ সপ্তাহ আছে শুধু সেগুলো ব্যবহার হয়।
+     weeklyTrend(b, i): শুধু b[0..i] ব্যবহার করে, ভবিষ্যৎ ডেটা ছোঁয় না। */
+  const _wkCache = new WeakMap();
+  function weeklyBars(b){
+    let c = _wkCache.get(b);
+    if(!c || c.len !== b.length){ c = {len:b.length, w:makeWeekly(b)}; _wkCache.set(b, c); }
+    return c.w;
+  }
+  function weeklyTrend(b, i){
+    if(i == null) i = b.length - 1;
+    const none = {state:'unknown', sma20:null, close:null, slope:0};
+    const W = Math.floor((i + 1) / 5);          /* i পর্যন্ত সম্পূর্ণ সপ্তাহ */
+    if(W < 22) return none;
+    const w = weeklyBars(b).slice(0, W);
+    const closes = w.map(x => x.c);
+    const sma20 = closes.slice(-20).reduce((a, x) => a + x, 0) / 20;
+    const close = closes[closes.length - 1];
+    const slope = weeklySlope(w, 20);
+    let state = 'neutral';
+    if(close > sma20 && slope > 0) state = 'bull';
+    else if(close < sma20 && slope < 0) state = 'bear';
+    else if(close > sma20) state = 'bullish-neutral';
+    else if(close < sma20) state = 'bearish-neutral';
+    return {state, sma20, close, slope};
   }
 
   scoreAt = function(b, I, i){
@@ -1023,7 +1036,7 @@ function calcRS(b,i){
       if(!r.tags.includes('shooting-star')) r.tags.push('shooting-star');
     }
 
-    const wt = weeklyTrend(b.slice(0, i+1));
+    const wt = weeklyTrend(b, i);
     r.weekly = wt;
     if (wt.state === 'bull'){
       r.tags.push('weekly-bull');
@@ -1117,7 +1130,7 @@ function calcRS(b,i){
     const r = _scoreAt(b, I, i);
     if(r === null) return null;
 
-    const calc = calcRS(b);
+    const calc = calcRS(b, i);   /* ঐ দিন পর্যন্ত ডেটা, ভবিষ্যৎ নয় */
     if(!calc) return r;
 
     /* মনোযোগ: r.rs হলো বিক্রির কারণের তালিকা (array)। তাই RS মান r.rsVal-এ রাখছি। */
@@ -1199,16 +1212,20 @@ function calcRS(b,i){
     if(i < 60) return null;
     const r = {score:0, why:[], tags:[]};
     const c = I.c[i], pc = I.c[i-1];
-    const s50 = I.sma50[i], s200 = I.sma200 ? I.sma200[i] : null;
+    const s50 = I.sma50[i];
+    /* আগে শুধু SMA200 ধরা হতো। ডেটায় ২০০ দিন না থাকলে SMA200 থাকে না, ফলে স্কোর সবসময় ০ হয়ে ডিপ-বাই ফাঁকা দেখাত।
+       এখন ২০০ দিন থাকলে SMA200, না থাকলে SMA100 (১০০ দিনও না থাকলে বাদ) ব্যবহার হয়। */
+    let sLong = I.sma200 ? I.sma200[i] : null, longN = 200;
+    if(sLong == null && I.sma100 && I.sma100[i] != null){ sLong = I.sma100[i]; longN = 100; }
     const rsi = I.rsi[i];
 
     // ১. প্রধান ট্রেন্ড ঊর্ধ্বমুখী (+২)
-    if(s200!=null && s50!=null && c > s200 && s50 > s200){
+    if(sLong!=null && s50!=null && c > sLong && s50 > sLong){
       r.score += 2;
-      r.why.push('প্রধান ট্রেন্ড ঊর্ধ্বমুখী: দাম SMA200-এর উপরে, SMA50 > SMA200 (+২)');
+      r.why.push(`প্রধান ট্রেন্ড ঊর্ধ্বমুখী: দাম SMA${longN}-এর উপরে, SMA50 > SMA${longN} (+২)`);
       r.tags.push('dip-uptrend');
     } else {
-      return {score:0, why:['প্রধান ট্রেন্ড ঊর্ধ্বমুখী নয় — dip-buy বাদ'], tags:[]};
+      return {score:0, why:[sLong==null?'ডেটা যথেষ্ট নয় (কমপক্ষে ১০০ ট্রেডিং-দিন লাগে) — dip-buy বাদ':'প্রধান ট্রেন্ড ঊর্ধ্বমুখী নয় — dip-buy বাদ'], tags:[]};
     }
 
     // ২. RSI ডুবেছে কিন্তু ঘুরছে (+২)
@@ -1280,12 +1297,9 @@ function calcRS(b,i){
 
     // ৭. বাজার ঊর্ধ্বমুখী (+১.৫)
     if(INDEX){
-      const idxDates = Object.keys(INDEX).sort();
+      const idxDates = idxDatesSorted();
       const lastDate = b[i].d;
-      let idxPos = -1;
-      for(let k=idxDates.length-1;k>=0;k--){
-        if(idxDates[k] <= lastDate){ idxPos = k; break; }
-      }
+      const idxPos = idxPosOnOrBefore(idxDates, lastDate);
       if(idxPos >= 50){
         const last50 = idxDates.slice(Math.max(0,idxPos-49), idxPos+1).map(d=>INDEX[d]);
         const idxAvg = last50.reduce((a,b)=>a+b,0)/last50.length;
@@ -1305,8 +1319,9 @@ function calcRS(b,i){
     if(r === null) return null;
     const dip = dipScore(b, I, i);
     r.dip = dip || {score:0, why:[], tags:[]};
-    if(dip && dip.score >= 6){
+    if(dip && dip.score >= DIP_MIN){
       for(const t of dip.tags) if(!r.tags.includes(t)) r.tags.push(t);
+      if(!r.tags.includes('dip-buy')) r.tags.push('dip-buy');
       r.buy += dip.score * 0.5;
       r.rb.push(`🎯 DIP-BUY স্কোর: ${dip.score.toFixed(1)}/১০.৫`);
       for(const w of dip.why) r.rb.push('🎯 ' + w);
@@ -1317,12 +1332,15 @@ function calcRS(b,i){
 /* ========== END DIP-BUYING REVERSAL ========== */
 
 
+/* ডিপ-বাই: এই স্কোর বা তার বেশি হলে ডিপ-বাই সংকেত ধরা হয় (সর্বোচ্চ ১০.৫)। আগে স্কোরিংয়ে ৬ আর ট্যাব/ব্যাজে ৭ ছিল, তাই ৬-৭ স্কোরের শেয়ার কোথাও দেখাত না। */
+const DIP_MIN=6;
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WAIT:{t:'পুলব্যাকের অপেক্ষা',c:'b-w',rank:2},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:3},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:4},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:5},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:6}};
 const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['dip','🎯 ডিপ-বাই'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
-const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী','strong-trend':'📊 শক্তিশালী ট্রেন্ড','trending':'📊 ট্রেন্ডিং','weak-trend':'📊 দুর্বল ট্রেন্ড','sideways':'📊 পার্শ্ববর্তী','52w-high':'🎯 ৫২-সপ্তাহ উচ্চতা','rs-strong':'💪 আউটপারফর্মার','rs-good':'💪 ভালো পারফর্ম','rs-neutral':'💪 মাঝারি','rs-weak':'📉 দুর্বল পারফর্ম','vwap-above':'📈 VWAP-উপরে','vwap-below':'📉 VWAP-নিচে','vwap-touch':'📈 VWAP-টাচ'};
+const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী','strong-trend':'📊 শক্তিশালী ট্রেন্ড','trending':'📊 ট্রেন্ডিং','weak-trend':'📊 দুর্বল ট্রেন্ড','sideways':'📊 পার্শ্ববর্তী','52w-high':'🎯 ৫২-সপ্তাহ উচ্চতা','rs-strong':'💪 আউটপারফর্মার','rs-good':'💪 ভালো পারফর্ম','rs-neutral':'💪 মাঝারি','rs-weak':'📉 দুর্বল পারফর্ম','vwap-above':'📈 VWAP-উপরে','vwap-below':'📉 VWAP-নিচে','vwap-touch':'📈 VWAP-টাচ','dip-buy':'🎯 ডিপ-বাই','dip-uptrend':'🎯 ডিপ: বড় ট্রেন্ড ঊর্ধ্বমুখী','dip-rsi-turn':'🎯 ডিপ: RSI ঘুরছে','dip-at-sma50':'🎯 ডিপ: SMA50 সাপোর্ট','dip-reversal-candle':'🎯 ডিপ: রিভার্সাল ক্যান্ডেল','dip-quiet':'🎯 ডিপ: কম ভলিউম','dip-market-up':'🎯 ডিপ: বাজার ঊর্ধ্বমুখী'};
 let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
@@ -1394,13 +1412,14 @@ function analyze(){
     const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score}));
     const pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));
     const bt=btStats(trades.map(t=>t.ret));
-    const randomAvg = bR.randomAvg!=null ? bR.randomAvg-cost : null;
+    const randomRets = bR.randomReturns.map(x=>x-cost);   /* বেসলাইনেও স্ট্র্যাটেজির মতো একই খরচ বাদ */
+    const randomAvg = randomRets.length ? randomRets.reduce((x,y)=>x+y,0)/randomRets.length : null;
     const bucketStats={};
     for(const k in bR.buckets){
       const bb=bR.buckets[k];
       if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
     }
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:bR.randomAvg,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -1430,7 +1449,7 @@ function baseList(){
     &&(!noMF||!isMFSymbol(r.sym))
     &&(!noSmallN||(r.bt&&r.bt.n>=5)));
 }
-const tabOK=(r)=>tab==='all'||(tab==='dip'&&r.dip&&r.dip.score>=7)||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
+const tabOK=(r)=>tab==='all'||(tab==='dip'&&r.dip&&r.dip.score>=DIP_MIN)||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
 
 const EPS_NAMES=['Q1','Q2','৬ মাস','Q3','৯ মাস','বার্ষিক'];
@@ -1508,7 +1527,7 @@ function render(){
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
   const pool=base.filter(tabOK);
   const list=pool.filter(r=>ptype==='all'||r.dtags.includes(ptype));
-  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','rs-strong','rs-good','vwap-above','vwap-touch','early-buy','engulfing','pinbar','vol-breakout','bear-engulfing','shooting-star','weekly-bull','weekly-bear','strong-trend','trending','52w-high','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
+  $('#ptypes').innerHTML='<span class="muted" style="font-size:13.5px;align-self:center;margin-right:4px">ধরন:</span>'+['all','dip-buy','rs-strong','rs-good','vwap-above','vwap-touch','early-buy','engulfing','pinbar','vol-breakout','bear-engulfing','shooting-star','weekly-bull','weekly-bear','strong-trend','trending','52w-high','breakout','pullback','bounce','momentum','breakdown'].map(k=>`<button data-p="${k}" aria-pressed="${ptype===k}">${k==='all'?'সব ধরন':PT[k]} <span class="muted">${k==='all'?pool.length:pool.filter(r=>r.dtags.includes(k)).length}</span></button>`).join('');
   const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,early:r=>(r.early?r.early.score:-1),adx:r=>(r.adx==null?-1:r.adx),p52:r=>(r.p52==null?999:r.p52),rs:r=>(r.rsVal==null?-999:r.rsVal),vwap:r=>(r.vwapDist==null?-999:r.vwapDist),rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk,cat:r=>r.cat||'~',eps:r=>r.eps==null?-999:r.eps}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
   const allCols=[
@@ -1544,7 +1563,7 @@ function render(){
   const want=k=>!compact||allCols.find(c=>c[0]===k)[4]==='core';
   const rows=list.map(r=>{
     const s=SIG[r.cl],showPlan=r.cl==='BUY'||r.cl==='STRONG_BUY'||r.cl==='WATCH'||r.cl==='WAIT',v=r.view;
-    const ch=r.chg,tg=r.dtags.map(t=>{let cls='';if(t==='early-buy')cls='tg-early';else if(['engulfing','pinbar','vol-breakout'].includes(t))cls='tg-candle';else if(['bear-engulfing','shooting-star'].includes(t))cls='tg-bear';else if(['weekly-bull','weekly-bear'].includes(t))cls='tg-weekly';else if(['strong-trend','trending','weak-trend','sideways'].includes(t))cls='tg-trend';else if(t==='52w-high')cls='tg-52w';else if(['rs-strong','rs-good','rs-neutral'].includes(t))cls='tg-rs';else if(t==='rs-weak')cls='tg-rs-weak';else if(['vwap-above','vwap-touch'].includes(t))cls='tg-vwap';return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
+    const ch=r.chg,tg=r.dtags.map(t=>{let cls='';if(t==='early-buy')cls='tg-early';else if(['engulfing','pinbar','vol-breakout'].includes(t))cls='tg-candle';else if(['bear-engulfing','shooting-star'].includes(t))cls='tg-bear';else if(['weekly-bull','weekly-bear'].includes(t))cls='tg-weekly';else if(['strong-trend','trending','weak-trend','sideways'].includes(t))cls='tg-trend';else if(t==='52w-high')cls='tg-52w';else if(['rs-strong','rs-good','rs-neutral'].includes(t))cls='tg-rs';else if(t==='rs-weak')cls='tg-rs-weak';else if(['vwap-above','vwap-touch'].includes(t))cls='tg-vwap';else if(t.startsWith('dip-'))cls='tg-early';return `<span class="tg ${cls}">${PT[t]}</span>`;}).join('')||'<span class="muted">–</span>';
     const sr=`${r.ep.nearS?fmt(r.ep.nearS.p):'–'} / ${r.ep.nearR?fmt(r.ep.nearR.p):'নতুন উচ্চতা'}`;
     const es=r.early&&r.early.score;
     const th=getThresholds();
@@ -1561,7 +1580,7 @@ function render(){
       (want('close')?`<td class="n">${fmt(r.close)}</td>`:'')+
       (want('chg')?`<td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td>`:'')+
       (want('rank')?`<td><span class="badge ${s.c}">${s.t}</span>${gateHtml?' '+gateHtml:''}</td>`:'')+
-      (want('dip')?`<td class="n">${r.dip&&r.dip.score>=7?`<span class="badge b-e">🎯 ${r.dip.score.toFixed(1)}</span>`:r.dip&&r.dip.score>0?`<span class="muted">${r.dip.score.toFixed(1)}</span>`:'<span class="muted">–</span>'}</td>`:'')+
+      (want('dip')?`<td class="n">${r.dip&&r.dip.score>=DIP_MIN?`<span class="badge b-e">🎯 ${r.dip.score.toFixed(1)}</span>`:r.dip&&r.dip.score>0?`<span class="muted">${r.dip.score.toFixed(1)}</span>`:'<span class="muted">–</span>'}</td>`:'')+
       (want('early')?`<td class="n">${esCell}</td>`:'')+
       (want('vwap')?`<td class="n">${vwapCell}</td>`:'')+
       (want('rs')?`<td class="n">${rsCell}</td>`:'')+
@@ -1591,8 +1610,10 @@ function renderBaseline(base){
   base.forEach(r=>r.trades.forEach(t=>{ totalN++; stratSum+=t.ret; if(t.ret>0)stratWin++; }));
   const stratAvg = totalN ? stratSum/totalN : 0;
   const stratWR = totalN ? stratWin/totalN*100 : 0;
-  const randVals = base.map(r=>r.randomAvg).filter(x=>x!=null);
-  const randAvg = randVals.length ? randVals.reduce((x,y)=>x+y,0)/randVals.length : null;
+  let randN=0, randSum=0, randWin=0;
+  base.forEach(r=>(r.randomRets||[]).forEach(x=>{ randN++; randSum+=x; if(x>0)randWin++; }));
+  const randAvg = randN ? randSum/randN : null;
+  const randWR = randN ? randWin/randN*100 : 0;
   const allB = {'≤5':{n:0,sum:0,w:0},'5-7':{n:0,sum:0,w:0},'7-9':{n:0,sum:0,w:0},'9-11':{n:0,sum:0,w:0},'11+':{n:0,sum:0,w:0}};
   base.forEach(r=>{
     if(!r.bucketStats) return;
@@ -1607,11 +1628,11 @@ function renderBaseline(base){
   html += '<tr><td>স্ক্যানারের সংকেত</td><td class="n">'+totalN+'</td><td class="n">'+stratWR.toFixed(0)+'%</td><td class="n '+(stratAvg>=0?'up':'down')+'">'+(stratAvg>=0?'+':'')+stratAvg.toFixed(2)+'%</td></tr>';
   if(randAvg != null){
     const diff = stratAvg - randAvg;
-    html += '<tr><td>এলোমেলো দিনে কেনা (বেসলাইন)</td><td class="n">—</td><td class="n">—</td><td class="n '+(randAvg>=0?'up':'down')+'">'+(randAvg>=0?'+':'')+randAvg.toFixed(2)+'%</td></tr>';
+    html += '<tr><td>এলোমেলো দিনে কেনা (বেসলাইন, একই স্টপ/টার্গেট/খরচ)</td><td class="n">'+randN+'</td><td class="n">'+randWR.toFixed(0)+'%</td><td class="n '+(randAvg>=0?'up':'down')+'">'+(randAvg>=0?'+':'')+randAvg.toFixed(2)+'%</td></tr>';
     html += '<tr><td><b>পার্থক্য (আলফা)</b></td><td class="n">—</td><td class="n">—</td><td class="n '+(diff>=0?'up':'down')+'"><b>'+(diff>=0?'+':'')+diff.toFixed(2)+'%</b></td></tr>';
   }
   html += '</tbody></table></div>';
-  html += '<p class="note">সবচেয়ে গুরুত্বপূর্ণ তুলনা: আপনার স্ট্র্যাটেজি এলোমেলো কেনার চেয়ে ভালো না হলে স্ক্যানার আসলে কাজ করছে না। পার্থক্য ১%+ হলে মূল্য আছে।</p>';
+  html += '<p class="note">বেসলাইনও স্ট্র্যাটেজির মতো একই নিয়মে চলে: পরদিন ওপেনে কেনা, একই ATR-ভিত্তিক স্টপ ও টার্গেট ১, T+2 নিয়ম, একই হোল্ড-দিন ও একই খরচ বাদ। শুধু দিনটা এলোমেলো। সবচেয়ে গুরুত্বপূর্ণ তুলনা: আপনার স্ট্র্যাটেজি এলোমেলো কেনার চেয়ে ভালো না হলে স্ক্যানার আসলে কাজ করছে না। পার্থক্য ১%+ হলে মূল্য আছে।</p>';
   html += '<h3 style="margin:22px 0 8px">📊 কোন স্কোর-রেঞ্জ ভালো কাজ করে</h3>';
   html += '<div class="tw"><table class="mini"><thead><tr><th>স্কোর</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th></tr></thead><tbody>';
   const keys=['≤5','5-7','7-9','9-11','11+'];
@@ -1633,7 +1654,7 @@ function renderPstats(base){
   const cells=s=>s?`<td class="n">${s.n}</td><td class="n">${s.w.toFixed(0)}%</td><td class="n ${s.av>=0?'up':'down'}">${s.av>=0?'+':''}${s.av.toFixed(2)}%</td>`:'<td class="n">0</td><td class="n">–</td><td class="n">–</td>';
   const small=s=>s&&s.n<30?' <span class="muted">(নমুনা কম)</span>':'';
   const line=(label,f,today)=>{const x=[];base.forEach(r=>r.trades.forEach(t=>{if(f(t))x.push(t.ret)}));const s=st(x);return`<tr><td>${label}${small(s)}</td>${cells(s)}<td class="n">${today}</td></tr>`};
-  const rows=['rs-strong','rs-good','vwap-above','vwap-touch','early-buy','engulfing','pinbar','vol-breakout','weekly-bull','strong-trend','52w-high','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
+  const rows=['dip-buy','rs-strong','rs-good','vwap-above','vwap-touch','early-buy','engulfing','pinbar','vol-breakout','weekly-bull','strong-trend','52w-high','breakout','pullback','bounce','momentum'].map(k=>line(PT[k],t=>t.tags.includes(k),base.filter(r=>isBuy(r)&&r.dtags.includes(k)).length)).join('');
   const T=[],P=[];let extN=0;base.forEach(r=>{r.trades.forEach(t=>T.push(t));r.pulls.forEach(t=>P.push(t.ret));extN+=r.extN});
   const sN=st(T.filter(t=>!t.ext).map(t=>t.ret)),sE=st(T.filter(t=>t.ext).map(t=>t.ret)),sP=st(P);
   const per=(s,den)=>s&&den?`<td class="n ${s.sum/den>=0?'up':'down'}">${s.sum/den>=0?'+':''}${(s.sum/den).toFixed(2)}%</td>`:'<td class="n">–</td>';
@@ -1760,7 +1781,7 @@ function openDetail(sym,keepScroll){
   }
   let dipPanel='';
   if(r.dip && r.dip.score > 0){
-    const verdict = r.dip.score >= 7 ? '🎯 কিনুন — dip reversal' : r.dip.score >= 4 ? '⏳ পর্যবেক্ষণ করুন' : '⛔ এখনো সুযোগ নয়';
+    const verdict = r.dip.score >= DIP_MIN ? '🎯 কিনুন — dip reversal' : r.dip.score >= 4 ? '⏳ পর্যবেক্ষণ করুন' : '⛔ এখনো সুযোগ নয়';
     const pct = Math.min(100, r.dip.score / 10.5 * 100);
     dipPanel = `<div class="early-panel" style="background:linear-gradient(135deg,#e8f8ec,#d0f0dc);border-color:#7fcf9f"><h4 style="color:#0f7a3a">🎯 DIP-BUY রিভার্সাল স্কোর: ${r.dip.score.toFixed(1)} / ১০.৫ — ${verdict}</h4><div class="early-bar"><i style="width:${pct}%;background:linear-gradient(90deg,#4caf50,#81c784)"></i></div><ul class="early-list">${r.dip.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul><p class="note" style="margin-top:6px">Dip-buying কৌশল: শক্তিশালী ট্রেন্ডে থাকা শেয়ার সাময়িক দুর্বল হলে কিনুন, তারপর ট্রেন্ডে ফিরলে লাভ নিন।</p></div>`;
   }
