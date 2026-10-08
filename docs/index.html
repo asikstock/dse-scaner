@@ -977,19 +977,35 @@ function genDemo(){
     return (now - prev) / prev * 100;
   }
 
-  function weeklyTrend(b){
-    const w = makeWeekly(b);
-    if (w.length < 22) return {state:'unknown', slope:0, close:0, sma20:0, w:w};
-    const closes = w.map(x => x.c);
-    const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-    const lastClose = w[w.length - 1].c;
-    const slope = weeklySlope(w, 20);
-    let state = 'neutral';
-    if (lastClose > sma20 && slope > 0.05) state = 'bull';
-    else if (lastClose < sma20 && slope < -0.05) state = 'bear';
-    else if (lastClose > sma20) state = 'bullish-neutral';
-    else if (lastClose < sma20) state = 'bearish-neutral';
-    return {state, slope, close:lastClose, sma20, w};
+let _idxDatesCache=null,_idxDatesSrc=null;
+function idxDatesSorted(){
+  if(_idxDatesSrc!==INDEX){_idxDatesSrc=INDEX;_idxDatesCache=INDEX?Object.keys(INDEX).sort():[];}
+  return _idxDatesCache;
+}
+function calcRS(b,i){
+  if(!INDEX) return null;
+  if(i==null) i=b.length-1;
+  const N=20;
+  if(i < N) return null;
+  const lastStockDate = b[i].d;
+  const pastStockDate = b[i-N].d;
+  const idxDates = idxDatesSorted();
+  let endPos = -1;
+  for(let k=idxDates.length-1;k>=0;k--){ if(idxDates[k] <= lastStockDate){ endPos=k; break; } }
+  if(endPos < 0) return null;
+  let startPos = -1;
+  for(let k=endPos;k>=0;k--){ if(idxDates[k] <= pastStockDate){ startPos=k; break; } }
+  if(startPos < 0) return null;
+  const idxLast = INDEX[idxDates[endPos]];
+  const idxPast = INDEX[idxDates[startPos]];
+  if(!(idxPast>0)) return null;
+  const indexRet = (idxLast/idxPast - 1) * 100;
+  const p1=b[i].c, p0=b[i-N].c;
+  if(!(p0>0)) return null;
+  const sr = (p1/p0 - 1) * 100;
+  const rs = ((1+sr/100)/(1+indexRet/100))*100;
+  return {rs, stockRet:sr, indexRet, daysMatched: endPos-startPos};
+}
   }
 
   scoreAt = function(b, I, i){
