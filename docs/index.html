@@ -197,6 +197,18 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-weight:600}
 footer{padding-top:22px;font-size:13px;color:var(--muted)}
 footer p{max-width:90ch;margin-bottom:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.sl-card{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px 14px;margin:8px 0;cursor:pointer}
+.sl-card:hover,.sl-card:focus{border-color:var(--accent);outline:none}
+.sl-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
+.sl-top .sym{font-size:17px}
+.sl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 14px;margin:8px 0}
+.sl-grid b{display:block;font-size:15.5px}
+.sl-grid span{font-size:12.5px;color:var(--muted)}
+.sl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sl-funnel{font-size:13.5px;color:var(--muted);margin:6px 0 2px}
+#shortlist details{margin:8px 0;font-size:14px}
+#shortlist summary{cursor:pointer;color:var(--muted)}
+#shortlist .nm{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line2);cursor:pointer}
 </style>
 </head>
 <body>
@@ -291,6 +303,7 @@ footer p{max-width:90ch;margin-bottom:6px}
 
 <section id="results-sec" aria-live="polite">
   <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
+  <div id="shortlist"></div>
   <div class="tally" id="tally"></div>
   <p id="fundnote" class="note" style="margin:8px 0 0"></p>
   <div id="pstats" style="margin-top:18px"></div>
@@ -1335,6 +1348,21 @@ function genDemo(){
 /* ডিপ-বাই: এই স্কোর বা তার বেশি হলে ডিপ-বাই সংকেত ধরা হয় (সর্বোচ্চ ১০.৫)। আগে স্কোরিংয়ে ৬ আর ট্যাব/ব্যাজে ৭ ছিল, তাই ৬-৭ স্কোরের শেয়ার কোথাও দেখাত না। */
 const DIP_MIN=6;
 
+/* ===== আজকের সুইং শর্টলিস্টের নিয়ম (সব নিয়ম একসাথে মিললে তবেই তালিকায় আসে) ===== */
+const SW={
+  minValue:3e6,      /* গড় দৈনিক লেনদেন (টাকা): ৩০ লাখের কম হলে সুইংয়ের জন্য অনুপযোগী (ঢোকা-বেরোনো কঠিন) */
+  minVr:0.8,         /* আজকের ভলিউম ২০ দিনের গড়ের অন্তত ০.৮ গুণ */
+  minAtrPct:1.5,     /* দৈনিক গড় ওঠানামা (ATR) দামের অন্তত ১.৫%, নইলে ২ সপ্তাহে নড়ে না */
+  maxAtrPct:5.5,     /* ৫.৫% এর বেশি হলে অতি অস্থির */
+  maxVwap:3,         /* VWAP20 থেকে সর্বোচ্চ ৩% উপরে */
+  maxRsi:65,         /* RSI ৬৫ এর বেশি হলে বেশি উঠে গেছে */
+  maxStretch:1.5,    /* দাম SMA20 থেকে সর্বোচ্চ ১.৫ গুণ ATR উপরে */
+  minP52:5,          /* ৫২-সপ্তাহের সর্বোচ্চ থেকে অন্তত ৫% নিচে (পিকে নয়) */
+  maxRisk:8,         /* স্টপ সর্বোচ্চ ৮% দূরে */
+  minBars:100,       /* কমপক্ষে ১০০ দিনের ডেটা */
+  top:5              /* সর্বোচ্চ কয়টি দেখাবে */
+};
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1419,7 +1447,7 @@ function analyze(){
       const bb=bR.buckets[k];
       if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
     }
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly||null,adx:sc.adx||null,pdi:sc.pdi||null,ndi:sc.ndi||null,p52:sc.p52||null,posRange:sc.posRange||null,rsVal:sc.rsVal||null,stockRet:sc.stockRet||null,indexRet:sc.indexRet||null,vwap:sc.vwap||null,vwapDist:sc.vwapDist||null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly??null,adx:sc.adx??null,pdi:sc.pdi??null,ndi:sc.ndi??null,p52:sc.p52??null,posRange:sc.posRange??null,rsVal:sc.rsVal??null,stockRet:sc.stockRet??null,indexRet:sc.indexRet??null,vwap:sc.vwap??null,vwapDist:sc.vwapDist??null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -1475,6 +1503,89 @@ function epsInfo(f){
 }
 function applyFund(){RES.forEach(r=>{const f=FUND?FUND[r.sym]||null:null,e=epsInfo(f);r.f=f;r.cat=f?f.cat:'';r.eps=e.latest;r.epsP=e.period;r.lastQ=e.lastQ})}
 
+function swingEval(r){
+  const i=r.b.length-1,I=r.I,c=r.close;
+  const atrPct=(I.atr[i]||c*0.03)/c*100;
+  const val=r.avgVol*c;
+  /* ধাপ ১: সুইং ট্রেডিংয়ের উপযোগী শেয়ার কি? */
+  if(r.stale) return {st:1,why:'সাম্প্রতিক ট্রেড নেই'};
+  if(r.b.length<SW.minBars) return {st:1,why:'ডেটা কম (১০০ দিনের কম)'};
+  if(val<SW.minValue) return {st:1,why:'লেনদেন কম (লিকুইডিটি নেই)'};
+  if(r.cat==='Z'||isMFSymbol(r.sym)||(r.eps!=null&&r.eps<=0)) return {st:1,why:'Z ক্যাটাগরি / ফান্ড / লোকসানি'};
+  if(atrPct<SW.minAtrPct) return {st:1,why:'নড়াচড়া খুব কম'};
+  if(atrPct>SW.maxAtrPct) return {st:1,why:'অতি অস্থির'};
+  if(r.vr<SW.minVr) return {st:1,why:'আজ ভলিউম কম'};
+  /* ধাপ ২: আগেই উঠে যায়নি তো? পিকে নয় তো? */
+  if(r.ep.extended) return {st:2,why:'আগেই অনেক উঠে গেছে'};
+  if(r.vwapDist!=null&&r.vwapDist>SW.maxVwap) return {st:2,why:'VWAP থেকে অনেক উপরে'};
+  if(r.rsi!=null&&r.rsi>SW.maxRsi) return {st:2,why:'RSI বেশি'};
+  if(r.ep.stretch>SW.maxStretch) return {st:2,why:'SMA20 থেকে অনেক উপরে'};
+  if(r.p52!=null&&r.p52<SW.minP52) return {st:2,why:'৫২-সপ্তাহের পিকের কাছে'};
+  /* ধাপ ৩: কেনার মতো সেটআপ আছে কি? */
+  if(r.cl==='SELL'||r.cl==='STRONG_SELL') return {st:3,why:'বিক্রির সংকেত'};
+  if(r.weekly&&r.weekly.state==='bear') return {st:3,why:'সাপ্তাহিক ট্রেন্ড নিম্নমুখী'};
+  const isDip=r.dip&&r.dip.score>=DIP_MIN;
+  const isTrend=r.cl==='BUY'||r.cl==='STRONG_BUY';
+  if(!isDip&&!isTrend) return {st:3,why:'কেনার সেটআপ নেই'};
+  return {st:4,setup:isDip?'ডিপ-বাই':'ট্রেন্ড-বাই',isDip,atrPct,near:r.pl.riskPct>SW.maxRisk};
+}
+function renderShortlist(){
+  const el=$('#shortlist');if(!el)return;
+  if(!RES.length){el.innerHTML='';return}
+  const ev=RES.map(r=>({r,e:swingEval(r)}));
+  const n0=ev.length,n1=ev.filter(x=>x.e.st>=2).length,n2=ev.filter(x=>x.e.st>=3).length,n3=ev.filter(x=>x.e.st>=4).length;
+  const ok=ev.filter(x=>x.e.st===4&&!x.e.near),near=ev.filter(x=>x.e.st===4&&x.e.near);
+  const rk=x=>[x.e.isDip?1:0,x.e.isDip?x.r.dip.score:x.r.buy];
+  ok.sort((a,b)=>{const p=rk(a),q=rk(b);return q[0]-p[0]||q[1]-p[1]||a.r.pl.riskPct-b.r.pl.riskPct});
+  near.sort((a,b)=>a.r.pl.riskPct-b.r.pl.riskPct);
+  const rej={};ev.filter(x=>x.e.st===1).forEach(x=>rej[x.e.why]=(rej[x.e.why]||0)+1);
+  const rej2={};ev.filter(x=>x.e.st===2||x.e.st===3).forEach(x=>rej2[x.e.why]=(rej2[x.e.why]||0)+1);
+  const rejTxt=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${esc(k)} ${v}টি`).join(' · ')||'–';
+  /* বাজারের অবস্থা: DSEX তার ৫০-দিনের গড়ের উপরে না নিচে */
+  let mkt='';
+  if(INDEX){const d=idxDatesSorted();if(d.length>=50){const v=d.slice(-50).map(k=>INDEX[k]),avg=v.reduce((x,y)=>x+y,0)/v.length,up=INDEX[d[d.length-1]]>avg;
+    mkt=up?`<p class="note" style="margin:6px 0">📈 বাজার (DSEX) তার ৫০-দিনের গড়ের উপরে আছে, ডিপ কেনার জন্য পরিবেশ তুলনামূলক ভালো।</p>`
+          :`<div class="warnbox" style="margin:6px 0"><b>⚠️ বাজার দুর্বল:</b> DSEX তার ৫০-দিনের গড়ের নিচে। বাজার নামার সময় ডিপে কেনা বেশি ঝুঁকিপূর্ণ, নতুন কেনায় বাড়তি সতর্ক থাকুন বা অপেক্ষা করুন।</div>`}}
+  const cap=+$('#capital').value||0,rkp=(+$('#riskPct').value||1)/100,maxPct=(+$('#pMaxPct').value||25)/100,liq=(+$('#pLiq').value||5)/100;
+  const hold=+$('#hold').value||10;
+  const card=x=>{
+    const r=x.r,p=r.pl,ps=p.entry-p.stop,g1=(p.t1/p.entry-1)*100;
+    let size='<span class="muted">মূলধন বসালে শেয়ার সংখ্যা দেখাবে</span>';
+    if(cap>0&&ps>0){const q=Math.max(0,Math.min(Math.floor(cap*rkp/ps),Math.floor(cap*maxPct/p.entry),Math.floor(r.avgVol*liq)));
+      size=q>0?`আপনার ঝুঁকি-সীমায় <b>${fmtInt(q)}</b> শেয়ার, বিনিয়োগ ${fmtInt(q*p.entry)} টাকা, স্টপ লাগলে ক্ষতি ${fmtInt(q*ps)} টাকা`:'<span class="muted">আপনার সীমায় ১টি শেয়ারও আঁটে না</span>'}
+    const chips=(x.e.isDip?r.dtags.filter(t=>t.startsWith('dip-')&&t!=='dip-buy').map(t=>`<span class="tg tg-early">${PT[t]}</span>`):[]).join('');
+    const ch=r.chg;
+    return `<div class="sl-card" data-s="${esc(r.sym)}" tabindex="0">
+      <div class="sl-top"><b class="sym">${esc(r.sym)}</b><span class="badge ${x.e.isDip?'b-e':'b-b'}">${x.e.isDip?'🎯 ডিপ-বাই '+r.dip.score.toFixed(1):'ট্রেন্ড-বাই'}</span><span class="muted">ক্লোজ ${fmt(r.close)} (${ch>0?'+':''}${ch.toFixed(2)}%)</span></div>
+      <div class="sl-grid">
+        <div><b>${fmt(p.entry)}</b><span>এন্ট্রি (পরদিন ওপেন)</span></div>
+        <div><b class="down">${fmt(p.stop)}</b><span>স্টপ-লস (${p.riskPct.toFixed(1)}% দূরে)</span></div>
+        <div><b class="up">${fmt(p.t1)}</b><span>টার্গেট ১ (+${g1.toFixed(1)}%)</span></div>
+        <div><b>${r.vwapDist==null?'–':(r.vwapDist>=0?'+':'')+r.vwapDist.toFixed(1)+'%'}</b><span>VWAP থেকে দূরত্ব</span></div>
+        <div><b>${r.p52==null?'–':r.p52.toFixed(0)+'%'}</b><span>৫২W সর্বোচ্চ থেকে নিচে</span></div>
+        <div><b>${r.rsi==null?'–':r.rsi.toFixed(0)}</b><span>RSI</span></div>
+      </div>
+      <div style="font-size:14px">${size}</div>
+      ${chips?`<div class="sl-chips">${chips}</div>`:''}
+    </div>`;
+  };
+  const nearHtml=near.length?`<details><summary>স্টপ ${SW.maxRisk}%-এর বেশি দূরে বলে তালিকার বাইরে (${near.length}টি) — ভালো সেটআপ, কিন্তু ঝুঁকি বেশি</summary>
+    <p class="note" style="margin:6px 0">এগুলো বাতিল নয়। সেটআপ ঠিক আছে, শুধু স্টপ দূরে। চাইলে ডিটেইলে চার্ট দেখে কাছের সাপোর্টের নিচে নিজের স্টপ ঠিক করতে পারেন (স্টপ কাছে হলে সামান্য নড়াচড়ায় বেরিয়ে যাওয়ার সম্ভাবনা বাড়ে), নয়তো শেয়ার কম কিনুন।</p>
+    ${near.slice(0,8).map(x=>`<div class="nm" data-s="${esc(x.r.sym)}" tabindex="0"><b class="sym">${esc(x.r.sym)}</b><span class="badge ${x.e.isDip?'b-e':'b-b'}">${x.e.setup}${x.e.isDip?' '+x.r.dip.score.toFixed(1):''}</span><span class="down">স্টপ ${x.r.pl.riskPct.toFixed(1)}% দূরে</span><span class="muted">ক্লোজ ${fmt(x.r.close)}</span></div>`).join('')}</details>`:'';
+  el.innerHTML=`<h3 style="margin:4px 0 4px">🎯 আজকের সুইং শর্টলিস্ট</h3>
+    <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">এখানে শুধু সেই শেয়ার আসে যা সুইংয়ের উপযোগী (লিকুইড, যথেষ্ট নড়াচড়া), আগেই উঠে যায়নি, পিকে নেই, কেনার সেটআপ আছে এবং স্টপ ${SW.maxRisk}%-এর মধ্যে। সেরা ${SW.top}টি দেখানো হয়, ডিপ-বাই আগে। কার্ডে ক্লিক করলে চার্ট ও কারণ দেখা যাবে।</p>
+    ${mkt}
+    ${ok.length?ok.slice(0,SW.top).map(card).join('')+(ok.length>SW.top?`<p class="note">আরও ${ok.length-SW.top}টি যোগ্য ছিল, কিন্তু সেরা ${SW.top}টিই যথেষ্ট।</p>`:''):`<div class="warnbox" style="margin:8px 0">আজ নিয়ম মেনে কোনো শেয়ার মেলেনি। আজ না কেনাও একটি বৈধ সিদ্ধান্ত।</div>`}
+    <p class="note" style="margin:6px 0">পরদিন ওপেনে কিনে স্টপ বা টার্গেট ১ না ছুঁলে ${hold} কর্মদিবস পর বেরিয়ে যাওয়া হিসাব ধরা হয়। টার্গেট ১ হলো ঝুঁকির ২ গুণ; স্টপ যত দূরে, টার্গেটও তত দূরে, তাই ১-২ সপ্তাহে না-ও ছুঁতে পারে। কেনার আগে DSE-তে খবর ও রেকর্ড ডেট দেখে নিন।</p>
+    ${nearHtml}
+    <details><summary>কীভাবে ${n0}টি থেকে ${ok.length+near.length}টি এলো (ছাঁকনির হিসাব)</summary>
+      <div class="sl-funnel">স্ক্যান ${n0} → সুইংয়ের উপযোগী ${n1} → উঠে যায়নি/পিকে নয় ${n2} → কেনার সেটআপ আছে ${n3} → স্টপ ${SW.maxRisk}%-এর মধ্যে ${ok.length}</div>
+      <p class="note" style="margin:4px 0"><b>সুইংয়ের অনুপযোগী:</b> ${rejTxt(rej)}</p>
+      <p class="note" style="margin:4px 0"><b>উঠে গেছে বা সেটআপ নেই:</b> ${rejTxt(rej2)}</p>
+    </details>
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
+    <p class="note" style="margin:0 0 4px">নিচে পুরো স্ক্যান ফলাফল (সব শেয়ার, সব ফিল্টার)। শুরুতে এটি না দেখলেও চলবে।</p>`;
+}
 function renderPlanner(){
   const el=$('#plannerOut');
   if(!RES.length){el.innerHTML='<p class="muted">ডেটা লোড হলে এখানে হিসাব আসবে।</p>';return}
@@ -1514,6 +1625,7 @@ function renderPlanner(){
 }
 function render(){
   renderPlanner();
+  renderShortlist();
   {const nZ=RES.filter(r=>r.cat==='Z').length,nL=RES.filter(r=>r.eps!=null&&r.eps<=0).length,nQ=RES.filter(r=>r.lastQ!=null&&r.lastQ<0).length;
    $('#fundnote').textContent=FUND?`ক্যাটাগরি ও EPS তথ্য আছে। Z ক্যাটাগরি ${nZ}টি (${$('#exZ').checked?'বাদ':'রাখা'}), সর্বশেষ EPS ঋণাত্মক বা শূন্য ${nL}টি (${$('#exLoss').checked?'বাদ':'রাখা'}), সর্বশেষ কোয়ার্টারে লস ${nQ}টি (${$('#exQLoss').checked?'বাদ':'রাখা'})।`:(RES.length?'ক্যাটাগরি ও EPS তথ্য লোড হয়নি, তাই Z ও লোকসানি ফিল্টার কাজ করছে না।':'')}
   const base=baseList();
@@ -1672,13 +1784,15 @@ $('#tbl').addEventListener('click',e=>{
 });
 $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
 ['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
-['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
+['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 ['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 $('#pWait').addEventListener('change',renderPlanner);
 $('#compactCols').addEventListener('change',render);
-document.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{$('#capital').value=b.dataset.cap;saveSettings();renderPlanner();if(selected)openDetail(selected,true)}));
+document.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{$('#capital').value=b.dataset.cap;saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
 $('#plannerOut').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
+$('#shortlist').addEventListener('click',e=>{const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
+$('#shortlist').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
 ['hold','cost','extPct'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 
 $('#btnExport').addEventListener('click',()=>{
@@ -1723,6 +1837,14 @@ function chartSVG(b,I,pl,showPlan,ep,showZone){
   return`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="শেষ ${N} দিনের ক্যান্ডেলস্টিক চার্ট, সাপোর্ট-রেজিস্ট্যান্স, SMA20, SMA50, VWAP20, ভলিউম ও RSI">${g}${zn}${srl}${cd}<path class="ln50" d="${path(I.sma50)}"/><path class="ln20" d="${path(I.sma20)}"/><path class="vwap" d="${path(I.vwap20)}"/>${pln}${vb}${rs}${ax}</svg>`;
 }
 function openDetail(sym,keepScroll){
+  try{openDetailImpl(sym,keepScroll)}
+  catch(e){
+    const el=$('#detail');el.className='show';
+    el.innerHTML='<div class="warnbox"><b>'+esc(sym)+'-এর বিস্তারিত দেখাতে ত্রুটি হয়েছে:</b> '+esc(e&&e.message?e.message:e)+'</div>';
+    try{console.error(e)}catch(_){}
+  }
+}
+function openDetailImpl(sym,keepScroll){
   const r=RES.find(x=>x.sym===sym);if(!r)return;selected=sym;
   const {b,I,pl,sc,cl,bt,ep}=r,i=b.length-1,s=SIG[cl];
   const buyish=cl==='BUY'||cl==='STRONG_BUY'||cl==='WATCH'||cl==='WAIT';
