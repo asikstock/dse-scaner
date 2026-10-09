@@ -134,7 +134,10 @@ FINANCE_KEYWORDS = [
     "শেয়ার", "স্টক", "মুনাফা", "লাভ", "ক্ষতি", "লভ্যাংশ",
     "বোনাস", "ডিভিডেন্ড", "বিনিয়োগ", "আয়", "কোয়ার্টার", "বার্ষিক",
     "আর্থিক", "নিট লাভ", "নিট ক্ষতি", "পর্ষদ", "এজিএম", "ইজিএম",
-    "ব্রোকারেজ", "আইপিও",
+    "ব্রোকারেজ", "আইপিও", "bank", "banking", "liquidity", "deposit", "deposits",
+    "loan", "interest rate", "monetary policy", "central bank",
+    "bangladesh bank", "bb", "reserve", "npl", "default loan",
+    "merger", "acquisition", "takeover", "restructuring",
 ]
 
 STRONG_MARKET_KEYWORDS = [
@@ -304,7 +307,7 @@ def classify_news(title, summary):
 # ═══════════════════════════════════════════════════════════════
 
 OUTPUT_PATHS = [Path("docs/data/news.json"), Path("data/news.json")]
-MAX_ITEMS_PER_FEED = 100
+MAX_ITEMS_PER_FEED = 200
 
 # ═══════════════════════════════════════════════════════════════
 # ৭. মূল ফাংশন
