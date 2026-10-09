@@ -388,13 +388,18 @@ function ingest(MAP,text,fname){
 }
 function finalize(MAP){const out={};for(const s in MAP)out[s]=[...MAP[s].values()].sort((a,b)=>a.d<b.d?-1:1);return out}
 
-function loadIndex(text){
+/* ইনডেক্স CSV পড়ে (index.csv বা dsex.csv, যেকোনো কলাম-নাম: close, dsex_close, DSEX ইত্যাদি)।
+   একাধিক ফাইল দিলে তারিখ ধরে মিলিয়ে নেয়, তাই একটিতে ১ দিন থাকলেও অন্যটির পুরো ইতিহাস হারায় না। */
+function loadIndex(text,merge){
   const p=parseCSV(text);if(!p.rows.length)return 0;
   const h=p.headers.map(norm);
-  const id=findCol(h,['date','tradingdate','day','timestamp','time']);
-  const ic=findCol(h,['close','closep','value','index','dsex','ds30','ltp','price']);
-  if(id<0||ic<0)throw new Error('index.csv-এ DATE ও CLOSE/INDEX কলাম লাগবে');
-  const I={};let n=0;
+  let id=findCol(h,['date','tradingdate','day','timestamp','time']);
+  if(id<0)id=h.findIndex(x=>x.includes('date'));
+  let ic=findCol(h,['close','closep','value','index','dsex','ds30','ltp','price']);
+  if(ic<0)ic=h.findIndex((x,k)=>k!==id&&(x.includes('close')||x.includes('dsex')||x.includes('index')||x.includes('value')));
+  if(ic<0&&h.length===2)ic=id===0?1:0;   /* শুধু দুটি কলাম থাকলে অন্যটিই মান */
+  if(id<0||ic<0)throw new Error('ইনডেক্স CSV-তে তারিখ ও ক্লোজ কলাম লাগবে');
+  const I=merge&&INDEX?INDEX:{};let n=0;
   for(const r of p.rows){
     const d=parseDate(r[id]);if(!d)continue;
     const c=num(r[ic]);if(!(c>0))continue;
@@ -1948,13 +1953,14 @@ async function autoLoad(){
     let meta=null;try{const rm=await fetch('data/meta.json',{cache:'no-cache'});if(rm.ok)meta=await rm.json()}catch(e){}
     try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
     let idxOK=false;
-    try{
-      const ri=await fetch('data/index.csv',{cache:'no-cache'});
-      if(ri.ok){
-        const ni=loadIndex(await ri.text());
-        idxOK=ni>0;
-      }
-    }catch(e){}
+    INDEX=null;
+    /* GitHub-এ ফাইলের নামের বড়-ছোট হাতের অক্ষর আলাদা ধরা হয়, তাই সব সম্ভাব্য নাম চেষ্টা করা হয়; যে কয়টি পাওয়া যায় সব মিলিয়ে নেওয়া হয় */
+    for(const nm of ['data/dsex.csv','data/Dsex.csv','data/DSEX.csv','data/index.csv','data/Index.csv']){
+      try{
+        const ri=await fetch(nm,{cache:'no-cache'});
+        if(ri.ok){const ni=loadIndex(await ri.text(),true);if(ni>0)idxOK=true}
+      }catch(e){}
+    }
     analyze();
     const last=meta&&meta.last_date?meta.last_date:maxDate;
     const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
