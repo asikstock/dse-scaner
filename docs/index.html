@@ -1800,8 +1800,6 @@ function holdEval(r,h,lossLimit){
       📌 সেক্টর যেখানে আছে: <b>২০ দিনের পরিবর্তন</b> বেশি হলে সেখানে বিনিয়োগকারীরা ঝুঁকছে। <b>গড় EPS</b> বেশি হলে সেক্টরের কোম্পানিগুলো লাভে। <b>A/B/Z</b> = ক্যাটাগরি কতগুলো।
     </p>`;
 }
-function render(){
-  renderSectors();
  function renderHoldings(){
   const el=$('#holdingsOut'),dl=$('#hSyms');if(!el)return;
   if(dl)dl.innerHTML=RES.map(r=>`<option value="${esc(r.sym)}"></option>`).join('');
