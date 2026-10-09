@@ -1802,7 +1802,7 @@ function holdEval(r,h,lossLimit){
 }
 function render(){
   renderSectors();
-  renderHoldings();
+ function renderHoldings(){
   const el=$('#holdingsOut'),dl=$('#hSyms');if(!el)return;
   if(dl)dl.innerHTML=RES.map(r=>`<option value="${esc(r.sym)}"></option>`).join('');
   if(!HOLD.length){el.innerHTML='<p class="muted">এখনও কোনো শেয়ার যোগ করেননি। উপরে কোড ও ক্রয়মূল্য দিয়ে "যোগ করুন" চাপুন।</p>';return}
