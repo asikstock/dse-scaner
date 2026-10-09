@@ -225,6 +225,14 @@ footer p{max-width:90ch;margin-bottom:6px}
 .h-ed{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
 .h-ed input{width:92px;padding:4px 6px}
 .h-card details{font-size:14px;margin-top:6px} .h-card summary{cursor:pointer;color:var(--muted)}
+
+.news-card{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:12px 14px;margin:10px 0}
+.news-card h3{font-size:16px;margin:5px 0 7px;line-height:1.45}
+.news-card h3 a{color:var(--ink);text-decoration:none}
+.news-card h3 a:hover{text-decoration:underline;color:var(--accent)}
+.news-meta{display:flex;flex-wrap:wrap;gap:6px 12px;color:var(--muted);font-size:12.5px}
+.news-symbol{display:inline-block;border-radius:3px;background:var(--flat-bg);padding:1px 7px;font-weight:700;font-size:12px}
+
 </style>
 </head>
 <body>
@@ -343,10 +351,16 @@ footer p{max-width:90ch;margin-bottom:6px}
   <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কলামের শিরোনামে ক্লিক করলে সাজানো যায়। কোম্পানির নাম কলামটি সবসময় বাঁদিকে আটকে থাকে।</p>
 </section>
 
+<section id="news-sec" aria-live="polite">
+  <div class="sec-h"><h2>৪. শেয়ারবাজারের খবর</h2><button id="newsReload" type="button">খবর আবার লোড করুন</button></div>
+  <p id="newsStatus" class="note" role="status" aria-live="polite">খবর লোড হচ্ছে…</p>
+  <div id="newsList"><div class="empty">খবর লোড হচ্ছে…</div></div>
+</section>
+
 <section id="detail" aria-live="polite"></section>
 
 <section id="holdings-sec">
-  <div class="sec-h"><h2>৪. আমার হোল্ডিং: ধরে রাখব, না বেচব?</h2></div>
+  <div class="sec-h"><h2>৫. আমার হোল্ডিং: ধরে রাখব, না বেচব?</h2></div>
   <p class="muted" style="font-size:14px;margin-bottom:12px;max-width:80ch">যে শেয়ারগুলো কিনেছেন সেগুলোর কোড সার্চ করে ক্রয়মূল্য (ও চাইলে শেয়ার সংখ্যা) দিন। স্ক্যানার সামনের সাপোর্ট ও রেজিস্ট্যান্স, লাভ-ক্ষতি, ট্রেন্ড ও সংকেত মিলিয়ে বলবে: <b>ধরে রাখুন</b>, <b>নিরপেক্ষ</b>, <b>বিক্রি</b> বা <b>শক্তিশালী বিক্রি</b>। তালিকা এই ব্রাউজারেই সংরক্ষিত থাকে।</p>
   <div class="settings" style="align-items:end">
     <label class="f">কোম্পানির কোড (লিখে সার্চ করুন)<input type="text" id="hSym" list="hSyms" autocomplete="off" placeholder="যেমন: CITYBANK" style="text-transform:uppercase"></label>
@@ -2166,6 +2180,43 @@ async function autoLoad(){
 }
 
 autoLoad();
+
+/* ====== স্বয়ংক্রিয় খবর: docs/data/news.json ====== */
+(function(){
+  const list=document.getElementById('newsList');
+  const status=document.getElementById('newsStatus');
+  const reload=document.getElementById('newsReload');
+  if(!list||!status)return;
+  const escNews=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function formatNewsDate(value){
+    if(!value)return 'তারিখ অজানা';
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime()))return escNews(value);
+    return d.toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'});
+  }
+  async function loadNews(){
+    status.textContent='খবর লোড হচ্ছে…';
+    list.innerHTML='<div class="empty">খবর লোড হচ্ছে…</div>';
+    try{
+      const response=await fetch('data/news.json?ts='+Date.now(),{cache:'no-store'});
+      if(!response.ok)throw new Error('HTTP '+response.status);
+      const payload=await response.json();
+      if(!Array.isArray(payload))throw new Error('news.json-এর ফরম্যাট সঠিক নয়');
+      const items=payload.filter(n=>n&&n.title&&n.link).sort((a,b)=>{
+        const da=Date.parse(a.date)||0,db=Date.parse(b.date)||0;return db-da;
+      });
+      if(!items.length){list.innerHTML='<div class="empty">এখনো কোনো মিল থাকা খবর পাওয়া যায়নি।</div>';status.textContent='খবরের ফাইল লোড হয়েছে; দেখানোর মতো খবর নেই।';return;}
+      list.innerHTML=items.map(n=>`<article class="news-card"><div class="news-meta"><span>${escNews(formatNewsDate(n.date))}</span><span>${escNews(n.source_name||n.source||'সংবাদসূত্র')}</span>${n.symbol?`<span class="news-symbol">${escNews(n.symbol)}</span>`:''}</div><h3><a href="${escNews(n.link)}" target="_blank" rel="noopener noreferrer">${escNews(n.title)}</a></h3>${n.summary?`<p>${escNews(n.summary)}</p>`:''}</article>`).join('');
+      status.textContent=`মোট ${items.length}টি খবর · সর্বশেষ আপডেট করা news.json থেকে লোড হয়েছে।`;
+    }catch(error){
+      list.innerHTML='<div class="empty">খবর লোড করা যায়নি। সাইটের data/news.json ফাইল ও সার্ভার সংযোগ পরীক্ষা করুন।</div>';
+      status.textContent='খবর লোড ব্যর্থ: '+error.message;
+    }
+  }
+  if(reload)reload.addEventListener('click',loadNews);
+  loadNews();
+})();
+
 </script>
 </body>
 </html>
