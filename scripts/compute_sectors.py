@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 """
 Compute sector-level summary from prices.csv, sectors.csv, fundamentals.csv.
 Output: docs/data/sector_summary.json and data/sector_summary.json
