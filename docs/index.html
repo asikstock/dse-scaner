@@ -297,6 +297,13 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="exBelowVwap"> 📈 VWAP-এর নিচে থাকা শেয়ারে কেনার সংকেত দেখাবেন না</label>
     <label class="chk"><input type="checkbox" id="exMF" checked> 🏦 মিউচুয়াল ফান্ড, বন্ড ও ফান্ড-ইউনিট বাদ দিন</label>
     <label class="chk"><input type="checkbox" id="exSmallN"> 📉 ৫টির কম ট্রেড-ইতিহাস থাকলে বাদ দিন</label>
+    <label class="chk"><input type="checkbox" id="exVol15" checked> 📊 ভলিউম ≥ ১.৫× গড় না হলে বাই নয় (নিয়ম ১)</label>
+    <label class="chk"><input type="checkbox" id="exTurnover" checked> 💰 দৈনিক টার্নওভার ≥ ১০ লক্ষ টাকা না হলে বাই নয় (নিয়ম ১)</label>
+    <label class="chk"><input type="checkbox" id="exSma200" checked> 📈 SMA200 এর নিচে থাকলে বাই নয় (নিয়ম ২)</label>
+    <label class="chk"><input type="checkbox" id="exRR2" checked> 🎯 নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R ≥ ১:২ না হলে বাই নয় (নিয়ম ৪)</label>
+    <label class="chk"><input type="checkbox" id="exScore75" checked> ⚡ কেনার স্কোর ≥ ৭.৫ না হলে বাই নয় (নিয়ম ৭)</label>
+    <label class="chk"><input type="checkbox" id="exABOnly"> 🏅 শুধু A/B ক্যাটাগরি শেয়ার দেখান (নিয়ম ৫)</label>
+    <label class="chk"><input type="checkbox" id="exPriceBand"> 💵 শুধু ৩০–১০০ টাকার শেয়ার দেখান (নিয়ম ৫)</label>
     <fieldset style="grid-column:1/-1;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:6px">
       <legend style="font-size:13.5px;padding:0 6px;color:var(--muted)">সংকেতের থ্রেশহোল্ড (স্কোর)</legend>
       <div class="settings">
@@ -422,8 +429,6 @@ function ingest(MAP,text,fname){
 }
 function finalize(MAP){const out={};for(const s in MAP)out[s]=[...MAP[s].values()].sort((a,b)=>a.d<b.d?-1:1);return out}
 
-/* ইনডেক্স CSV পড়ে (index.csv বা dsex.csv, যেকোনো কলাম-নাম: close, dsex_close, DSEX ইত্যাদি)।
-   একাধিক ফাইল দিলে তারিখ ধরে মিলিয়ে নেয়, তাই একটিতে ১ দিন থাকলেও অন্যটির পুরো ইতিহাস হারায় না। */
 function loadIndex(text,merge){
   const p=parseCSV(text);if(!p.rows.length)return 0;
   const h=p.headers.map(norm);
@@ -431,7 +436,7 @@ function loadIndex(text,merge){
   if(id<0)id=h.findIndex(x=>x.includes('date'));
   let ic=findCol(h,['close','closep','value','index','dsex','ds30','ltp','price']);
   if(ic<0)ic=h.findIndex((x,k)=>k!==id&&(x.includes('close')||x.includes('dsex')||x.includes('index')||x.includes('value')));
-  if(ic<0&&h.length===2)ic=id===0?1:0;   /* শুধু দুটি কলাম থাকলে অন্যটিই মান */
+  if(ic<0&&h.length===2)ic=id===0?1:0;
   if(id<0||ic<0)throw new Error('ইনডেক্স CSV-তে তারিখ ও ক্লোজ কলাম লাগবে');
   const I=merge&&INDEX?INDEX:{};let n=0;
   for(const r of p.rows){
@@ -457,21 +462,16 @@ function stockReturnAt(b,days){
   if(!(past>0))return null;
   return (last/past-1)*100;
 }
-/* ইনডেক্সের তারিখের তালিকা একবার সাজিয়ে রাখা হয় (প্রতি দিনের জন্য আবার সাজানো লাগে না) */
 let _idxDatesCache=null,_idxDatesSrc=null;
 function idxDatesSorted(){
   if(_idxDatesSrc!==INDEX){_idxDatesSrc=INDEX;_idxDatesCache=INDEX?Object.keys(INDEX).sort():[]}
   return _idxDatesCache;
 }
-/* সর্বশেষ পজিশন যেখানে তারিখ <= d (বাইনারি সার্চ) */
 function idxPosOnOrBefore(dates,d){
   let lo=0,hi=dates.length-1,ans=-1;
   while(lo<=hi){const mid=(lo+hi)>>1;if(dates[mid]<=d){ans=mid;lo=mid+1}else hi=mid-1}
   return ans;
 }
-/* RS = শেয়ারের ২০ দিনের রিটার্ন বনাম ইনডেক্সের রিটার্ন।
-   গুরুত্বপূর্ণ: i দিলে শুধু b[i] পর্যন্ত (ঐ দিন পর্যন্ত) ডেটা ব্যবহার হয়, ভবিষ্যতের কিছু নয়।
-   i না দিলে শেষ দিন ধরা হয় (আজকের স্ক্যানের জন্য)। */
 function calcRS(b,i){
   if(!INDEX) return null;
   if(i==null) i=b.length-1;
@@ -499,8 +499,6 @@ function RSI(c,n=14){const o=Array(c.length).fill(null);if(c.length<=n)return o;
 function ATR(b,n=14){const o=Array(b.length).fill(null);if(b.length<=n)return o;const tr=b.map((x,i)=>i===0?x.h-x.l:Math.max(x.h-x.l,Math.abs(x.h-b[i-1].c),Math.abs(x.l-b[i-1].c)));let a=0;for(let i=1;i<=n;i++)a+=tr[i];a/=n;o[n]=a;for(let i=n+1;i<b.length;i++){a=(a*(n-1)+tr[i])/n;o[i]=a}return o}
 function rollPrior(a,n,fn){const o=Array(a.length).fill(null);for(let i=n;i<a.length;i++){let m=a[i-1];for(let k=i-n;k<i;k++)m=fn(m,a[k]);o[i]=m}return o}
 
-/* VWAP20 — Volume-Weighted Average Price (২০ দিন)
-   Typical Price = (H+L+C)/3, ভলিউমের ওজনে গড় */
 function VWAP(b,n=20){
   const o=Array(b.length).fill(null);
   for(let i=n-1;i<b.length;i++){
@@ -598,7 +596,15 @@ function scoreAt(b,I,i){
   if(hh!=null&&c>hh){T('breakout');B(2,`২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট`);if(vr>=1.5){B(1,`ব্রেকআউটে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);}vDone=true}
   if(ll!=null&&c<ll){T('breakdown');S(2,`১০ দিনের সর্বনিম্ন ${ll.toFixed(1)} ভেঙে ব্রেকডাউন`);if(vr>=1.5)S(1,`ব্রেকডাউনে ভলিউম গড়ের ${vr.toFixed(1)} গুণ`);vDone=true}
   if(!vDone&&vr>=1.3){if(c>pc)B(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম বেড়েছে`);else if(c<pc)S(1,`ভলিউম গড়ের ${vr.toFixed(1)} গুণ আর দাম কমেছে`)}
-  if(s20!=null&&s50!=null&&s20>s50&&c>=s20*0.97&&c<=s20*1.03&&rsi!=null&&rsi<50&&I.c[i]>pc){B(2,'আপট্রেন্ডে SMA20 সাপোর্টের কাছ থেকে পুলব্যাক-বাউন্স');T('pullback')}
+  /* Pullback: SMA20 অথবা SMA50 সাপোর্ট থেকে বাউন্স (নিয়ম ৬) */
+  if(s20!=null&&s50!=null&&s20>s50&&rsi!=null&&rsi<50&&I.c[i]>pc){
+    const near20=c>=s20*0.97&&c<=s20*1.03;
+    const near50=c>=s50*0.97&&c<=s50*1.03;
+    if(near20||near50){
+      B(2,`আপট্রেন্ডে ${near50?'SMA50':'SMA20'} সাপোর্ট থেকে পুলব্যাক-বাউন্স`);
+      T('pullback');
+    }
+  }
   return r;
 }
 function getThresholds(){
@@ -691,10 +697,6 @@ function backtest(b,I,hold,tplus){
     return b[Math.min(f+hold,b.length-1)].c;
   };
   for(let i=50;i<b.length-hold-2;i++){
-    /* Random baseline: প্রতি ৫ দিনে এক দিন ধরা হয়, সংকেত থাকুক বা না থাকুক।
-       স্ট্র্যাটেজির ট্রেডের মতোই: একই plan() থেকে স্টপ ও টার্গেট, পরদিন ওপেনে এন্ট্রি, T+2 নিয়ম, একই hold, একই exitSim।
-       (খরচ analyze()-এ উভয় দিক থেকেই একইভাবে বাদ যায়।)
-       আগে বেসলাইনে স্টপ/টার্গেট/T+2 ছিল না, শুধু hold শেষে ক্লোজে বের হতো, আর সংকেতের পর অপেক্ষার দিনগুলোও বাদ পড়ত। */
     if(i%5===0){
       const e=i+1;
       if(e<b.length-hold){
@@ -706,7 +708,6 @@ function backtest(b,I,hold,tplus){
     if(i<nextOk)continue;
     const sc0=scoreAt(b,I,i);
     const cl=sc0?classify(sc0):'NA';
-    // Score bucket: buy>=3 সব সিগন্যাল
     if(sc0 && sc0.buy>=3){
       const e=i+1;
       if(e<b.length-hold){
@@ -782,7 +783,7 @@ function genDemo(){
 }
 /*CORE_END*/
 
-/* ========== EARLY INDICATOR ADD-ON ========== */
+/* ========== EARLY INDICATOR ADD-ON (patched: RSI divergence zone tightened) ========== */
 (function(){
   const _compute  = compute;
   const _scoreAt  = scoreAt;
@@ -817,10 +818,11 @@ function genDemo(){
     }
     return {mid:mid,upper:upper,lower:lower,width:width};
   }
+  /* RSI divergence — নিয়ম ৩: pivot RSI অবশ্যই ২৮–৪২ zone-এ থাকতে হবে */
   function rsiBullDivergence(b,I,i){
     if(i<25) return false;
     var rsi=I.rsi;
-    if(rsi[i]==null||rsi[i]>=40) return false;
+    if(rsi[i]==null || rsi[i]>45) return false;   /* খুব overbought নয় */
     var s=Math.max(3,i-30), lows=[];
     for(var k=s;k<=i-2;k++){
       if(b[k].l<=b[k-1].l && b[k].l<=b[k-2].l && b[k].l<=b[k+1].l && b[k].l<=b[k+2].l && rsi[k]!=null)
@@ -828,7 +830,9 @@ function genDemo(){
     }
     if(lows.length<2) return false;
     var a=lows[lows.length-2], c=lows[lows.length-1];
-    return c.price<a.price && c.rsi>a.rsi+1.5 && b[i].c<=a.price*1.02;
+    /* অন্তত একটি pivot-এর RSI ২৮–৪২ zone-এ থাকতে হবে */
+    var inZone = (a.rsi>=28 && a.rsi<=42) || (c.rsi>=28 && c.rsi<=42);
+    return inZone && c.price<a.price && c.rsi>a.rsi+1.5 && b[i].c<=a.price*1.02;
   }
   function histSlope2(I,i){
     var h=I.hist;
@@ -878,7 +882,7 @@ function genDemo(){
     var st = STOCH(b);
     var bb = BOLLINGER(b.map(function(x){return x.c}));
     I.stochK=st.K; I.stochD=st.D;
-    I.sma100=SMA(I.c,100);   /* ডিপ-বাইয়ের জন্য: ২০০ দিনের ডেটা না থাকলে বিকল্প */
+    I.sma100=SMA(I.c,100);
     I.bbMid=bb.mid; I.bbUpper=bb.upper; I.bbLower=bb.lower; I.bbWidth=bb.width;
     return I;
   };
@@ -1046,9 +1050,6 @@ function genDemo(){
     return (now - prev) / prev * 100;
   }
 
-  /* সাপ্তাহিক ট্রেন্ড: প্রতি ৫ ট্রেডিং-দিন = ১ সপ্তাহ (ডেটার শুরু থেকে গোনা)।
-     b-এর শেষ পর্যন্ত যতগুলো সম্পূর্ণ সপ্তাহ আছে শুধু সেগুলো ব্যবহার হয়।
-     weeklyTrend(b, i): শুধু b[0..i] ব্যবহার করে, ভবিষ্যৎ ডেটা ছোঁয় না। */
   const _wkCache = new WeakMap();
   function weeklyBars(b){
     let c = _wkCache.get(b);
@@ -1058,7 +1059,7 @@ function genDemo(){
   function weeklyTrend(b, i){
     if(i == null) i = b.length - 1;
     const none = {state:'unknown', sma20:null, close:null, slope:0};
-    const W = Math.floor((i + 1) / 5);          /* i পর্যন্ত সম্পূর্ণ সপ্তাহ */
+    const W = Math.floor((i + 1) / 5);
     if(W < 22) return none;
     const w = weeklyBars(b).slice(0, W);
     const closes = w.map(x => x.c);
@@ -1182,10 +1183,9 @@ function genDemo(){
     const r = _scoreAt(b, I, i);
     if(r === null) return null;
 
-    const calc = calcRS(b, i);   /* ঐ দিন পর্যন্ত ডেটা, ভবিষ্যৎ নয় */
+    const calc = calcRS(b, i);
     if(!calc) return r;
 
-    /* মনোযোগ: r.rs হলো বিক্রির কারণের তালিকা (array)। তাই RS মান r.rsVal-এ রাখছি। */
     r.rsVal = calc.rs;
     r.stockRet = calc.stockRet;
     r.indexRet = calc.indexRet;
@@ -1265,13 +1265,10 @@ function genDemo(){
     const r = {score:0, why:[], tags:[]};
     const c = I.c[i], pc = I.c[i-1];
     const s50 = I.sma50[i];
-    /* আগে শুধু SMA200 ধরা হতো। ডেটায় ২০০ দিন না থাকলে SMA200 থাকে না, ফলে স্কোর সবসময় ০ হয়ে ডিপ-বাই ফাঁকা দেখাত।
-       এখন ২০০ দিন থাকলে SMA200, না থাকলে SMA100 (১০০ দিনও না থাকলে বাদ) ব্যবহার হয়। */
     let sLong = I.sma200 ? I.sma200[i] : null, longN = 200;
     if(sLong == null && I.sma100 && I.sma100[i] != null){ sLong = I.sma100[i]; longN = 100; }
     const rsi = I.rsi[i];
 
-    // ১. প্রধান ট্রেন্ড ঊর্ধ্বমুখী (+২)
     if(sLong!=null && s50!=null && c > sLong && s50 > sLong){
       r.score += 2;
       r.why.push(`প্রধান ট্রেন্ড ঊর্ধ্বমুখী: দাম SMA${longN}-এর উপরে, SMA50 > SMA${longN} (+২)`);
@@ -1280,7 +1277,6 @@ function genDemo(){
       return {score:0, why:[sLong==null?'ডেটা যথেষ্ট নয় (কমপক্ষে ১০০ ট্রেডিং-দিন লাগে) — dip-buy বাদ':'প্রধান ট্রেন্ড ঊর্ধ্বমুখী নয় — dip-buy বাদ'], tags:[]};
     }
 
-    // ২. RSI ডুবেছে কিন্তু ঘুরছে (+২)
     if(rsi != null){
       let recentLow = 999;
       for(let k=Math.max(0,i-7);k<=i;k++){
@@ -1301,7 +1297,6 @@ function genDemo(){
       }
     }
 
-    // ৩. দাম SMA50-এর কাছে (+১.৫)
     if(s50 != null){
       const distPct = Math.abs((c - s50) / s50 * 100);
       if(distPct <= 3){
@@ -1314,7 +1309,6 @@ function genDemo(){
       }
     }
 
-    // ৪. Reversal Candle (+১.৫)
     const body = Math.abs(c - b[i].o);
     const ls = Math.min(b[i].o, c) - b[i].l;
     const us = b[i].h - Math.max(b[i].o, c);
@@ -1328,7 +1322,6 @@ function genDemo(){
       r.tags.push('dip-reversal-candle');
     }
 
-    // ৫. কম ভলিউমে পড়েছে (+১)
     if(I.vavg[i-1] != null){
       let lowVolDays = 0;
       for(let k=i-3;k<i;k++){
@@ -1341,13 +1334,11 @@ function genDemo(){
       }
     }
 
-    // ৬. EMA9 > EMA21 (+০.৫)
     if(I.ema9[i]!=null && I.ema21[i]!=null && I.ema9[i] > I.ema21[i]){
       r.score += 0.5;
       r.why.push('EMA9 > EMA21 — স্বল্পমেয়াদি momentum ফিরছে (+০.৫)');
     }
 
-    // ৭. বাজার ঊর্ধ্বমুখী (+১.৫)
     if(INDEX){
       const idxDates = idxDatesSorted();
       const lastDate = b[i].d;
@@ -1383,23 +1374,11 @@ function genDemo(){
 })();
 /* ========== END DIP-BUYING REVERSAL ========== */
 
-
-/* ডিপ-বাই: এই স্কোর বা তার বেশি হলে ডিপ-বাই সংকেত ধরা হয় (সর্বোচ্চ ১০.৫)। আগে স্কোরিংয়ে ৬ আর ট্যাব/ব্যাজে ৭ ছিল, তাই ৬-৭ স্কোরের শেয়ার কোথাও দেখাত না। */
 const DIP_MIN=6;
 
-/* ===== আজকের সুইং শর্টলিস্টের নিয়ম (সব নিয়ম একসাথে মিললে তবেই তালিকায় আসে) ===== */
 const SW={
-  minValue:3e6,      /* গড় দৈনিক লেনদেন (টাকা): ৩০ লাখের কম হলে সুইংয়ের জন্য অনুপযোগী (ঢোকা-বেরোনো কঠিন) */
-  minVr:0.8,         /* আজকের ভলিউম ২০ দিনের গড়ের অন্তত ০.৮ গুণ */
-  minAtrPct:1.5,     /* দৈনিক গড় ওঠানামা (ATR) দামের অন্তত ১.৫%, নইলে ২ সপ্তাহে নড়ে না */
-  maxAtrPct:5.5,     /* ৫.৫% এর বেশি হলে অতি অস্থির */
-  maxVwap:3,         /* VWAP20 থেকে সর্বোচ্চ ৩% উপরে */
-  maxRsi:65,         /* RSI ৬৫ এর বেশি হলে বেশি উঠে গেছে */
-  maxStretch:1.5,    /* দাম SMA20 থেকে সর্বোচ্চ ১.৫ গুণ ATR উপরে */
-  minP52:5,          /* ৫২-সপ্তাহের সর্বোচ্চ থেকে অন্তত ৫% নিচে (পিকে নয়) */
-  maxRisk:8,         /* স্টপ সর্বোচ্চ ৮% দূরে */
-  minBars:100,       /* কমপক্ষে ১০০ দিনের ডেটা */
-  top:5              /* সর্বোচ্চ কয়টি দেখাবে */
+  minValue:3e6, minVr:0.8, minAtrPct:1.5, maxAtrPct:5.5, maxVwap:3,
+  maxRsi:65, maxStretch:1.5, minP52:5, maxRisk:8, minBars:100, top:5
 };
 
 /* ================= UI ================= */
@@ -1412,9 +1391,22 @@ let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
-const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
-try{const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');SK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]})}catch(e){}
-function saveSettings(){try{const s={};SK.forEach(k=>s[k]=$('#'+k).value);localStorage.setItem('dse-scan-settings',JSON.stringify(s))}catch(e){}}
+/* সেটিংস সেভ/লোড — সংখ্যা ও চেকবক্স আলাদা করে */
+const SK_NUM=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
+const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exABOnly','exPriceBand'];
+try{
+  const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');
+  SK_NUM.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]});
+  SK_CHK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).checked=s[k]});
+}catch(e){}
+function saveSettings(){
+  try{
+    const s={};
+    SK_NUM.forEach(k=>{const el=$('#'+k);if(el)s[k]=el.value});
+    SK_CHK.forEach(k=>{const el=$('#'+k);if(el)s[k]=el.checked});
+    localStorage.setItem('dse-scan-settings',JSON.stringify(s));
+  }catch(e){}
+}
 
 function setMsg(t,cls){const m=$('#msg');m.textContent=t;m.className='msg '+(cls||'')}
 async function handleFiles(files){
@@ -1449,13 +1441,44 @@ function analyze(){
     let cl0=classify(sc);
     const pl=plan(I,i),ep=entryPlan(b,I,i);
     const gateTags=[];
+    /* ===== নতুন হার্ড গেট: নিয়ম ১, ১বি, ২, ৪, ৭ (টগলযোগ্য) ===== */
     if(cl0==='BUY'||cl0==='STRONG_BUY'){
       const vs20=I.v.slice(-20);const avgVol=vs20.reduce((x,y)=>x+y,0)/vs20.length;
       const volRatio=I.v[i]/avgVol;
-      if(volRatio < 1.0){
-        cl0='WATCH'; gateTags.push('কম ভলিউম');
-        sc.rs.push('⚠️ গেট: আজকের ভলিউম গড়ের '+volRatio.toFixed(2)+'x — কম, WATCH-এ নামানো হলো');
+      const turnover=avgVol*b[i].c;
+
+      /* নিয়ম ১: ভলিউম ≥ ১.৫× */
+      const gVol=$('#exVol15')&&$('#exVol15').checked;
+      if(gVol && volRatio < 1.5){
+        cl0='WATCH'; gateTags.push('ভলিউম <১.৫×');
+        sc.rs.push('⚠️ গেট: সংকেতের দিনে ভলিউম গড়ের '+volRatio.toFixed(2)+'x — ১.৫× প্রয়োজন');
       }
+      /* নিয়ম ১বি: টার্নওভার ≥ ১০ লক্ষ টাকা */
+      const gTurn=$('#exTurnover')&&$('#exTurnover').checked;
+      if(gTurn && turnover < 1000000){
+        cl0='WATCH'; gateTags.push('টার্নওভার <১০লক্ষ');
+        sc.rs.push('⚠️ গেট: দৈনিক টার্নওভার '+(turnover/100000).toFixed(1)+' লক্ষ টাকা — ১০ লক্ষ প্রয়োজন');
+      }
+      /* নিয়ম ২: SMA200 এর উপরে */
+      const gSma=$('#exSma200')&&$('#exSma200').checked;
+      if(gSma && I.sma200[i]!=null && b[i].c < I.sma200[i]){
+        cl0='WATCH'; gateTags.push('SMA200 নিচে');
+        sc.rs.push('⚠️ গেট: দাম SMA200 ('+I.sma200[i].toFixed(1)+') এর নিচে — ডাউনট্রেন্ডে বাই নিষিদ্ধ');
+      }
+      /* নিয়ম ৪: R:R ≥ ১:২ (নিকটতম রেজিস্ট্যান্স ধরে) */
+      const gRR=$('#exRR2')&&$('#exRR2').checked;
+      if(gRR && ep.chase.rr != null && ep.chase.rr < 2){
+        cl0='WATCH'; gateTags.push('R:R <১:২');
+        sc.rs.push('⚠️ গেট: নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R = ১:'+ep.chase.rr.toFixed(1)+' — ১:২ দরকার');
+      }
+      /* নিয়ম ৭: কেনার স্কোর ≥ ৭.৫ */
+      const gSc=$('#exScore75')&&$('#exScore75').checked;
+      if(gSc && sc.buy < 7.5){
+        cl0='WATCH'; gateTags.push('স্কোর <৭.৫');
+        sc.rs.push('⚠️ গেট: কেনার স্কোর '+sc.buy.toFixed(1)+' — ৭.৫ এর নিচে, শুধু নজরে');
+      }
+
+      /* ===== আগের গেট (রাখা) ===== */
       if(pl.riskPct > 8){
         cl0='WATCH'; gateTags.push('স্টপ দূরে');
         sc.rs.push('⚠️ গেট: স্টপ '+pl.riskPct.toFixed(1)+'% দূরে — ৮% এর বেশি, WATCH-এ নামানো হলো');
@@ -1479,7 +1502,7 @@ function analyze(){
     const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score}));
     const pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));
     const bt=btStats(trades.map(t=>t.ret));
-    const randomRets = bR.randomReturns.map(x=>x-cost);   /* বেসলাইনেও স্ট্র্যাটেজির মতো একই খরচ বাদ */
+    const randomRets = bR.randomReturns.map(x=>x-cost);
     const randomAvg = randomRets.length ? randomRets.reduce((x,y)=>x+y,0)/randomRets.length : null;
     const bucketStats={};
     for(const k in bR.buckets){
@@ -1500,6 +1523,8 @@ function baseList(){
   const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked,noWB=$('#exWeekBear').checked,noSW=$('#exSideways').checked,noRSW=$('#exRSWeak').checked,noBV=$('#exBelowVwap').checked;
   const noMF=$('#exMF')?$('#exMF').checked:true;
   const noSmallN=$('#exSmallN')?$('#exSmallN').checked:false;
+  const abOnly=$('#exABOnly')&&$('#exABOnly').checked;
+  const priceBand=$('#exPriceBand')&&$('#exPriceBand').checked;
   const minAdx=+$('#minAdx').value||0;
   const max52w=+$('#max52w').value||100;
   const minRS=+$('#minRS').value||0;
@@ -1514,7 +1539,9 @@ function baseList(){
     &&(minRS<=0||r.rsVal==null||r.rsVal>=minRS)
     &&(maxVwap>=100||r.vwapDist==null||r.vwapDist<=maxVwap)
     &&(!noMF||!isMFSymbol(r.sym))
-    &&(!noSmallN||(r.bt&&r.bt.n>=5)));
+    &&(!noSmallN||(r.bt&&r.bt.n>=5))
+    &&(!abOnly||(r.cat==='A'||r.cat==='B'))
+    &&(!priceBand||(r.close>=30&&r.close<=100)));
 }
 const tabOK=(r)=>tab==='all'||(tab==='dip'&&r.dip&&r.dip.score>=DIP_MIN)||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='early'&&r.early&&r.early.score>=getThresholds().earlyBuy)||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
 function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
@@ -1546,7 +1573,6 @@ function swingEval(r){
   const i=r.b.length-1,I=r.I,c=r.close;
   const atrPct=(I.atr[i]||c*0.03)/c*100;
   const val=r.avgVol*c;
-  /* ধাপ ১: সুইং ট্রেডিংয়ের উপযোগী শেয়ার কি? */
   if(r.stale) return {st:1,why:'সাম্প্রতিক ট্রেড নেই'};
   if(r.b.length<SW.minBars) return {st:1,why:'ডেটা কম (১০০ দিনের কম)'};
   if(val<SW.minValue) return {st:1,why:'লেনদেন কম (লিকুইডিটি নেই)'};
@@ -1554,13 +1580,11 @@ function swingEval(r){
   if(atrPct<SW.minAtrPct) return {st:1,why:'নড়াচড়া খুব কম'};
   if(atrPct>SW.maxAtrPct) return {st:1,why:'অতি অস্থির'};
   if(r.vr<SW.minVr) return {st:1,why:'আজ ভলিউম কম'};
-  /* ধাপ ২: আগেই উঠে যায়নি তো? পিকে নয় তো? */
   if(r.ep.extended) return {st:2,why:'আগেই অনেক উঠে গেছে'};
   if(r.vwapDist!=null&&r.vwapDist>SW.maxVwap) return {st:2,why:'VWAP থেকে অনেক উপরে'};
   if(r.rsi!=null&&r.rsi>SW.maxRsi) return {st:2,why:'RSI বেশি'};
   if(r.ep.stretch>SW.maxStretch) return {st:2,why:'SMA20 থেকে অনেক উপরে'};
   if(r.p52!=null&&r.p52<SW.minP52) return {st:2,why:'৫২-সপ্তাহের পিকের কাছে'};
-  /* ধাপ ৩: কেনার মতো সেটআপ আছে কি? */
   if(r.cl==='SELL'||r.cl==='STRONG_SELL') return {st:3,why:'বিক্রির সংকেত'};
   if(r.weekly&&r.weekly.state==='bear') return {st:3,why:'সাপ্তাহিক ট্রেন্ড নিম্নমুখী'};
   const isDip=r.dip&&r.dip.score>=DIP_MIN;
@@ -1580,7 +1604,6 @@ function renderShortlist(){
   const rej={};ev.filter(x=>x.e.st===1).forEach(x=>rej[x.e.why]=(rej[x.e.why]||0)+1);
   const rej2={};ev.filter(x=>x.e.st===2||x.e.st===3).forEach(x=>rej2[x.e.why]=(rej2[x.e.why]||0)+1);
   const rejTxt=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${esc(k)} ${v}টি`).join(' · ')||'–';
-  /* বাজারের অবস্থা: DSEX তার ৫০-দিনের গড়ের উপরে না নিচে */
   let mkt='';
   if(INDEX){const d=idxDatesSorted();if(d.length>=50){const v=d.slice(-50).map(k=>INDEX[k]),avg=v.reduce((x,y)=>x+y,0)/v.length,up=INDEX[d[d.length-1]]>avg;
     mkt=up?`<p class="note" style="margin:6px 0">📈 বাজার (DSEX) তার ৫০-দিনের গড়ের উপরে আছে, ডিপ কেনার জন্য পরিবেশ তুলনামূলক ভালো।</p>`
@@ -1636,8 +1659,6 @@ const HD={
   SELL:{t:'বিক্রি',c:'b-s',cls:'sell'},
   STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',cls:'sell'}
 };
-/* ঐ শেয়ারের জন্য সিদ্ধান্ত: ক্রয়মূল্য, সাপোর্ট/রেজিস্ট্যান্স, ট্রেন্ড ও সংকেত মিলিয়ে।
-   এখানে সবসময় শেষ দিনের (আজকের) তথ্য ব্যবহার হয়। */
 function holdEval(r,h,lossLimit){
   const i=r.b.length-1,I=r.I,c=r.close,a=I.atr[i]||c*0.03;
   const L=levels(r.b,I,i);
@@ -1645,7 +1666,6 @@ function holdEval(r,h,lossLimit){
   const pnl=(c/h.price-1)*100;
   const s20=I.sma20[i],s50=I.sma50[i],vw=I.vwap20[i];
   const wk=r.weekly?r.weekly.state:'unknown';
-  /* সুরক্ষা-স্টপ: আজকের ATR-ভিত্তিক স্টপ; কাছের সাপোর্ট থাকলে তার সামান্য নিচে */
   let stop=r.pl.stop;
   const ns=sup[0];
   if(ns){const sp=ns.p-0.35*a;if(sp>stop&&sp<c-0.5*a)stop=sp}
@@ -1669,7 +1689,6 @@ function holdEval(r,h,lossLimit){
     if(trendOK){dec='HOLD';why='বড় সংকেত নেই, কিন্তু দাম SMA50-এর উপরে ও সাপ্তাহিক ট্রেন্ড নিম্নমুখী নয়'}
     else{dec='NEUTRAL';why='স্পষ্ট দিক নেই'}
   }
-  /* কারণের তালিকা */
   reasons.push(`আজকের স্ক্যান-সংকেত: ${SIG[r.cl].t} (কেনা-স্কোর ${r.buy.toFixed(1)}, বিক্রি-স্কোর ${r.sell.toFixed(1)})`);
   if(s50!=null)reasons.push(c>=s50?`দাম SMA50 (${fmt(s50)})-এর উপরে`:`দাম SMA50 (${fmt(s50)})-এর নিচে`);
   if(s20!=null)reasons.push(c>=s20?`দাম SMA20 (${fmt(s20)})-এর উপরে`:`দাম SMA20 (${fmt(s20)})-এর নিচে`);
@@ -1678,7 +1697,6 @@ function holdEval(r,h,lossLimit){
   reasons.push('সাপ্তাহিক ট্রেন্ড: '+(wl[wk]||wk));
   if(r.rsi!=null)reasons.push(`RSI ${r.rsi.toFixed(0)}`+(r.rsi>=75?' (অতিরিক্ত কেনা, ওঠার গতি ক্লান্ত হতে পারে)':r.rsi<=30?' (অতিরিক্ত বেচা)':''));
   if(r.rsVal!=null)reasons.push(`ইনডেক্সের তুলনায় শক্তি (RS) ${r.rsVal.toFixed(0)}`+(r.rsVal>=100?' (বাজারের চেয়ে ভালো)':' (বাজারের চেয়ে দুর্বল)'));
-  /* করণীয় */
   const acts=[];
   const dist=x=>((x/c-1)*100);
   if(dec==='STRONG_SELL')acts.push('আগামী দিনের ওপেনে বেরিয়ে যাওয়ার কথা ভাবুন। আর অপেক্ষা করলে ক্ষতি বাড়তে পারে।');
@@ -1946,7 +1964,10 @@ $('#tbl').addEventListener('click',e=>{
   const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s);
 });
 $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
-['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();render()}));
+/* ফিল্টার (রেন্ডার-only): */
+['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q','exABOnly','exPriceBand'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',()=>{saveSettings();render()})});
+/* নতুন হার্ড-গেট (analyze দরকার): */
+['exVol15','exTurnover','exSma200','exRR2','exScore75'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
 ['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 ['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
@@ -2126,7 +2147,6 @@ async function autoLoad(){
     try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
     let idxOK=false;
     INDEX=null;
-    /* GitHub-এ ফাইলের নামের বড়-ছোট হাতের অক্ষর আলাদা ধরা হয়, তাই সব সম্ভাব্য নাম চেষ্টা করা হয়; যে কয়টি পাওয়া যায় সব মিলিয়ে নেওয়া হয় */
     for(const nm of ['data/dsex.csv','data/Dsex.csv','data/DSEX.csv','data/index.csv','data/Index.csv']){
       try{
         const ri=await fetch(nm,{cache:'no-cache'});
