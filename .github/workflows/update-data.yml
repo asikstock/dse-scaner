@@ -66,6 +66,10 @@ jobs:
         run: python scripts/fetch_news.py
         continue-on-error: true
 
+      - name: সেক্টর সামারি হিসাব
+        run: python scripts/compute_sectors.py
+        continue-on-error: true
+        
       - name: পরিবর্তন সেভ করুন
         run: |
           git config user.name "dse-data-bot"
