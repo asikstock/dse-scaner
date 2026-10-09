@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Collect stock-related headlines from Bangladesh financial RSS feeds.
-Saves symbol-matched news AND market-wide news (symbol="MARKET").
+Saves symbol-matched news, market-wide news (symbol="MARKET"),
+and political-business news (symbol="POLITICS-BUSINESS").
 """
 import json
 import os
@@ -13,34 +14,30 @@ from urllib.parse import urlparse
 import feedparser
 
 # ═══════════════════════════════════════════════════════════════
-# ১. RSS ফিড — বেশি উৎস, বেশি খবর
+# ১. RSS ফিড — ফাইন্যান্স + রাজনৈতিক ব্যবসা
 # ═══════════════════════════════════════════════════════════════
 
 DEFAULT_FEEDS = ",".join([
-    # ── বাংলা — পুঁজিবাজার বিভাগ ──
+    # ── বাংলা — পুঁজিবাজার / ফাইন্যান্স ──
     "https://orthosongbad.com/sharemarket/feed/",
-    "https://orthosongbad.com/feed/",
     "https://businessbarta.net/feed/",
     "https://businessbarta.net/tag/%E0%A6%B6%E0%A7%87%E0%A6%AF%E0%A6%BC%E0%A6%BE%E0%A6%B0%E0%A6%AC%E0%A6%BE%E0%A6%9C%E0%A6%BE%E0%A6%B0/feed/",
+    "https://mastarybd.com/tag/%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%A7%E0%A6%BE%E0%A6%A8-%E0%A6%B8%E0%A7%82%E0%A6%9A%E0%A6%95/feed/",
+    "https://mastarybd.com/tag/%E0%A6%85%E0%A6%B0%E0%A7%8D%E0%A6%A5%E0%A6%A8%E0%A7%88%E0%A6%A4%E0%A6%BF%E0%A6%95/feed/",
     "https://www.ittefaq.com.bd/feed/",
-    "https://www.bd-pratidin.com/economy/feed/",
-    "https://www.jugantor.com/economics/feed/",
-    "https://www.kalerkantho.com/online/economics/rss.xml",
-    "https://www.prothomalo.com/business/feed",
-    "https://www.samakal.com/rss/economy",
 
-    # ── ইংরেজি ──
+    # ── ইংরেজি — ফাইন্যান্স ──
     "https://www.thedailystar.net/business/rss.xml",
-    "https://www.thedailystar.net/business/banks/rss.xml",
     "https://www.thedailystar.net/business/economy/rss.xml",
-    "https://www.thedailystar.net/business/stock/rss.xml",
-    "https://www.dhakatribune.com/feed",
-    "https://www.newagebd.net/feed",
     "https://en.prothomalo.com/feed",
     "https://www.tbsnews.net/rss.xml",
-    "https://bdnews24.com/?widgetName=rssfeed&widgetId=1150&getXmlFeed=true",
-    "https://www.daily-sun.com/rss.xml",
-    "https://www.financialexpress-bd.com/rss.xml",
+    "https://thefinancialexpress.com.bd/feed",
+    "https://www.bssnews.net/feed",
+
+    # ── রাজনৈতিক / সরকারি বিনিয়োগ খবর ──
+    "https://www.jugantor.com/feed/rss.xml",
+    "https://www.jagonews24.com/rss/rss.xml",
+    "https://www.dhakatribune.com/rss/latest",
 ])
 RSS_FEEDS = [
     u.strip() for u in os.getenv("NEWS_RSS_FEEDS", DEFAULT_FEEDS).split(",")
@@ -83,7 +80,7 @@ def _load_symbols_from_prices():
 TRACKED_SYMBOLS = _load_symbols_from_prices() or ["GP", "BEXIMCO", "SQURPHARMA"]
 
 # ═══════════════════════════════════════════════════════════════
-# ৩. Alias
+# ৩. বাংলা + ইংরেজি alias
 # ═══════════════════════════════════════════════════════════════
 
 SYMBOL_ALIASES = {
@@ -129,10 +126,9 @@ GENERIC_ALIASES_TO_SKIP = {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# ৪. কি-ওয়ার্ড
+# ৪. কি-ওয়ার্ড — ফাইন্যান্স, মার্কেট, রাজনৈতিক ব্যবসা
 # ═══════════════════════════════════════════════════════════════
 
-# ফাইন্যান্স-সম্পর্কিত শব্দ (কোম্পানি-নিউজের জন্য)
 FINANCE_KEYWORDS = [
     "share", "stock", "shares", "stocks", "equity", "dividend", "profit",
     "loss", "revenue", "earnings", "quarter", "annual", "agm", "egm",
@@ -145,19 +141,44 @@ FINANCE_KEYWORDS = [
     "ব্রোকারেজ", "আইপিও",
 ]
 
-# শক্তিশালী মার্কেট-ওয়াইড শব্দ (সিম্বল না থাকলেও MARKET হিসেবে সেভ হবে)
 STRONG_MARKET_KEYWORDS = [
     "পুঁজিবাজার", "পুঁজি বাজার", "শেয়ারবাজার", "শেয়ার বাজার",
-    "স্টক এক্সচেঞ্জ", "স্টক মার্কেট", "স্টক এক্সচেঞ্জ",
-    "ডিএসই", "সিএসই", "ডিএসইএক্স", "ডিএস৩০", "বিএসইসি",
-    "মূল্য সূচক", "সূচক বেড়েছে", "সূচক কমেছে",
-    "লেনদেন কমেছে", "লেনদেন বেড়েছে",
-    "শেয়ার দর", "শেয়ারের দাম", "দর বেড়েছে", "দর কমেছে",
-    "বাজার পর্যালোচনা", "বাজার পর্যালোচনা",
-    "dse", "cse", "bsec", "dsex", "ds30",
-    "stock exchange", "bourse", "capital market",
-    "dhaka stock", "chittagong stock", "stock market",
+    "স্টক এক্সচেঞ্জ", "স্টক মার্কেট", "ডিএসই", "সিএসই", "ডিএসইএক্স",
+    "ডিএস৩০", "বিএসইসি", "মূল্য সূচক", "সূচক বেড়েছে", "সূচক কমেছে",
+    "লেনদেন কমেছে", "লেনদেন বেড়েছে", "শেয়ার দর", "শেয়ারের দাম",
+    "দর বেড়েছে", "দর কমেছে", "বাজার পর্যালোচনা",
+    "dse", "cse", "bsec", "dsex", "ds30", "stock exchange", "bourse",
+    "capital market", "dhaka stock", "chittagong stock", "stock market",
     "share market", "share price", "market review",
+]
+
+# ── রাজনৈতিক ব্যবসা কি-ওয়ার্ড ──
+POLITICS_BUSINESS_KEYWORDS = [
+    # রাজনৈতিক ব্যক্তিত্ব ও দল
+    "বিএনপি", "আওয়ামী লীগ", "জামায়াত", "তারেক রহমান", "খালেদা জিয়া",
+    "প্রধানমন্ত্রী", "মন্ত্রী", "উপদেষ্টা", "সচিব", "সংসদ সদস্য", "এমপি",
+    "bnp", "awami league", "tarique rahman", "khaleda zia",
+    "prime minister", "minister", "advisor", "secretary", "mp",
+
+    # সরকারি প্রকল্প ও বিনিয়োগ
+    "সরকারি প্রকল্প", "সরকারি বিনিয়োগ", "সরাসরি বিনিয়োগ", "বৈদেশিক বিনিয়োগ",
+    "পিপিপি", "পাবলিক-প্রাইভেট", "একনেক", "ecnec", "beza", "বেজা",
+    "গণপূর্ত", "সড়ক ও জনপথ", "বন্দর", "বিমানবন্দর", "মেট্রোরেল",
+    "power plant", "বিদ্যুৎ কেন্দ্র", "অর্থনৈতিক অঞ্চল", "বিশেষ অর্থনৈতিক অঞ্চল",
+    "economic zone", "special economic zone", "investment", "investor",
+
+    # বিএনপি-ঘনিষ্ঠ প্রতিষ্ঠান
+    "summit group", "সামিট গ্রুপ", "s alam group", "এস আলম গ্রুপ",
+    "nassa group", "নাসা গ্রুপ", "orion group", "ওরিয়ন গ্রুপ",
+    "alam group", "আলম গ্রুপ", "gemcon group", "জেমকন গ্রুপ",
+    "nabil group", "নাবিল গ্রুপ", "transcom", "ট্রান্সকম",
+    "beximco", "বেক্সিমকো", "square", "স্কয়ার", "brac", "ব্র্যাক",
+
+    # সরকারের সদিচ্ছা ও নীতি
+    "সরকারের সদিচ্ছা", "সরকারি নীতি", "নতুন নীতি", "সংস্কার",
+    "ব্যবসায় সহায়ক", "বিনিয়োগ পরিবেশ", "বিনিয়োগ সুবিধা",
+    "tax", "কর", "ভ্যাট", "vat", "শুল্ক", "duty",
+    "বাজেট", "budget", "অনুদান", "subsidy", "প্রণোদনা", "incentive",
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -194,8 +215,12 @@ def _has_strong_market(title, summary):
     return any(kw.lower() in blob for kw in STRONG_MARKET_KEYWORDS)
 
 
+def _has_politics_business(title, summary):
+    blob = f"{title} {summary}".lower()
+    return any(kw.lower() in blob for kw in POLITICS_BUSINESS_KEYWORDS)
+
+
 def _match_symbols(title, summary):
-    """শুধু সিম্বল/alias ম্যাচ (ফাইন্যান্স চেক বাদ দিয়ে)।"""
     searchable = f"{title} {summary}".upper()
     raw_blob = f"{title} {summary}"
     matched = []
@@ -216,11 +241,14 @@ def _match_symbols(title, summary):
 
 def classify_news(title, summary):
     """
-    রিটার্ন করে সিম্বল লিস্ট। খবর কোনো কোম্পানির না হলে ['MARKET']।
-    কিছুই না মিললে [].
+    রিটার্ন করে সিম্বল লিস্ট।
+    - কোম্পানি-নির্দিষ্ট হলে সিম্বল
+    - মার্কেট-ওয়াইড হলে ['MARKET']
+    - রাজনৈতিক ব্যবসা হলে ['POLITICS-BUSINESS']
+    - কিছু না মিললে []
     """
-    # ১. ফাইন্যান্স কি-ওয়ার্ড না থাকলে বাদ
-    if not _has_finance(title, summary):
+    # ১. ফাইন্যান্স কি-ওয়ার্ড বা রাজনৈতিক ব্যবসা কি-ওয়ার্ড লাগবে
+    if not (_has_finance(title, summary) or _has_politics_business(title, summary)):
         return []
 
     # ২. কোম্পানি-নির্দিষ্ট?
@@ -228,7 +256,11 @@ def classify_news(title, summary):
     if symbols:
         return symbols
 
-    # ३. মার্কেট-ওয়াইড?
+    # ৩. রাজনৈতিক ব্যবসা?
+    if _has_politics_business(title, summary):
+        return ["POLITICS-BUSINESS"]
+
+    # ৪. মার্কেট-ওয়াইড?
     if _has_strong_market(title, summary):
         return ["MARKET"]
 
@@ -248,7 +280,7 @@ MAX_ITEMS_PER_FEED = 100
 def fetch_from_rss():
     items = {}
     stats = {"feeds_ok": 0, "feeds_fail": 0, "entries_total": 0,
-             "symbol_matches": 0, "market_matches": 0}
+             "symbol_matches": 0, "market_matches": 0, "politics_matches": 0}
 
     for feed_url in RSS_FEEDS:
         try:
@@ -268,6 +300,7 @@ def fetch_from_rss():
 
             symbol_count = 0
             market_count = 0
+            politics_count = 0
 
             for entry in feed.entries[:MAX_ITEMS_PER_FEED]:
                 title = clean_text(entry.get("title"))
@@ -279,6 +312,8 @@ def fetch_from_rss():
                 for sym in classify_news(title, summary):
                     if sym == "MARKET":
                         market_count += 1
+                    elif sym == "POLITICS-BUSINESS":
+                        politics_count += 1
                     else:
                         symbol_count += 1
                     items[(sym, link)] = {
@@ -293,7 +328,9 @@ def fetch_from_rss():
 
             stats["symbol_matches"] += symbol_count
             stats["market_matches"] += market_count
-            print(f"✅ {feed_url} → {n_entries} entries, {symbol_count} symbol + {market_count} market")
+            stats["politics_matches"] += politics_count
+            print(f"✅ {feed_url} → {n_entries} entries, "
+                  f"{symbol_count} symbol + {market_count} market + {politics_count} politics")
 
         except Exception as exc:
             print(f"❌ {feed_url} → {exc}")
@@ -302,7 +339,9 @@ def fetch_from_rss():
     print(f"\n📊 সারসংক্ষেপ:")
     print(f"   সফল ফিড: {stats['feeds_ok']}, ব্যর্থ: {stats['feeds_fail']}")
     print(f"   মোট entry: {stats['entries_total']}")
-    print(f"   symbol match: {stats['symbol_matches']}, market match: {stats['market_matches']}")
+    print(f"   symbol match: {stats['symbol_matches']}, "
+          f"market match: {stats['market_matches']}, "
+          f"politics match: {stats['politics_matches']}")
     return sorted(items.values(), key=lambda x: x["date"], reverse=True)
 
 
