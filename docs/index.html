@@ -331,7 +331,22 @@ footer p{max-width:90ch;margin-bottom:6px}
     </fieldset>
   </div>
 </section>
-
+<section id="sector-sec">
+  <div class="sec-h">
+    <h2>৩ক. সেক্টর বিশ্লেষণ</h2>
+    <div class="row">
+      <button data-sortsec="avg_change_20d">২০ দিনের পরিবর্তন</button>
+      <button data-sortsec="avg_change_5d">৫ দিনের</button>
+      <button data-sortsec="avg_change_1d">আজকের</button>
+      <button data-sortsec="avg_eps">গড় EPS</button>
+      <button data-sortsec="avg_volume">গড় ভলিউম</button>
+    </div>
+  </div>
+  <p class="muted" style="font-size:13.5px;margin:0 0 10px">
+    কোন সেক্টর ভালো করছে, কোথায় টাকা ঢুকছে, গড় EPS কেমন। সবুজ = উপরে, লাল = নিচে।
+  </p>
+  <div id="sectorOut"></div>
+</section>
 <section id="results-sec" aria-live="polite">
   <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
   <div id="shortlist"></div>
@@ -1532,7 +1547,7 @@ function analyze(){
       const bb=bR.buckets[k];
       if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
     }
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly??null,adx:sc.adx??null,pdi:sc.pdi??null,ndi:sc.ndi??null,p52:sc.p52??null,posRange:sc.posRange??null,rsVal:sc.rsVal??null,stockRet:sc.stockRet??null,indexRet:sc.indexRet??null,vwap:sc.vwap??null,vwapDist:sc.vwapDist??null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,sector: sectorOf(sym),chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly??null,adx:sc.adx??null,pdi:sc.pdi??null,ndi:sc.ndi??null,p52:sc.p52??null,posRange:sc.posRange??null,rsVal:sc.rsVal??null,stockRet:sc.stockRet??null,indexRet:sc.indexRet??null,vwap:sc.vwap??null,vwapDist:sc.vwapDist??null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -1734,7 +1749,60 @@ function holdEval(r,h,lossLimit){
   if(pnl>=0&&dec==='HOLD'&&stop<h.price)acts.push(`লাভে আছেন। স্টপ ক্রয়মূল্যের (${fmt(h.price)}) উপরে উঠলে ক্ষতির ঝুঁকি থাকবে না।`);
   return {dec,why,pnl,stop,sup,res,reasons,acts,a};
 }
-function renderHoldings(){
+  let sectorSortKey='avg_change_20d', sectorSortDir=-1;
+  function renderSectors(){
+  const el=$('#sectorOut');if(!el)return;
+  if(!SECTORS.length){
+    el.innerHTML='<div class="warnbox">সেক্টর ডেটা লোড হয়নি। <code>docs/data/sector_summary.json</code> ফাইল তৈরি হলে এখানে দেখা যাবে।</div>';
+    return;
+  }
+  const list=[...SECTORS].filter(s=>s.sector!=='Unknown'&&s.companies>0);
+  list.sort((a,b)=>{
+    const x=a[sectorSortKey], y=b[sectorSortKey];
+    if(x==null&&y==null)return 0;
+    if(x==null)return 1;
+    if(y==null)return -1;
+    return (x<y?-1:x>y?1:0)*sectorSortDir;
+  });
+  const fmt2=v=>v==null?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+  const fmtN=v=>v==null?'–':v.toFixed(2);
+  const fmtVol=v=>v==null?'–':(v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?Math.round(v/1000)+'K':v);
+  const cls=v=>v==null?'':v>0?'up':v<0?'down':'';
+  const top3=list.slice(0,3).map(s=>s.sector).join(' · ');
+  const bot3=list.slice(-3).map(s=>s.sector).join(' · ');
+  const rows=list.map(s=>{
+    return `<tr>
+      <td class="sym">${esc(s.sector)}</td>
+      <td class="n">${s.companies}</td>
+      <td class="n ${cls(s.avg_change_1d)}">${fmt2(s.avg_change_1d)}</td>
+      <td class="n ${cls(s.avg_change_5d)}">${fmt2(s.avg_change_5d)}</td>
+      <td class="n ${cls(s.avg_change_20d)}">${fmt2(s.avg_change_20d)}</td>
+      <td class="n">${fmtN(s.avg_eps)}</td>
+      <td class="n">${fmtVol(s.avg_volume)}</td>
+      <td class="n">${s.cat_a}/${s.cat_b}/${s.cat_z}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="tally" style="margin-bottom:12px">
+      <div><b>${list.length}</b><span>সেক্টর</span></div>
+      <div class="t-buy"><b>${list.filter(s=>s.avg_change_20d>0).length}</b><span>২০ দিনে উপরে</span></div>
+      <div class="t-sell"><b>${list.filter(s=>s.avg_change_20d<0).length}</b><span>২০ দিনে নিচে</span></div>
+      <div><b>${esc(top3)}</b><span>শীর্ষ ৩ সেক্টর</span></div>
+      <div><b>${esc(bot3)}</b><span>সর্বনিম্ন ৩</span></div>
+    </div>
+    <div class="tw"><table class="mini" style="min-width:780px"><thead><tr>
+      <th>সেক্টর</th><th class="n">কোম্পানি</th>
+      <th class="n">১ দিন</th><th class="n">৫ দিন</th><th class="n">২০ দিন</th>
+      <th class="n">গড় EPS</th><th class="n">গড় ভলিউম</th>
+      <th class="n">A/B/Z</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note" style="margin-top:8px">
+      📌 সেক্টর যেখানে আছে: <b>২০ দিনের পরিবর্তন</b> বেশি হলে সেখানে বিনিয়োগকারীরা ঝুঁকছে। <b>গড় EPS</b> বেশি হলে সেক্টরের কোম্পানিগুলো লাভে। <b>A/B/Z</b> = ক্যাটাগরি কতগুলো।
+    </p>`;
+}
+function render(){
+  renderSectors();
+  renderHoldings();
   const el=$('#holdingsOut'),dl=$('#hSyms');if(!el)return;
   if(dl)dl.innerHTML=RES.map(r=>`<option value="${esc(r.sym)}"></option>`).join('');
   if(!HOLD.length){el.innerHTML='<p class="muted">এখনও কোনো শেয়ার যোগ করেননি। উপরে কোড ও ক্রয়মূল্য দিয়ে "যোগ করুন" চাপুন।</p>';return}
@@ -1847,6 +1915,7 @@ function render(){
   const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,early:r=>(r.early?r.early.score:-1),adx:r=>(r.adx==null?-1:r.adx),p52:r=>(r.p52==null?999:r.p52),rs:r=>(r.rsVal==null?-999:r.rsVal),vwap:r=>(r.vwapDist==null?-999:r.vwapDist),rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk,cat:r=>r.cat||'~',eps:r=>r.eps==null?-999:r.eps}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
   const allCols=[
+    ['sec','সেক্টর','',''],
     ['sym','কোম্পানি','','core'],
     ['cat','ক্যাট.','',''],
     ['eps','EPS (সর্বশেষ)','n',''],
@@ -1890,7 +1959,8 @@ function render(){
     const rsCell=r.rsVal==null?'<span class="muted">–</span>':(r.rsVal>=110?`<span class="badge b-rs">${r.rsVal.toFixed(0)}</span>`:r.rsVal<90?`<span class="down">${r.rsVal.toFixed(0)}</span>`:r.rsVal.toFixed(0));
     const vwapCell=r.vwapDist==null?'<span class="muted">–</span>':(r.vwapDist>=0.5?`<span class="badge b-vwap">+${r.vwapDist.toFixed(1)}%</span>`:r.vwapDist<=-1?`<span class="down">${r.vwapDist.toFixed(1)}%</span>`:`<span class="muted">${r.vwapDist.toFixed(1)}%</span>`);
     return`<tr data-s="${esc(r.sym)}" tabindex="0" class="${selected===r.sym?'sel':''}">`+
-      `<td class="sym">${esc(r.sym)}</td>`+
+    `<td class="sym">${esc(r.sym)}</td>`+
+      (want('sec')?`<td>${esc(sectorOf(r.sym)||'–')}</td>`:'')+
       (want('cat')?`<td>${r.cat?`<span class="badge ${r.cat==='Z'?'b-s':'b-n'}">${esc(r.cat)}</span>`:'<span class="muted">–</span>'}</td>`:'')+
       (want('eps')?`<td class="n ${r.eps!=null&&r.eps<=0?'down':''}">${r.eps==null?'–':r.eps.toFixed(2)}</td>`:'')+
       (want('close')?`<td class="n">${fmt(r.close)}</td>`:'')+
@@ -1979,6 +2049,12 @@ function renderPstats(base){
   el.innerHTML=`<h3 style="margin-bottom:8px">কোন ধরনের সংকেত অতীতে কেমন চলেছে</h3><div class="tw"><table class="mini"><thead><tr><th>ধরন</th><th class="n">অতীত সংকেত</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th><th class="n">আজকের কেনার সংকেত</th></tr></thead><tbody>${line('সব কেনা-সংকেত একসাথে',()=>true,base.filter(isBuy).length)}${rows}</tbody></table></div><p class="note">খরচ বাদ দিয়ে, ${+$('#hold').value||10} দিন হোল্ড ধরে। একটি সংকেত একাধিক ধরনের হতে পারে, তাই সারিগুলো যোগ করলে মোট মিলবে না। ৩০টির কম সংকেতে ফল ভাগ্যের উপর নির্ভর করতে পারে।</p>
   <h3 style="margin:22px 0 8px">বেশি উঠে যাওয়া শেয়ারে: এখনই কিনবেন, না পুলব্যাকের অপেক্ষা করবেন?</h3><div class="tw"><table class="mini"><thead><tr><th>কেনার পদ্ধতি</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th><th class="n">প্রতি সংকেতে গড় (ধরা না পড়লে ০)</th></tr></thead><tbody>${c2('স্বাভাবিক সংকেত: পরদিন ওপেনে কেনা',sN,sN?sN.n:0)}${c2('উঠে-যাওয়া সংকেত: পরদিন ওপেনে কেনা',sE,sE?sE.n:0)}${c2('উঠে-যাওয়া সংকেত: পুলব্যাক জোনে লিমিট অর্ডার',sP,extN,`৫ দিনের মধ্যে ${extN}টির মধ্যে ${P.length}টিতে (${fill}%) দাম জোনে নেমেছিল`)}</tbody></table></div><p class="note">শেষ কলামে যেসব সংকেতে পুলব্যাক আসেনি সেখানে লাভ-লোকসান ০ ধরা হয়েছে, তাই তিনটি সারি ন্যায্যভাবে তুলনা করা যায়। পুলব্যাক জোনের স্টপ কাছে বলে এখানে ঝুঁকিও কম।</p>`;
 }
+  document.querySelector('#sector-sec')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-sortsec]');if(!b)return;
+  const k=b.dataset.sortsec;
+  if(sectorSortKey===k) sectorSortDir*=-1; else {sectorSortKey=k; sectorSortDir=-1;}
+  renderSectors();
+});
 $('#ptypes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ptype=b.dataset.p;render()});
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render()});
 $('#tbl').addEventListener('click',e=>{
@@ -2224,6 +2300,26 @@ autoLoad();
   }
   if(reload)reload.addEventListener('click',loadNews);
   loadNews();
+  
+/* ── সেক্টর সামারি লোডার ── */
+async function loadSectors(){
+  try{
+    const response=await fetch('data/sector_summary.json?ts='+Date.now(),{cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const payload=await response.json();
+    if(!Array.isArray(payload))throw new Error('sector_summary.json-এর ফরম্যাট সঠিক নয়');
+    SECTORS=payload;
+    buildSectorMap();
+    renderSectors();
+    console.log(`🏭 ${SECTORS.length} sectors loaded`);
+  }catch(error){
+    SECTORS=[];
+    console.warn('Sector load failed:',error.message);
+    const el=document.getElementById('sectorOut');
+    if(el) el.innerHTML='<div class="warnbox">সেক্টর ডেটা লোড হয়নি: '+esc(error.message)+'</div>';
+  }
+}
+loadSectors();
 })();
 
 </script>
