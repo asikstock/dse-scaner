@@ -12,6 +12,7 @@ on:
     - cron: '10 13 * * 0-4'   # ঢাকা ১৯:১০
     - cron: '40 16 * * 0-4'   # ঢাকা ২২:৪০ (রাতের ব্যাকআপ)
     - cron: '25 1 * * 1-5'    # পরদিন সকাল ৭:২৫ (আগের দিনের ডেটা বাদ পড়ে থাকলে ধরে নেয়)
+    - cron: '15 2 * * 0-4'    # খবর আপডেট: ঢাকা সকাল ০৮:১৫ (রবি–বৃহ.)
   workflow_dispatch:
     inputs:
       bootstrap:
@@ -51,6 +52,15 @@ jobs:
       - name: আজকের ডেটা যোগ করুন
         if: ${{ github.event.inputs.bootstrap != 'true' }}
         run: python scripts/update_data.py
+
+
+      - name: খবর সংগ্রহের নির্ভরতা ইনস্টল করুন
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '15 2 * * 0-4' }}
+        run: python -m pip install feedparser
+
+      - name: RSS থেকে শেয়ারবাজারের খবর সংগ্রহ করুন
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '15 2 * * 0-4' }}
+        run: python scripts/fetch_news.py
 
       - name: পরিবর্তন সেভ করুন
         run: |
