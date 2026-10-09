@@ -1894,7 +1894,8 @@ function renderPlanner(){
     <li>এই টুলে কোম্পানির খাত (ব্যাংক, ওষুধ ইত্যাদি) নেই। একই খাতের কয়েকটি শেয়ার একসাথে নামে, তাই নিজে মিলিয়ে নিন। কেনার আগে খবর, লভ্যাংশ বা রেকর্ড ডেট ও ক্যাটাগরি দেখুন। ব্রোকারেজ, কমিশন ও সরকারি খরচের আসল হার আপনার ব্রোকারের কাছ থেকে নিন। সেটিংসের খরচ ${(costP*100).toFixed(2)}% ধরে আনুমানিক খরচ প্রায় ${fmtInt(fees)} টাকা।</li>
   </ul>`;
 }
-function render(){
+  function render(){
+  renderSectors();
   renderHoldings();
   renderPlanner();
   renderShortlist();
