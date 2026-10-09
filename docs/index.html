@@ -1402,6 +1402,15 @@ const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',
 const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['dip','🎯 ডিপ-বাই'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
 const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী','strong-trend':'📊 শক্তিশালী ট্রেন্ড','trending':'📊 ট্রেন্ডিং','weak-trend':'📊 দুর্বল ট্রেন্ড','sideways':'📊 পার্শ্ববর্তী','52w-high':'🎯 ৫২-সপ্তাহ উচ্চতা','rs-strong':'💪 আউটপারফর্মার','rs-good':'💪 ভালো পারফর্ম','rs-neutral':'💪 মাঝারি','rs-weak':'📉 দুর্বল পারফর্ম','vwap-above':'📈 VWAP-উপরে','vwap-below':'📉 VWAP-নিচে','vwap-touch':'📈 VWAP-টাচ','dip-buy':'🎯 ডিপ-বাই','dip-uptrend':'🎯 ডিপ: বড় ট্রেন্ড ঊর্ধ্বমুখী','dip-rsi-turn':'🎯 ডিপ: RSI ঘুরছে','dip-at-sma50':'🎯 ডিপ: SMA50 সাপোর্ট','dip-reversal-candle':'🎯 ডিপ: রিভার্সাল ক্যান্ডেল','dip-quiet':'🎯 ডিপ: কম ভলিউম','dip-market-up':'🎯 ডিপ: বাজার ঊর্ধ্বমুখী'};
 let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
+let SECTORS=[], SECTOR_MAP={};
+function buildSectorMap(){
+  SECTOR_MAP={};
+  for(const s of SECTORS){
+    for(const sym of (s.symbols||[])) SECTOR_MAP[sym]=s.sector;
+  }
+}
+function sectorOf(sym){return SECTOR_MAP[String(sym).toUpperCase()]||''}
+function sectorData(name){return SECTORS.find(s=>s.sector===name)||null}
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
