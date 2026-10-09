@@ -47,15 +47,40 @@ def load_sectors():
 
 def load_fundamentals():
     rows = read_csv_safe("data/fundamentals.csv") or read_csv_safe("docs/data/fundamentals.csv")
+    if not rows:
+        return {}
+    # হেডার normalize — space/case বাদ
+    def norm(h):
+        return re.sub(r"[^a-z0-9]", "", str(h).lower())
+    header_map = {norm(k): k for k in rows[0].keys()}
+    # খুঁজে বের করি EPS কলামগুলোর আসল নাম
+    def find_col(*aliases):
+        for a in aliases:
+            if a in header_map:
+                return header_map[a]
+        return None
+    col_q1 = find_col("epsq1")
+    col_q2 = find_col("epsq2")
+    col_h1 = find_col("epsh1")
+    col_q3 = find_col("epsq3")
+    col_9m = find_col("eps9m")
+    col_ann = find_col("epsannual", "epsyearly", "epsannualized")
+    col_cat = find_col("category", "cat")
+    col_code = find_col("code", "symbol", "tradingcode")
+    if not col_code:
+        return {}
+    eps_cols = [col_q1, col_q2, col_h1, col_q3, col_9m, col_ann]
     out = {}
     for r in rows:
-        sym = (r.get("CODE") or "").strip().upper()
+        sym = (r.get(col_code) or "").strip().upper()
         if not sym:
             continue
-        eps_cols = ["EPSQ1", "EPSQ2", "EPSH1", "EPSQ3", "EPS9M", "EPSANNUAL"]
-        eps_vals = [to_float(r.get(c)) for c in eps_cols]
+        eps_vals = [to_float(r.get(c)) if c else None for c in eps_cols]
         last_eps = next((v for v in reversed(eps_vals) if v is not None), None)
-        out[sym] = {"eps": last_eps, "cat": (r.get("CATEGORY") or "").strip().upper()}
+        out[sym] = {
+            "eps": last_eps,
+            "cat": (r.get(col_cat) or "").strip().upper() if col_cat else "",
+        }
     return out
 
 
