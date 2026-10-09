@@ -209,6 +209,22 @@ footer p{max-width:90ch;margin-bottom:6px}
 #shortlist details{margin:8px 0;font-size:14px}
 #shortlist summary{cursor:pointer;color:var(--muted)}
 #shortlist .nm{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line2);cursor:pointer}
+.h-card{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px 14px;margin:10px 0}
+.h-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.h-top .sym{font-size:17px;cursor:pointer}
+.h-top .sp{flex:1 1 auto}
+.h-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 14px;margin:10px 0}
+.h-grid b{display:block;font-size:15.5px}
+.h-grid span{font-size:12.5px;color:var(--muted)}
+.h-lv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0}
+@media(max-width:560px){.h-lv{grid-template-columns:1fr}}
+.h-lv h4{margin:0 0 3px;font-size:13.5px}
+.h-lv ul{margin:0;padding-left:18px;font-size:14px}
+.h-act{border-left:3px solid var(--accent);padding:8px 12px;background:var(--flat-bg);border-radius:0 4px 4px 0;font-size:14.5px;margin:8px 0}
+.h-act.sell{border-color:var(--down)} .h-act.hold{border-color:var(--up)}
+.h-ed{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
+.h-ed input{width:92px;padding:4px 6px}
+.h-card details{font-size:14px;margin-top:6px} .h-card summary{cursor:pointer;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -322,8 +338,25 @@ footer p{max-width:90ch;margin-bottom:6px}
 
 <section id="detail" aria-live="polite"></section>
 
+<section id="holdings-sec">
+  <div class="sec-h"><h2>৪. আমার হোল্ডিং: ধরে রাখব, না বেচব?</h2></div>
+  <p class="muted" style="font-size:14px;margin-bottom:12px;max-width:80ch">যে শেয়ারগুলো কিনেছেন সেগুলোর কোড সার্চ করে ক্রয়মূল্য (ও চাইলে শেয়ার সংখ্যা) দিন। স্ক্যানার সামনের সাপোর্ট ও রেজিস্ট্যান্স, লাভ-ক্ষতি, ট্রেন্ড ও সংকেত মিলিয়ে বলবে: <b>ধরে রাখুন</b>, <b>নিরপেক্ষ</b>, <b>বিক্রি</b> বা <b>শক্তিশালী বিক্রি</b>। তালিকা এই ব্রাউজারেই সংরক্ষিত থাকে।</p>
+  <div class="settings" style="align-items:end">
+    <label class="f">কোম্পানির কোড (লিখে সার্চ করুন)<input type="text" id="hSym" list="hSyms" autocomplete="off" placeholder="যেমন: CITYBANK" style="text-transform:uppercase"></label>
+    <label class="f">ক্রয়মূল্য (টাকা)<input type="number" id="hPrice" min="0" step="0.1" placeholder="যেমন: 29.5"></label>
+    <label class="f">শেয়ার সংখ্যা (ঐচ্ছিক)<input type="number" id="hQty" min="0" step="1" placeholder="যেমন: 500"></label>
+    <label class="f">ক্ষতির সীমা (%)<input type="number" id="hLoss" value="8" min="2" max="30" step="1"></label>
+    <div class="f"><button id="hAdd" type="button" style="width:100%">➕ যোগ করুন</button></div>
+  </div>
+  <datalist id="hSyms"></datalist>
+  <p id="hMsg" class="note" style="margin:6px 0 0"></p>
+  <div id="holdingsOut" style="margin-top:14px"></div>
+</section>
+
 <section id="planner-sec">
-  <div class="sec-h"><h2>৪. আমার মূলধনে কী কেনা যেত? (পোর্টফোলিও প্ল্যানার)</h2>
+  <details>
+  <summary style="cursor:pointer;font-size:17px;font-weight:700;margin:6px 0">নতুন কী কেনা যেত? (আগের পোর্টফোলিও প্ল্যানার, মূলধন থেকে হিসাব)</summary>
+  <div class="sec-h" style="margin-top:10px"><h2 style="font-size:15px">মূলধন অনুযায়ী কেনার তালিকা</h2>
     <div class="row"><button data-cap="100000">১ লক্ষ টাকা</button><button data-cap="500000">৫ লক্ষ টাকা</button></div></div>
   <p class="muted" style="font-size:14px;margin-bottom:14px;max-width:80ch">আপনার মূলধন ও ঝুঁকি-নিয়ম মেনে আজকের সংকেত থেকে কোন কোম্পানিতে কতটি শেয়ার কিনলে কত টাকা লাগত, আর স্টপ লাগলে মোট কত ক্ষতি হতো তা হিসাব করে। মূলধন ও প্রতি ট্রেডের ঝুঁকি উপরের "ফিল্টার ও ঝুঁকির হিসাব" অংশ থেকে আসে। এটি নিয়মভিত্তিক গণনা, কেনার পরামর্শ নয়।</p>
   <div class="settings">
@@ -335,6 +368,7 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="pWait" checked> "পুলব্যাকের অপেক্ষা" শেয়ারও ধরুন (লিমিট অর্ডার)</label>
   </div>
   <div id="plannerOut" style="margin-top:18px"></div>
+  </details>
 </section>
 
 <footer>
@@ -1378,7 +1412,7 @@ let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
-const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'];
+const SK=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
 try{const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');SK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]})}catch(e){}
 function saveSettings(){try{const s={};SK.forEach(k=>s[k]=$('#'+k).value);localStorage.setItem('dse-scan-settings',JSON.stringify(s))}catch(e){}}
 
@@ -1591,6 +1625,129 @@ function renderShortlist(){
     <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
     <p class="note" style="margin:0 0 4px">নিচে পুরো স্ক্যান ফলাফল (সব শেয়ার, সব ফিল্টার)। শুরুতে এটি না দেখলেও চলবে।</p>`;
 }
+/* ================= আমার হোল্ডিং ================= */
+const HK='dse-holdings';
+let HOLD=[];
+try{const x=JSON.parse(localStorage.getItem(HK)||'[]');if(Array.isArray(x))HOLD=x.filter(h=>h&&h.sym&&h.price>0)}catch(e){}
+function saveHold(){try{localStorage.setItem(HK,JSON.stringify(HOLD))}catch(e){}}
+const HD={
+  HOLD:{t:'ধরে রাখুন',c:'b-b',cls:'hold'},
+  NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',cls:''},
+  SELL:{t:'বিক্রি',c:'b-s',cls:'sell'},
+  STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',cls:'sell'}
+};
+/* ঐ শেয়ারের জন্য সিদ্ধান্ত: ক্রয়মূল্য, সাপোর্ট/রেজিস্ট্যান্স, ট্রেন্ড ও সংকেত মিলিয়ে।
+   এখানে সবসময় শেষ দিনের (আজকের) তথ্য ব্যবহার হয়। */
+function holdEval(r,h,lossLimit){
+  const i=r.b.length-1,I=r.I,c=r.close,a=I.atr[i]||c*0.03;
+  const L=levels(r.b,I,i);
+  const sup=L.sup.slice(0,3),res=L.res.slice(0,3);
+  const pnl=(c/h.price-1)*100;
+  const s20=I.sma20[i],s50=I.sma50[i],vw=I.vwap20[i];
+  const wk=r.weekly?r.weekly.state:'unknown';
+  /* সুরক্ষা-স্টপ: আজকের ATR-ভিত্তিক স্টপ; কাছের সাপোর্ট থাকলে তার সামান্য নিচে */
+  let stop=r.pl.stop;
+  const ns=sup[0];
+  if(ns){const sp=ns.p-0.35*a;if(sp>stop&&sp<c-0.5*a)stop=sp}
+  const nr=res[0]||null;
+  const reasons=[];
+  let dec='NEUTRAL',why='';
+  const brokeDown=r.sc.tags&&r.sc.tags.includes('breakdown');
+  const trendOK=s50!=null&&c>s50&&wk!=='bear';
+  if(pnl<=-lossLimit){
+    dec='STRONG_SELL';why=`ক্ষতি আপনার সীমা (${lossLimit}%) ছুঁয়েছে (${pnl.toFixed(1)}%)`;
+  }else if(r.cl==='STRONG_SELL'){
+    dec='STRONG_SELL';why='স্ক্যানারের শক্তিশালী বিক্রির সংকেত';
+  }else if(r.cl==='SELL'||brokeDown){
+    dec='SELL';why=brokeDown?'সাপোর্ট ভেঙে ব্রেকডাউন':'স্ক্যানারের বিক্রির সংকেত';
+  }else if(s50!=null&&c<s50&&wk==='bear'){
+    dec='SELL';why='দাম SMA50-এর নিচে এবং সাপ্তাহিক ট্রেন্ড নিম্নমুখী';
+  }else if(r.cl==='STRONG_BUY'||r.cl==='BUY'||r.cl==='WATCH'||r.cl==='WAIT'){
+    if(wk==='bear'){dec='NEUTRAL';why='কেনার সংকেত আছে, কিন্তু সাপ্তাহিক ট্রেন্ড নিম্নমুখী'}
+    else{dec='HOLD';why='ট্রেন্ড ও সংকেত এখনও ইতিবাচক'}
+  }else{
+    if(trendOK){dec='HOLD';why='বড় সংকেত নেই, কিন্তু দাম SMA50-এর উপরে ও সাপ্তাহিক ট্রেন্ড নিম্নমুখী নয়'}
+    else{dec='NEUTRAL';why='স্পষ্ট দিক নেই'}
+  }
+  /* কারণের তালিকা */
+  reasons.push(`আজকের স্ক্যান-সংকেত: ${SIG[r.cl].t} (কেনা-স্কোর ${r.buy.toFixed(1)}, বিক্রি-স্কোর ${r.sell.toFixed(1)})`);
+  if(s50!=null)reasons.push(c>=s50?`দাম SMA50 (${fmt(s50)})-এর উপরে`:`দাম SMA50 (${fmt(s50)})-এর নিচে`);
+  if(s20!=null)reasons.push(c>=s20?`দাম SMA20 (${fmt(s20)})-এর উপরে`:`দাম SMA20 (${fmt(s20)})-এর নিচে`);
+  if(vw!=null)reasons.push(c>=vw?`দাম VWAP20 (${fmt(vw)})-এর উপরে`:`দাম VWAP20 (${fmt(vw)})-এর নিচে`);
+  const wl={bull:'ঊর্ধ্বমুখী',bear:'নিম্নমুখী','bullish-neutral':'নিরপেক্ষ-ইতিবাচক','bearish-neutral':'নিরপেক্ষ-নেতিবাচক',neutral:'নিরপেক্ষ',unknown:'অজানা (ডেটা কম)'};
+  reasons.push('সাপ্তাহিক ট্রেন্ড: '+(wl[wk]||wk));
+  if(r.rsi!=null)reasons.push(`RSI ${r.rsi.toFixed(0)}`+(r.rsi>=75?' (অতিরিক্ত কেনা, ওঠার গতি ক্লান্ত হতে পারে)':r.rsi<=30?' (অতিরিক্ত বেচা)':''));
+  if(r.rsVal!=null)reasons.push(`ইনডেক্সের তুলনায় শক্তি (RS) ${r.rsVal.toFixed(0)}`+(r.rsVal>=100?' (বাজারের চেয়ে ভালো)':' (বাজারের চেয়ে দুর্বল)'));
+  /* করণীয় */
+  const acts=[];
+  const dist=x=>((x/c-1)*100);
+  if(dec==='STRONG_SELL')acts.push('আগামী দিনের ওপেনে বেরিয়ে যাওয়ার কথা ভাবুন। আর অপেক্ষা করলে ক্ষতি বাড়তে পারে।');
+  else if(dec==='SELL')acts.push('বেরিয়ে যাওয়ার দিকে ঝুঁকুন। অন্তত অর্ধেক বিক্রি করে বাকিটা সাপোর্টের নিচে ক্লোজ হলে বেচা যায়।');
+  else if(dec==='NEUTRAL')acts.push('নতুন করে আরও কিনবেন না। সাপোর্টের নিচে ক্লোজ হলে বা সংকেত বিক্রিতে গেলে বেরিয়ে যাবেন।');
+  else acts.push('ধরে রাখতে পারেন, তবে নিচের স্টপ-লেভেল ঠিক রাখুন।');
+  if(dec!=='STRONG_SELL')acts.push(`<b>স্টপ-লেভেল ${fmt(stop)}</b> (বর্তমান দাম থেকে ${Math.abs(dist(stop)).toFixed(1)}% নিচে)। এর নিচে ক্লোজ হলে বিক্রি করুন।`);
+  if(nr&&dec!=='STRONG_SELL'&&dec!=='SELL'){
+    const dn=dist(nr.p);
+    acts.push(`সামনের রেজিস্ট্যান্স ${fmt(nr.p)} (${dn.toFixed(1)}% উপরে)`+(dn<=1.2*a/c*100?'। দাম খুব কাছে, এখানে আংশিক মুনাফা তোলা যায়।':'। এখানে আটকে গেলে আংশিক মুনাফা তুলতে পারেন।'));
+  }else if(!nr&&dec==='HOLD')acts.push('উপরে কোনো প্রতিরোধ নেই (নতুন উচ্চতায়)। স্টপ ধীরে ধীরে উপরে তুলে ট্রেইল করতে পারেন।');
+  if(pnl>=0&&dec==='HOLD'&&stop<h.price)acts.push(`লাভে আছেন। স্টপ ক্রয়মূল্যের (${fmt(h.price)}) উপরে উঠলে ক্ষতির ঝুঁকি থাকবে না।`);
+  return {dec,why,pnl,stop,sup,res,reasons,acts,a};
+}
+function renderHoldings(){
+  const el=$('#holdingsOut'),dl=$('#hSyms');if(!el)return;
+  if(dl)dl.innerHTML=RES.map(r=>`<option value="${esc(r.sym)}"></option>`).join('');
+  if(!HOLD.length){el.innerHTML='<p class="muted">এখনও কোনো শেয়ার যোগ করেননি। উপরে কোড ও ক্রয়মূল্য দিয়ে "যোগ করুন" চাপুন।</p>';return}
+  if(!RES.length){el.innerHTML='<p class="muted">আপনার '+HOLD.length+'টি হোল্ডিং সংরক্ষিত আছে। স্ক্যানারের ডেটা লোড হলে এখানে বিশ্লেষণ আসবে।</p>';return}
+  const lossLimit=+$('#hLoss').value||8;
+  const by={};RES.forEach(r=>by[r.sym]=r);
+  let inv=0,val=0,anyQty=false,nSell=0;
+  const order={STRONG_SELL:0,SELL:1,NEUTRAL:2,HOLD:3};
+  const items=HOLD.map((h,idx)=>{const r=by[h.sym];return{h,idx,r,e:r?holdEval(r,h,lossLimit):null}});
+  items.sort((x,y)=>(x.e?order[x.e.dec]:9)-(y.e?order[y.e.dec]:9));
+  const cards=items.map(({h,idx,r,e})=>{
+    if(!r)return `<div class="h-card"><div class="h-top"><b class="sym">${esc(h.sym)}</b><span class="muted">এই কোডের ডেটা পাওয়া যায়নি (বা ইতিহাস কম)</span><span class="sp"></span><button data-hdel="${idx}" type="button">মুছুন</button></div></div>`;
+    const D=HD[e.dec];if(e.dec==='SELL'||e.dec==='STRONG_SELL')nSell++;
+    let money='';
+    if(h.qty>0){anyQty=true;const cost=h.qty*h.price,now=h.qty*r.close;inv+=cost;val+=now;
+      money=`<div><b class="${now>=cost?'up':'down'}">${now>=cost?'+':''}${fmtInt(now-cost)} ৳</b><span>লাভ/ক্ষতি (${fmtInt(h.qty)} শেয়ার)</span></div>
+             <div><b>${fmtInt(now)} ৳</b><span>বর্তমান মূল্য</span></div>`+
+            (e.stop<r.close?`<div><b class="down">${fmtInt(h.qty*(r.close-e.stop))} ৳</b><span>স্টপ লাগলে আরও ক্ষতি</span></div>`:'')}
+    const lv=(arr,empty)=>arr.length?`<ul>${arr.map(x=>`<li><b>${fmt(x.p)}</b> <span class="muted">(${((x.p/r.close-1)*100).toFixed(1)}%) ${esc(x.label)}</span></li>`).join('')}</ul>`:`<span class="muted" style="font-size:14px">${empty}</span>`;
+    return `<div class="h-card">
+      <div class="h-top"><b class="sym" data-s="${esc(h.sym)}" title="চার্ট ও বিস্তারিত দেখুন">${esc(h.sym)}</b>
+        <span class="badge ${D.c}" style="font-size:14px">${D.t}</span>
+        <span class="muted">ক্লোজ ${fmt(r.close)} (${r.chg>0?'+':''}${r.chg.toFixed(2)}%)</span>
+        <span class="sp"></span><button data-hdel="${idx}" type="button">মুছুন</button></div>
+      <div class="h-grid">
+        <div><b>${fmt(h.price)}</b><span>ক্রয়মূল্য</span></div>
+        <div><b class="${e.pnl>=0?'up':'down'}">${e.pnl>=0?'+':''}${e.pnl.toFixed(1)}%</b><span>লাভ/ক্ষতি (খরচ ধরে নয়)</span></div>
+        ${money}
+        <div><b class="down">${fmt(e.stop)}</b><span>স্টপ-লেভেল</span></div>
+      </div>
+      <div class="h-lv">
+        <div><h4 class="down">⬇ সাপোর্ট (নিচে)</h4>${lv(e.sup,'কাছাকাছি কোনো সাপোর্ট নেই (ঝুঁকি বেশি)')}</div>
+        <div><h4 class="up">⬆ রেজিস্ট্যান্স (উপরে)</h4>${lv(e.res,'উপরে কোনো প্রতিরোধ নেই (নতুন উচ্চতা)')}</div>
+      </div>
+      <div class="h-act ${D.cls}"><b>${D.t}:</b> ${esc(e.why)}.<br>${e.acts.map(x=>x).join('<br>')}</div>
+      <details><summary>সিদ্ধান্তের কারণগুলো</summary><ul style="margin:6px 0 0;padding-left:18px">${e.reasons.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>
+      <div class="h-ed" style="margin-top:8px"><label>ক্রয়মূল্য <input type="number" min="0" step="0.1" value="${h.price}" data-hedit="price" data-i="${idx}"></label>
+        <label>সংখ্যা <input type="number" min="0" step="1" value="${h.qty||''}" data-hedit="qty" data-i="${idx}"></label></div>
+    </div>`;
+  }).join('');
+  const sum=anyQty?`<div class="tally"><div><b>${fmtInt(inv)}</b><span>মোট বিনিয়োগ, টাকা</span></div><div><b>${fmtInt(val)}</b><span>বর্তমান মূল্য, টাকা</span></div><div><b class="${val>=inv?'up':'down'}">${val>=inv?'+':''}${fmtInt(val-inv)}</b><span>মোট লাভ/ক্ষতি, টাকা (${inv?((val/inv-1)*100).toFixed(1):'0'}%)</span></div><div><b>${nSell}</b><span>বিক্রির সংকেতে থাকা শেয়ার</span></div></div>`
+    :`<p class="note" style="margin:0 0 6px">শেয়ার সংখ্যা দিলে মোট লাভ/ক্ষতি টাকায় দেখাবে।</p>`;
+  el.innerHTML=sum+cards+`<p class="note">সিদ্ধান্ত অতীতের দামের ওপর ভিত্তি করা একটি সহায়ক নিয়ম, নিশ্চয়তা নয়। সবচেয়ে খারাপ অবস্থার শেয়ার উপরে দেখানো হয়। সাপোর্ট-রেজিস্ট্যান্স শেষ ১২০ দিনের সুইং-পয়েন্ট ও SMA/VWAP থেকে নেওয়া। খবর, লভ্যাংশের রেকর্ড ডেট ও DSE-র T+2 নিয়ম নিজে দেখে নিন। আমি আর্থিক উপদেষ্টা নই।</p>`;
+}
+function addHolding(){
+  const sym=($('#hSym').value||'').trim().toUpperCase(),price=+$('#hPrice').value,qty=+$('#hQty').value||0,m=$('#hMsg');
+  if(!sym){m.textContent='কোম্পানির কোড লিখুন।';return}
+  if(!(price>0)){m.textContent='ক্রয়মূল্য লিখুন।';return}
+  if(RES.length&&!RES.some(r=>r.sym===sym)){m.textContent=`"${sym}" নামে কোনো কোম্পানি ডেটায় পাওয়া যায়নি। তালিকা থেকে বেছে নিন।`;return}
+  const ex=HOLD.find(h=>h.sym===sym);
+  if(ex){ex.price=price;ex.qty=qty;m.textContent=`${sym}-এর তথ্য হালনাগাদ হয়েছে।`}
+  else{HOLD.push({sym,price,qty});m.textContent=`${sym} যোগ হয়েছে।`}
+  saveHold();$('#hSym').value='';$('#hPrice').value='';$('#hQty').value='';renderHoldings();
+}
 function renderPlanner(){
   const el=$('#plannerOut');
   if(!RES.length){el.innerHTML='<p class="muted">ডেটা লোড হলে এখানে হিসাব আসবে।</p>';return}
@@ -1629,6 +1786,7 @@ function renderPlanner(){
   </ul>`;
 }
 function render(){
+  renderHoldings();
   renderPlanner();
   renderShortlist();
   {const nZ=RES.filter(r=>r.cat==='Z').length,nL=RES.filter(r=>r.eps!=null&&r.eps<=0).length,nQ=RES.filter(r=>r.lastQ!=null&&r.lastQ<0).length;
@@ -1796,6 +1954,20 @@ $('#pWait').addEventListener('change',renderPlanner);
 $('#compactCols').addEventListener('change',render);
 document.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{$('#capital').value=b.dataset.cap;saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
 $('#plannerOut').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
+$('#hAdd').addEventListener('click',addHolding);
+['hSym','hPrice','hQty'].forEach(id=>$('#'+id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addHolding()}}));
+$('#hLoss').addEventListener('input',()=>{saveSettings();renderHoldings()});
+$('#holdingsOut').addEventListener('click',e=>{
+  const d=e.target.closest('[data-hdel]');
+  if(d){HOLD.splice(+d.dataset.hdel,1);saveHold();renderHoldings();return}
+  const c=e.target.closest('.sym[data-s]');if(c)openDetail(c.dataset.s);
+});
+$('#holdingsOut').addEventListener('change',e=>{
+  const t=e.target.closest('[data-hedit]');if(!t)return;
+  const h=HOLD[+t.dataset.i];if(!h)return;const v=+t.value;
+  if(t.dataset.hedit==='price'){if(v>0)h.price=v}else h.qty=v>0?v:0;
+  saveHold();renderHoldings();
+});
 $('#shortlist').addEventListener('click',e=>{const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
 $('#shortlist').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
 ['hold','cost','extPct'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
