@@ -53,9 +53,14 @@ jobs:
         run: python scripts/debug_index.py
         continue-on-error: true
 
-      - name: ইতিহাস নামান (শুধু প্রথমবার)
+      - name: শেয়ারের ইতিহাস নামান (ব্যাকফিল, ২ বছর)
         if: ${{ github.event.inputs.bootstrap == 'true' }}
-        run: python scripts/update_data.py --bootstrap --days 400
+        run: python scripts/update_data.py --bootstrap --backfill --days 760
+
+      - name: DSEX ইনডেক্সের ইতিহাস নামান (২ বছর)
+        if: ${{ github.event.inputs.bootstrap == 'true' }}
+        run: python fetch_dsex.py 800
+        continue-on-error: true
 
       - name: আজকের ডেটা যোগ করুন
         if: ${{ github.event.inputs.bootstrap != 'true' }}
