@@ -325,11 +325,12 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="exBelowVwap"> 📈 VWAP-এর নিচে থাকা শেয়ারে কেনার সংকেত দেখাবেন না</label>
     <label class="chk"><input type="checkbox" id="exMF" checked> 🏦 মিউচুয়াল ফান্ড, বন্ড ও ফান্ড-ইউনিট বাদ দিন</label>
     <label class="chk"><input type="checkbox" id="exSmallN"> 📉 ৫টির কম ট্রেড-ইতিহাস থাকলে বাদ দিন</label>
-    <label class="chk"><input type="checkbox" id="exVol15" checked> 📊 ভলিউম ≥ ১.৫× গড় না হলে বাই নয় (নিয়ম ১)</label>
+    <label class="chk"><input type="checkbox" id="exVol15"> 📊 ভলিউম ≥ ১.৫× গড় না হলে বাই নয় (নিয়ম ১) — ব্যাকটেস্টে বাড়তি সুবিধা মেলেনি</label>
     <label class="chk"><input type="checkbox" id="exTurnover" checked> 💰 দৈনিক টার্নওভার ≥ ১০ লক্ষ টাকা না হলে বাই নয় (নিয়ম ১)</label>
     <label class="chk"><input type="checkbox" id="exSma200" checked> 📈 SMA200 এর নিচে থাকলে বাই নয় (নিয়ম ২)</label>
-    <label class="chk"><input type="checkbox" id="exRR2" checked> 🎯 নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R ≥ ১:২ না হলে বাই নয় (নিয়ম ৪)</label>
-    <label class="chk"><input type="checkbox" id="exScore75" checked> ⚡ কেনার স্কোর ≥ ৭.৫ না হলে বাই নয় (নিয়ম ৭)</label>
+    <label class="chk"><input type="checkbox" id="exRR2"> 🎯 নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R ≥ ১:২ না হলে বাই নয় (নিয়ম ৪)</label>
+    <label class="chk"><input type="checkbox" id="exScore75"> ⚡ কেনার স্কোর ≥ ৭.৫ না হলে বাই নয় (নিয়ম ৭) — ব্যাকটেস্টে স্কোর আর রিটার্নের সম্পর্ক মেলেনি</label>
+    <label class="chk"><input type="checkbox" id="exHealth" checked> 🩺 দুর্বল সেটআপে বাই নয় (নিয়ম ৮): RSI &lt; ৫০, VWAP-এর ১%+ নিচে, আজ ১.৫%+ পতন, ৫২-সপ্তাহের উচ্চ থেকে ২০%+ নিচে বা ATR &gt; ৪.৫% হলে — ব্যাকটেস্টে যাচাইকৃত</label>
     <label class="chk"><input type="checkbox" id="exABOnly"> 🏅 শুধু A/B ক্যাটাগরি শেয়ার দেখান (নিয়ম ৫)</label>
     <label class="chk"><input type="checkbox" id="exPriceBand"> 💵 শুধু ৩০–১০০ টাকার শেয়ার দেখান (নিয়ম ৫)</label>
     <fieldset style="grid-column:1/-1;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:6px">
@@ -358,7 +359,7 @@ footer p{max-width:90ch;margin-bottom:6px}
       <button data-sortsec="avg_change_20d">২০ দিনের পরিবর্তন</button>
       <button data-sortsec="avg_change_5d">৫ দিনের</button>
       <button data-sortsec="avg_change_1d">আজকের</button>
-      <button data-sortsec="avg_eps">গড় EPS</button>
+      <button data-sortsec="med_eps">মিডিয়ান EPS</button>
       <button data-sortsec="avg_volume">গড় ভলিউম</button>
     </div>
   </div>
@@ -732,6 +733,42 @@ function entryPlan(b,I,i){
   const chase={...ch,rr:nearR?(nearR.p-ch.entry)/(ch.entry-ch.stop):null};
   return{extended,chg,stretch,why,chase,pull,sup:L.sup,res:L.res,nearS,nearR};
 }
+/* ===== কেনার সংকেতের গেট: লাইভ স্ক্যান ও ব্যাকটেস্ট একই ফাংশন ব্যবহার করে ===== */
+const GATE_DEF={exVol15:false,exTurnover:true,exSma200:true,exRR2:false,exScore75:false,exHealth:true};
+function gateOn(id){const el=document.getElementById(id);return el?!!el.checked:!!GATE_DEF[id]}
+function applyBuyGates(sc,b,I,i,pl,cl0,ep){
+  let cl=cl0;const tags=[],notes=[];
+  if(cl0!=='BUY'&&cl0!=='STRONG_BUY')return{cl,tags,notes};
+  const c=b[i].c,s0=Math.max(0,i-19);let sv=0;for(let k=s0;k<=i;k++)sv+=I.v[k];
+  const avgVol=sv/(i-s0+1),volRatio=avgVol?I.v[i]/avgVol:0,turnover=avgVol*c;
+  const drop=(tag,note)=>{cl='WATCH';tags.push(tag);notes.push('⚠️ গেট: '+note)};
+  /* নিয়ম ১: ভলিউম ≥ ১.৫× (ব্যাকটেস্টে বাড়তি সুবিধা মেলেনি, তাই ডিফল্টে বন্ধ) */
+  if(gateOn('exVol15')&&volRatio<1.5)drop('ভলিউম <১.৫×','সংকেতের দিনে ভলিউম গড়ের '+volRatio.toFixed(2)+'x — ১.৫× প্রয়োজন');
+  /* নিয়ম ১বি: টার্নওভার ≥ ১০ লক্ষ টাকা */
+  if(gateOn('exTurnover')&&turnover<1000000)drop('টার্নওভার <১০লক্ষ','দৈনিক টার্নওভার '+(turnover/100000).toFixed(1)+' লক্ষ টাকা — ১০ লক্ষ প্রয়োজন');
+  /* নিয়ম ২: SMA200 এর উপরে */
+  if(gateOn('exSma200')&&I.sma200[i]!=null&&c<I.sma200[i])drop('SMA200 নিচে','দাম SMA200 ('+I.sma200[i].toFixed(1)+') এর নিচে — ডাউনট্রেন্ডে বাই নিষিদ্ধ');
+  /* নিয়ম ৪: R:R ≥ ১:২ (ব্যাকটেস্টে অস্থির ফল, তাই ডিফল্টে বন্ধ) */
+  if(gateOn('exRR2')&&ep&&ep.chase.rr!=null&&ep.chase.rr<2)drop('R:R <১:২','নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R = ১:'+ep.chase.rr.toFixed(1)+' — ১:২ দরকার');
+  /* নিয়ম ৭: কেনার স্কোর ≥ ৭.৫ (ব্যাকটেস্টে স্কোর ভবিষ্যৎ রিটার্নের সাথে মেলেনি, তাই ডিফল্টে বন্ধ) */
+  if(gateOn('exScore75')&&sc.buy<7.5)drop('স্কোর <৭.৫','কেনার স্কোর '+sc.buy.toFixed(1)+' — ৭.৫ এর নিচে, শুধু নজরে');
+  /* নিয়ম ৮ (নতুন): দুর্বল সেটআপ বাদ। ১৩ মাসের ব্যাকটেস্টে ট্রেন ও টেস্ট দুই ভাগেই গড়ের চেয়ে ভালো */
+  if(gateOn('exHealth')&&i>=1){
+    const weak=[],rsi=I.rsi[i],chg=(c/b[i-1].c-1)*100,atrp=(I.atr[i]||c*0.03)/c*100;
+    if(rsi!=null&&rsi<50)weak.push('RSI '+rsi.toFixed(0)+' (<৫০)');
+    if(sc.vwapDist!=null&&sc.vwapDist<-1)weak.push('দাম VWAP-এর '+Math.abs(sc.vwapDist).toFixed(1)+'% নিচে');
+    if(chg<-1.5)weak.push('আজ '+chg.toFixed(1)+'% পতন');
+    if(sc.p52!=null&&sc.p52>20)weak.push('৫২-সপ্তাহের সর্বোচ্চ থেকে '+sc.p52.toFixed(0)+'% নিচে');
+    if(atrp>4.5)weak.push('অতি অস্থির (ATR '+atrp.toFixed(1)+'%)');
+    if(weak.length)drop('দুর্বল সেটআপ','দুর্বল সেটআপ — '+weak.join(', '));
+  }
+  /* আগের গেট (রাখা): স্টপ ৮%-এর বেশি দূরে হলে নয়। ব্যাকটেস্টেও সমর্থিত */
+  if(pl.riskPct>8)drop('স্টপ দূরে','স্টপ '+pl.riskPct.toFixed(1)+'% দূরে — ৮% এর বেশি, WATCH-এ নামানো হলো');
+  /* সাপ্তাহিক ট্রেন্ড নিম্নমুখী হলে নয় */
+  if(sc.weekly&&sc.weekly.state==='bear')drop('সাপ্তাহিক নিম্ন','সাপ্তাহিক ট্রেন্ড নিম্নমুখী, WATCH-এ নামানো হলো');
+  /* ADX<20 হার্ড-গেট সরানো হয়েছে: ব্যাকটেস্টে কম-ADX শেয়ার বরং সামান্য ভালো করেছে। চাইলে ফিল্টারে "পার্শ্ববর্তী বাজার বাদ" টিক দিন */
+  return{cl,tags,notes};
+}
 function backtest(b,I,hold,tplus){
   hold=hold||10;tplus=tplus==null?2:tplus;
   const trades=[],pulls=[];
@@ -771,8 +808,11 @@ function backtest(b,I,hold,tplus){
       }
     }
     if(cl!=='BUY'&&cl!=='STRONG_BUY')continue;
-    const pl=plan(I,i),e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
-    const ep=entryPlan(b,I,i),tags=sc0.tags.filter(t=>t!=='breakdown');
+    const pl=plan(I,i),ep=entryPlan(b,I,i);
+    const gg=applyBuyGates(sc0,b,I,i,pl,cl,ep);
+    if(gg.cl!=='BUY'&&gg.cl!=='STRONG_BUY')continue;
+    const e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
+    const tags=sc0.tags.filter(t=>t!=='breakdown');
     trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy});
     if(ep.extended){
       extN++;let f=-1,fp=0;
@@ -1203,12 +1243,9 @@ function genDemo(){
     r.p52 = distFromHigh;
     r.posRange = posInRange;
 
-    if(distFromHigh <= 3){
-      r.buy += 2; r.tags.push('52w-high');
-      r.rb.push(`🎯 ৫২-সপ্তাহের সর্বোচ্চের মাত্র ${distFromHigh.toFixed(1)}% নিচে (+২)`);
-    } else if(distFromHigh <= 8){
-      r.buy += 1; r.tags.push('52w-high');
-      r.rb.push(`🎯 ৫২-সপ্তাহের সর্বোচ্চের কাছে (${distFromHigh.toFixed(1)}% নিচে) (+১)`);
+    /* ব্যাকটেস্ট (২০২৫-১১ থেকে ২০২৬-১০, ৩৭৮ শেয়ার): সর্বোচ্চের কাছে থাকার জন্য বোনাস স্কোর দেওয়ার পক্ষে প্রমাণ মেলেনি, তাই বোনাস সরানো হয়েছে। ট্যাগ রাখা হয়েছে শুধু তথ্যের জন্য */
+    if(distFromHigh <= 8){
+      r.tags.push('52w-high');
     } else if(distFromHigh >= 30){
       if(r.buy > 0){ r.buy = Math.max(0, r.buy - 1); r.rs.push(`🎯 ৫২-সপ্তাহের সর্বোচ্চ থেকে ${distFromHigh.toFixed(0)}% নিচে — দুর্বল অবস্থান (−১)`); }
     }
@@ -1423,11 +1460,11 @@ function genDemo(){
 })();
 /* ========== END DIP-BUYING REVERSAL ========== */
 
-const DIP_MIN=6;
+const DIP_MIN=8; /* ব্যাকটেস্ট (১০ দিন হোল্ড, খরচ বাদে): ডিপ স্কোর ৪-৮ এ গড় রিটার্ন −১.২ থেকে −২.৫%; ≥৮ এ গড়ের সমান, বাড়তি সুবিধা নেই। শুধু ডিপ-বাই সেটআপে (ট্রেন্ড-বাই ছাড়া) গড় −১.২ থেকে −১.৬%, জয়ের হার ~৩২% */
 
 const SW={
   minValue:3e6, minVr:0.8, minAtrPct:1.5, maxAtrPct:5.5, maxVwap:3,
-  maxRsi:65, maxStretch:1.5, minP52:5, maxRisk:8, minBars:100, top:5
+  maxRsi:65, maxStretch:1.5, minP52:10, maxRisk:8, minBars:100, top:5
 };
 
 /* ================= UI ================= */
@@ -1447,22 +1484,34 @@ function buildSectorMap(){
 }
 function sectorOf(sym){return SECTOR_MAP[String(sym).toUpperCase()]||''}
 function sectorData(name){return SECTORS.find(s=>s.sector===name)||null}
+function sectorMood(v){return v==null?'⚪ তথ্য নেই':v>=3?'🟢 শক্তিশালী':v>=1?'🟢 ভালো':v>-1?'⚪ নিরপেক্ষ':v>=-3?'🔻 দুর্বল':'🔴 খুব দুর্বল'}
+function sectorMedEps(name){
+  const a=RES.filter(r=>r.eps!=null&&(r.sector||sectorOf(r.sym))===name).map(r=>r.eps).sort((x,y)=>x-y);
+  if(!a.length)return null;
+  const m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;
+}
+function sectorRank20(name){
+  const l=SECTORS.filter(s=>s.sector!=='Unknown'&&s.companies>0&&s.avg_change_20d!=null).sort((a,b)=>b.avg_change_20d-a.avg_change_20d);
+  const i=l.findIndex(s=>s.sector===name);return i<0?null:{n:i+1,of:l.length};
+}
 const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
 /* সেটিংস সেভ/লোড — সংখ্যা ও চেকবক্স আলাদা করে */
 const SK_NUM=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
-const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exABOnly','exPriceBand'];
+const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth','exABOnly','exPriceBand'];
 try{
   const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');
   SK_NUM.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]});
   SK_CHK.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).checked=s[k]});
+  if(s._v!==2){['exVol15','exRR2','exScore75'].forEach(k=>{if($('#'+k))$('#'+k).checked=false})}
 }catch(e){}
 function saveSettings(){
   try{
     const s={};
     SK_NUM.forEach(k=>{const el=$('#'+k);if(el)s[k]=el.value});
     SK_CHK.forEach(k=>{const el=$('#'+k);if(el)s[k]=el.checked});
+    s._v=2;
     localStorage.setItem('dse-scan-settings',JSON.stringify(s));
   }catch(e){}
 }
@@ -1500,56 +1549,10 @@ function analyze(){
     let cl0=classify(sc);
     const pl=plan(I,i),ep=entryPlan(b,I,i);
     const gateTags=[];
-    /* ===== নতুন হার্ড গেট: নিয়ম ১, ১বি, ২, ৪, ৭ (টগলযোগ্য) ===== */
+    /* ===== গেট: ব্যাকটেস্টের সাথে একই ফাংশন (applyBuyGates) ===== */
     if(cl0==='BUY'||cl0==='STRONG_BUY'){
-      const vs20=I.v.slice(-20);const avgVol=vs20.reduce((x,y)=>x+y,0)/vs20.length;
-      const volRatio=I.v[i]/avgVol;
-      const turnover=avgVol*b[i].c;
-
-      /* নিয়ম ১: ভলিউম ≥ ১.৫× */
-      const gVol=$('#exVol15')&&$('#exVol15').checked;
-      if(gVol && volRatio < 1.5){
-        cl0='WATCH'; gateTags.push('ভলিউম <১.৫×');
-        sc.rs.push('⚠️ গেট: সংকেতের দিনে ভলিউম গড়ের '+volRatio.toFixed(2)+'x — ১.৫× প্রয়োজন');
-      }
-      /* নিয়ম ১বি: টার্নওভার ≥ ১০ লক্ষ টাকা */
-      const gTurn=$('#exTurnover')&&$('#exTurnover').checked;
-      if(gTurn && turnover < 1000000){
-        cl0='WATCH'; gateTags.push('টার্নওভার <১০লক্ষ');
-        sc.rs.push('⚠️ গেট: দৈনিক টার্নওভার '+(turnover/100000).toFixed(1)+' লক্ষ টাকা — ১০ লক্ষ প্রয়োজন');
-      }
-      /* নিয়ম ২: SMA200 এর উপরে */
-      const gSma=$('#exSma200')&&$('#exSma200').checked;
-      if(gSma && I.sma200[i]!=null && b[i].c < I.sma200[i]){
-        cl0='WATCH'; gateTags.push('SMA200 নিচে');
-        sc.rs.push('⚠️ গেট: দাম SMA200 ('+I.sma200[i].toFixed(1)+') এর নিচে — ডাউনট্রেন্ডে বাই নিষিদ্ধ');
-      }
-      /* নিয়ম ৪: R:R ≥ ১:২ (নিকটতম রেজিস্ট্যান্স ধরে) */
-      const gRR=$('#exRR2')&&$('#exRR2').checked;
-      if(gRR && ep.chase.rr != null && ep.chase.rr < 2){
-        cl0='WATCH'; gateTags.push('R:R <১:২');
-        sc.rs.push('⚠️ গেট: নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R = ১:'+ep.chase.rr.toFixed(1)+' — ১:২ দরকার');
-      }
-      /* নিয়ম ৭: কেনার স্কোর ≥ ৭.৫ */
-      const gSc=$('#exScore75')&&$('#exScore75').checked;
-      if(gSc && sc.buy < 7.5){
-        cl0='WATCH'; gateTags.push('স্কোর <৭.৫');
-        sc.rs.push('⚠️ গেট: কেনার স্কোর '+sc.buy.toFixed(1)+' — ৭.৫ এর নিচে, শুধু নজরে');
-      }
-
-      /* ===== আগের গেট (রাখা) ===== */
-      if(pl.riskPct > 8){
-        cl0='WATCH'; gateTags.push('স্টপ দূরে');
-        sc.rs.push('⚠️ গেট: স্টপ '+pl.riskPct.toFixed(1)+'% দূরে — ৮% এর বেশি, WATCH-এ নামানো হলো');
-      }
-      if(I.adx[i]!=null && I.adx[i]<20){
-        cl0='WATCH'; gateTags.push('ADX কম');
-        sc.rs.push('⚠️ গেট: ADX '+I.adx[i].toFixed(0)+' — পার্শ্ববর্তী বাজার, WATCH-এ নামানো হলো');
-      }
-      if(sc.weekly && sc.weekly.state==='bear'){
-        cl0='WATCH'; gateTags.push('সাপ্তাহিক নিম্ন');
-        sc.rs.push('⚠️ গেট: সাপ্তাহিক ট্রেন্ড নিম্নমুখী, WATCH-এ নামানো হলো');
-      }
+      const g=applyBuyGates(sc,b,I,i,pl,cl0,ep);
+      cl0=g.cl;g.tags.forEach(t=>gateTags.push(t));g.notes.forEach(t=>sc.rs.push(t));
       if(ep.extended){ cl0='WAIT'; gateTags.push('উঠে গেছে'); }
     }
     const cl=cl0;
@@ -1652,15 +1655,35 @@ function swingEval(r){
   if(!isDip&&!isTrend) return {st:3,why:'কেনার সেটআপ নেই'};
   return {st:4,setup:isDip?'ডিপ-বাই':'ট্রেন্ড-বাই',isDip,atrPct,near:r.pl.riskPct>SW.maxRisk};
 }
+let slDipIn=false, slSector=true, slCap=true;
 function renderShortlist(){
   const el=$('#shortlist');if(!el)return;
   if(!RES.length){el.innerHTML='';return}
-  const ev=RES.map(r=>({r,e:swingEval(r)}));
+  const isTrendBuy=r=>r.cl==='BUY'||r.cl==='STRONG_BUY';
+  let ev=RES.filter(r=>!sectorFilter||(r.sector||sectorOf(r.sym))===sectorFilter).map(r=>({r,e:swingEval(r)}));
+  /* ডিপ-বাই ডিফল্টে বাদ: ব্যাকটেস্টে শুধু-ডিপ সেটআপে ক্ষতি হয়েছে। ট্রেন্ড-বাই-ও যে শেয়ার, সেটি ট্রেন্ড-বাই হিসেবে থাকে */
+  if(!slDipIn)ev=ev.map(x=>{
+    if(x.e.st!==4)return x;
+    if(isTrendBuy(x.r))return {r:x.r,e:{...x.e,isDip:false,setup:'ট্রেন্ড-বাই'}};
+    return {r:x.r,e:{st:3,why:'শুধু ডিপ-বাই সেটআপ (ব্যাকটেস্টে সুবিধা মেলেনি)'}};
+  });
   const n0=ev.length,n1=ev.filter(x=>x.e.st>=2).length,n2=ev.filter(x=>x.e.st>=3).length,n3=ev.filter(x=>x.e.st>=4).length;
-  const ok=ev.filter(x=>x.e.st===4&&!x.e.near),near=ev.filter(x=>x.e.st===4&&x.e.near);
-  const rk=x=>[x.e.isDip?1:0,x.e.isDip?x.r.dip.score:x.r.buy];
+  let ok=ev.filter(x=>x.e.st===4&&!x.e.near),near=ev.filter(x=>x.e.st===4&&x.e.near);
+  const rk=x=>[x.e.isDip?0:1,-x.r.pl.riskPct];
   ok.sort((a,b)=>{const p=rk(a),q=rk(b);return q[0]-p[0]||q[1]-p[1]||a.r.pl.riskPct-b.r.pl.riskPct});
   near.sort((a,b)=>a.r.pl.riskPct-b.r.pl.riskPct);
+  /* দুর্বল সেক্টর বাদ: ব্যাকটেস্টে সেক্টরের ২০ দিনের গড় −২% এর নিচে থাকলে কেনা সংকেতের ফল দুর্বল ছিল */
+  const secWeak=r=>{const d=sectorData(r.sector||sectorOf(r.sym));return !!(d&&d.avg_change_20d!=null&&d.avg_change_20d<=-2)};
+  let secCut=0,capCut=0;
+  if(slSector){
+    const keep=x=>!secWeak(x.r);
+    secCut=ok.filter(x=>!keep(x)).length;
+    ok=ok.filter(keep);near=near.filter(keep);
+  }
+  if(slCap){
+    const cnt={};
+    ok=ok.filter(x=>{const k=x.r.sector||sectorOf(x.r.sym)||'?';cnt[k]=(cnt[k]||0)+1;if(cnt[k]>2){capCut++;return false}return true});
+  }
   const rej={};ev.filter(x=>x.e.st===1).forEach(x=>rej[x.e.why]=(rej[x.e.why]||0)+1);
   const rej2={};ev.filter(x=>x.e.st===2||x.e.st===3).forEach(x=>rej2[x.e.why]=(rej2[x.e.why]||0)+1);
   const rejTxt=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${esc(k)} ${v}টি`).join(' · ')||'–';
@@ -1677,6 +1700,8 @@ function renderShortlist(){
       size=q>0?`আপনার ঝুঁকি-সীমায় <b>${fmtInt(q)}</b> শেয়ার, বিনিয়োগ ${fmtInt(q*p.entry)} টাকা, স্টপ লাগলে ক্ষতি ${fmtInt(q*ps)} টাকা`:'<span class="muted">আপনার সীমায় ১টি শেয়ারও আঁটে না</span>'}
     const chips=(x.e.isDip?r.dtags.filter(t=>t.startsWith('dip-')&&t!=='dip-buy').map(t=>`<span class="tg tg-early">${PT[t]}</span>`):[]).join('');
     const ch=r.chg;
+    const secN=r.sector||sectorOf(r.sym),secD=sectorData(secN),sec20=secD?secD.avg_change_20d:null,secR=sectorRank20(secN);
+    const secLine=secN?`<div style="font-size:13.5px;margin:6px 0 2px"><span class="muted">সেক্টর:</span> <b>${esc(secN)}</b> · ${sectorMood(sec20)}${sec20==null?'':' ('+(sec20>=0?'+':'')+sec20.toFixed(2)+'% / ২০ দিন'+(secR?', #'+secR.n+'/'+secR.of:'')+')'}${sec20!=null&&sec20<=-1?' <span class="badge b-w">⚠️ সেক্টর দুর্বল, ঝুঁকি বেশি</span>':''}</div>`:'';
     return `<div class="sl-card" data-s="${esc(r.sym)}" tabindex="0">
       <div class="sl-top"><b class="sym">${esc(r.sym)}</b><span class="badge ${x.e.isDip?'b-e':'b-b'}">${x.e.isDip?'🎯 ডিপ-বাই '+r.dip.score.toFixed(1):'ট্রেন্ড-বাই'}</span><span class="muted">ক্লোজ ${fmt(r.close)} (${ch>0?'+':''}${ch.toFixed(2)}%)</span></div>
       <div class="sl-grid">
@@ -1687,6 +1712,7 @@ function renderShortlist(){
         <div><b>${r.p52==null?'–':r.p52.toFixed(0)+'%'}</b><span>৫২W সর্বোচ্চ থেকে নিচে</span></div>
         <div><b>${r.rsi==null?'–':r.rsi.toFixed(0)}</b><span>RSI</span></div>
       </div>
+      ${secLine}
       <div style="font-size:14px">${size}</div>
       ${chips?`<div class="sl-chips">${chips}</div>`:''}
     </div>`;
@@ -1695,8 +1721,16 @@ function renderShortlist(){
     <p class="note" style="margin:6px 0">এগুলো বাতিল নয়। সেটআপ ঠিক আছে, শুধু স্টপ দূরে। চাইলে ডিটেইলে চার্ট দেখে কাছের সাপোর্টের নিচে নিজের স্টপ ঠিক করতে পারেন (স্টপ কাছে হলে সামান্য নড়াচড়ায় বেরিয়ে যাওয়ার সম্ভাবনা বাড়ে), নয়তো শেয়ার কম কিনুন।</p>
     ${near.slice(0,8).map(x=>`<div class="nm" data-s="${esc(x.r.sym)}" tabindex="0"><b class="sym">${esc(x.r.sym)}</b><span class="badge ${x.e.isDip?'b-e':'b-b'}">${x.e.setup}${x.e.isDip?' '+x.r.dip.score.toFixed(1):''}</span><span class="down">স্টপ ${x.r.pl.riskPct.toFixed(1)}% দূরে</span><span class="muted">ক্লোজ ${fmt(x.r.close)}</span></div>`).join('')}</details>`:'';
   el.innerHTML=`<h3 style="margin:4px 0 4px">🎯 আজকের সুইং শর্টলিস্ট</h3>
-    <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">এখানে শুধু সেই শেয়ার আসে যা সুইংয়ের উপযোগী (লিকুইড, যথেষ্ট নড়াচড়া), আগেই উঠে যায়নি, পিকে নেই, কেনার সেটআপ আছে এবং স্টপ ${SW.maxRisk}%-এর মধ্যে। সেরা ${SW.top}টি দেখানো হয়, ডিপ-বাই আগে। কার্ডে ক্লিক করলে চার্ট ও কারণ দেখা যাবে।</p>
+    <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">এখানে শুধু সেই শেয়ার আসে যা সুইংয়ের উপযোগী (লিকুইড, যথেষ্ট নড়াচড়া), আগেই উঠে যায়নি, পিকে নেই, কেনার সেটআপ আছে এবং স্টপ ${SW.maxRisk}%-এর মধ্যে। সেরা ${SW.top}টি দেখানো হয় (কম স্টপ-দূরত্ব আগে)। কার্ডে ক্লিক করলে চার্ট ও কারণ দেখা যাবে।</p>
     ${mkt}
+    <p class="note" style="margin:4px 0;max-width:80ch">🧪 ব্যাকটেস্ট (নভেম্বর ২০২৫ – অক্টোবর ২০২৬, ৩৭৮ শেয়ার, পরদিন ওপেনে কেনা, ১০ দিন হোল্ড বা স্টপ/টার্গেট, ০.৫% খরচ বাদে): এই ফিল্টারে (৫২W-এর ১০%+ নিচে, সেক্টর −২%-এর উপরে, ট্রেন্ড-বাই) প্রায় ২৮০টি আলাদা ট্রেডে গড় রিটার্ন প্রায় +১.১%, জয়ের হার ৪৬-৫৩%। একই সময়ে সব শেয়ারের গড় ছিল প্রায় শূন্য (প্রথম অংশে +০.৩%, দ্বিতীয় অংশে −০.৫%)। সতর্কতা: থ্রেশহোল্ড ওই ডেটা দেখেই বাছা, ডেটা একটাই বাজার-পর্ব, নমুনা ছোট। তাই ভবিষ্যতে একই ফল হবে নিশ্চিত নয়; স্টপ-লস মানুন ও ছোট সাইজে নামুন।</p>
+    <div class="sl-ctl" style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin:6px 0 8px">
+      <label><input type="checkbox" id="slSector" ${slSector?'checked':''}> দুর্বল সেক্টর বাদ (২০ দিনে −২% বা নিচে)</label>
+      <label><input type="checkbox" id="slDipIn" ${slDipIn?'checked':''}> ডিপ-বাই সেটআপও দেখান (ব্যাকটেস্টে সুবিধা মেলেনি)</label>
+      <label><input type="checkbox" id="slCap" ${slCap?'checked':''}> এক সেক্টরে সর্বোচ্চ ২টি</label>
+    </div>
+    ${slSector&&secCut?`<p class="note" style="margin:0 0 6px">📉 দুর্বল সেক্টরের কারণে ${secCut}টি শেয়ার বাদ গেছে।</p>`:''}
+    ${slCap&&capCut?`<p class="note" style="margin:0 0 6px">🏭 সেক্টর-সীমায় ${capCut}টি শেয়ার বাদ গেছে (এক সেক্টরে ২টির বেশি নয়)।</p>`:''}
     ${ok.length?ok.slice(0,SW.top).map(card).join('')+(ok.length>SW.top?`<p class="note">আরও ${ok.length-SW.top}টি যোগ্য ছিল, কিন্তু সেরা ${SW.top}টিই যথেষ্ট।</p>`:''):`<div class="warnbox" style="margin:8px 0">আজ নিয়ম মেনে কোনো শেয়ার মেলেনি। আজ না কেনাও একটি বৈধ সিদ্ধান্ত।</div>`}
     <p class="note" style="margin:6px 0">পরদিন ওপেনে কিনে স্টপ বা টার্গেট ১ না ছুঁলে ${hold} কর্মদিবস পর বেরিয়ে যাওয়া হিসাব ধরা হয়। টার্গেট ১ হলো ঝুঁকির ২ গুণ; স্টপ যত দূরে, টার্গেটও তত দূরে, তাই ১-২ সপ্তাহে না-ও ছুঁতে পারে। কেনার আগে DSE-তে খবর ও রেকর্ড ডেট দেখে নিন।</p>
     ${nearHtml}
@@ -1778,6 +1812,7 @@ function holdEval(r,h,lossLimit){
     el.innerHTML='<div class="warnbox">সেক্টর ডেটা লোড হয়নি। <code>docs/data/sector_summary.json</code> ফাইল তৈরি হলে এখানে দেখা যাবে।</div>';
     return;
   }
+  SECTORS.forEach(s=>{s.med_eps=sectorMedEps(s.sector)});
   const list=[...SECTORS].filter(s=>s.sector!=='Unknown'&&s.companies>0);
   list.sort((a,b)=>{
     const x=a[sectorSortKey], y=b[sectorSortKey];
@@ -1790,7 +1825,7 @@ function holdEval(r,h,lossLimit){
   const fmtN=v=>v==null?'–':v.toFixed(2);
   const fmtVol=v=>v==null?'–':(v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?Math.round(v/1000)+'K':v);
   const cls=v=>v==null?'':v>0?'up':v<0?'down':'';
-  const mood=v=>v==null?'⚪ তথ্য নেই':v>=3?'🟢 শক্তিশালী':v>=1?'🟢 ভালো':v>-1?'⚪ নিরপেক্ষ':v>=-3?'🔻 দুর্বল':'🔴 খুব দুর্বল';
+  const mood=sectorMood;
   const top3=list.slice(0,3).map(s=>s.sector).join(' · ');
   const bot3=list.slice(-3).map(s=>s.sector).join(' · ');
   const maxAbs=Math.max(0.01,...list.map(s=>Math.abs(s.avg_change_20d||0)));
@@ -1798,7 +1833,7 @@ function holdEval(r,h,lossLimit){
     const v=s.avg_change_20d;
     const w=v==null?0:Math.min(50,Math.abs(v)/maxAbs*50);
     const bar=v==null?'<span class="muted">–</span>':`<div class="sec-bar"><div class="trk"><i class="${v>=0?'p':'m'}" style="width:${w.toFixed(1)}%"></i></div><span class="v ${cls(v)}">${fmt2(v)}</span></div>`;
-    const low=s.companies>=2&&s.companies<=3?' <span class="badge b-w" style="margin-left:4px">⚠️ কম নমুনা</span>':'';
+    const low=s.companies<=3?' <span class="badge b-w" style="margin-left:4px">⚠️ কম নমুনা</span>':'';
     const sel=sectorFilter===s.sector?' sel':'';
     return `<tr class="sec-row${sel}" data-sector="${esc(s.sector)}" tabindex="0" style="cursor:pointer">
       <td class="sym">${esc(s.sector)}<span class="sec-mood">${mood(v)}${low}</span></td>
@@ -1806,7 +1841,7 @@ function holdEval(r,h,lossLimit){
       <td class="n ${cls(s.avg_change_1d)}">${fmt2(s.avg_change_1d)}</td>
       <td class="n ${cls(s.avg_change_5d)}">${fmt2(s.avg_change_5d)}</td>
       <td>${bar}</td>
-      <td class="n">${fmtN(s.avg_eps)}</td>
+      <td class="n ${cls(s.med_eps)}">${fmtN(s.med_eps)}</td>
       <td class="n">${fmtVol(s.avg_volume)}</td>
       <td class="n">${s.cat_a}/${s.cat_b}/${s.cat_z}</td>
     </tr>`;
@@ -1823,11 +1858,11 @@ function holdEval(r,h,lossLimit){
     <div class="tw"><table class="mini" style="min-width:780px"><thead><tr>
       <th>সেক্টর</th><th class="n">কোম্পানি</th>
       <th class="n">১ দিন</th><th class="n">৫ দিন</th><th>২০ দিনের পরিবর্তন</th>
-      <th class="n">গড় EPS</th><th class="n">গড় ভলিউম</th>
+      <th class="n">মিডিয়ান EPS</th><th class="n">গড় ভলিউম</th>
       <th class="n">A/B/Z</th>
     </tr></thead><tbody>${rows}</tbody></table></div>
     <p class="note" style="margin-top:8px">
-      📌 কীভাবে পড়বেন: <b>২০ দিনের বার</b> সবুজ মানে সেক্টরে বিনিয়োগকারীরা ঝুঁকছে, লাল মানে সরে যাচ্ছে। <b>গড় EPS</b> বেশি হলে সেক্টরের কোম্পানিগুলো লাভে। <b>A/B/Z</b> = ক্যাটাগরি কতগুলো। ২-৩টি কোম্পানির সেক্টরে গড় বিভ্রান্তিকর হতে পারে (⚠️ কম নমুনা)।<br>
+      📌 কীভাবে পড়বেন: <b>২০ দিনের বার</b> সবুজ মানে সেক্টরে বিনিয়োগকারীরা ঝুঁকছে, লাল মানে সরে যাচ্ছে। <b>মিডিয়ান EPS</b> (মাঝের কোম্পানির EPS, একটা-দুটো বড় লোকসানি কোম্পানি একে নষ্ট করে না) বেশি হলে সেক্টরের সাধারণ কোম্পানি লাভে। <b>A/B/Z</b> = ক্যাটাগরি কতগুলো। ২-৩টি কোম্পানির সেক্টরে গড় বিভ্রান্তিকর হতে পারে (⚠️ কম নমুনা)।<br>
       👆 <b>সেক্টরে ক্লিক করুন</b> — নিচের তালিকা শুধু ঐ সেক্টরের শেয়ারে সীমিত হবে। আবার ক্লিক করলে ফিল্টার বন্ধ হবে।
     </p>`;
 }
@@ -1874,7 +1909,7 @@ function holdEval(r,h,lossLimit){
   }).join('');
   const sum=anyQty?`<div class="tally"><div><b>${fmtInt(inv)}</b><span>মোট বিনিয়োগ, টাকা</span></div><div><b>${fmtInt(val)}</b><span>বর্তমান মূল্য, টাকা</span></div><div><b class="${val>=inv?'up':'down'}">${val>=inv?'+':''}${fmtInt(val-inv)}</b><span>মোট লাভ/ক্ষতি, টাকা (${inv?((val/inv-1)*100).toFixed(1):'0'}%)</span></div><div><b>${nSell}</b><span>বিক্রির সংকেতে থাকা শেয়ার</span></div></div>`
     :`<p class="note" style="margin:0 0 6px">শেয়ার সংখ্যা দিলে মোট লাভ/ক্ষতি টাকায় দেখাবে।</p>`;
-  el.innerHTML=sum+cards+`<p class="note">সিদ্ধান্ত অতীতের দামের ওপর ভিত্তি করা একটি সহায়ক নিয়ম, নিশ্চয়তা নয়। সবচেয়ে খারাপ অবস্থার শেয়ার উপরে দেখানো হয়। সাপোর্ট-রেজিস্ট্যান্স শেষ ১২০ দিনের সুইং-পয়েন্ট ও SMA/VWAP থেকে নেওয়া। খবর, লভ্যাংশের রেকর্ড ডেট ও DSE-র T+2 নিয়ম নিজে দেখে নিন। আমি আর্থিক উপদেষ্টা নই।</p>`;
+  el.innerHTML=sum+cards+`<p class="note">সিদ্ধান্ত অতীতের দামের ওপর ভিত্তি করা একটি সহায়ক নিয়ম, নিশ্চয়তা নয়। ব্যাকটেস্টে "বিক্রি" সংকেতের ফল বাজার-পর্বভেদে উল্টে গেছে (এক পর্বে পরে দাম বেড়েছে, অন্য পর্বে কমেছে), তাই শুধু সংকেত দেখে নয়, স্টপ-লেভেলকে মূল ভিত্তি ধরুন। সবচেয়ে খারাপ অবস্থার শেয়ার উপরে দেখানো হয়। সাপোর্ট-রেজিস্ট্যান্স শেষ ১২০ দিনের সুইং-পয়েন্ট ও SMA/VWAP থেকে নেওয়া। খবর, লভ্যাংশের রেকর্ড ডেট ও DSE-র T+2 নিয়ম নিজে দেখে নিন। আমি আর্থিক উপদেষ্টা নই।</p>`;
 }
 function addHolding(){
   const sym=($('#hSym').value||'').trim().toUpperCase(),price=+$('#hPrice').value,qty=+$('#hQty').value||0,m=$('#hMsg');
@@ -1945,8 +1980,8 @@ function renderPlanner(){
   const key={rank:r=>r.rank*100-r.buy+r.sell*0.01,sym:r=>r.sym,close:r=>r.close,chg:r=>r.chg,buy:r=>r.buy,sell:r=>r.sell,early:r=>(r.early?r.early.score:-1),adx:r=>(r.adx==null?-1:r.adx),p52:r=>(r.p52==null?999:r.p52),rs:r=>(r.rsVal==null?-999:r.rsVal),vwap:r=>(r.vwapDist==null?-999:r.vwapDist),rsi:r=>r.rsi==null?-1:r.rsi,vr:r=>r.vr,win:r=>r.bt.n?r.bt.win:-1,avg:r=>r.avg==null?-999:r.avg,risk:r=>r.risk,cat:r=>r.cat||'~',eps:r=>r.eps==null?-999:r.eps}[sortKey]||(r=>r.rank);
   list.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*sortDir});
   const allCols=[
-    ['sec','সেক্টর','',''],
     ['sym','কোম্পানি','','core'],
+    ['sec','সেক্টর','',''],
     ['cat','ক্যাট.','',''],
     ['eps','EPS (সর্বশেষ)','n',''],
     ['close','ক্লোজ','n','core'],
@@ -2112,7 +2147,7 @@ $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.c
 /* ফিল্টার (রেন্ডার-only): */
 ['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q','exABOnly','exPriceBand'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',()=>{saveSettings();render()})});
 /* নতুন হার্ড-গেট (analyze দরকার): */
-['exVol15','exTurnover','exSma200','exRR2','exScore75'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
+['exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
 ['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 ['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
@@ -2134,7 +2169,12 @@ $('#holdingsOut').addEventListener('change',e=>{
   if(t.dataset.hedit==='price'){if(v>0)h.price=v}else h.qty=v>0?v:0;
   saveHold();renderHoldings();
 });
-$('#shortlist').addEventListener('click',e=>{const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
+$('#shortlist').addEventListener('change',e=>{
+  const t=e.target;if(!t||!t.id)return;
+  if(t.id==='slDipIn')slDipIn=t.checked;else if(t.id==='slSector')slSector=t.checked;else if(t.id==='slCap')slCap=t.checked;else return;
+  renderShortlist();
+});
+$('#shortlist').addEventListener('click',e=>{if(e.target.closest('.sl-ctl'))return;const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
 $('#shortlist').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
 ['hold','cost','extPct'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 
@@ -2235,7 +2275,7 @@ function openDetailImpl(sym,keepScroll){
   if(r.p52!=null){
     const zone = r.p52<=3?'নতুন উচ্চতার একেবারে কাছে':r.p52<=8?'সর্বোচ্চের কাছাকাছি':r.p52<=20?'মাঝারি দূরত্ব':'অনেক নিচে';
     const cls = r.p52<=8?'up':r.p52>=30?'down':'';
-    p52Panel=`<div class="p52-panel"><h4>🎯 ৫২-সপ্তাহের সর্বোচ্চ থেকে দূরত্ব: ${r.p52.toFixed(1)}% — ${zone}</h4><dl class="kv" style="margin-top:4px"><dt>৫২-সপ্তাহের সর্বোচ্চ</dt><dd>${fmt(I.hh252[i])}</dd><dt>৫২-সপ্তাহের সর্বনিম্ন</dt><dd>${fmt(I.ll252[i])}</dd><dt>রেঞ্জে অবস্থান</dt><dd class="${cls}">${r.posRange==null?'–':r.posRange.toFixed(0)+'%'}</dd></dl><p class="note" style="margin-top:6px">গবেষণায় দেখা গেছে, ৫২-সপ্তাহের সর্বোচ্চের ৫% এর মধ্যে থাকা শেয়ার দীর্ঘমেয়াদে ভালো পারফর্ম করে। ২০%+ নিচে থাকলে দুর্বল বিবেচিত হয়।</p></div>`;
+    p52Panel=`<div class="p52-panel"><h4>🎯 ৫২-সপ্তাহের সর্বোচ্চ থেকে দূরত্ব: ${r.p52.toFixed(1)}% — ${zone}</h4><dl class="kv" style="margin-top:4px"><dt>৫২-সপ্তাহের সর্বোচ্চ</dt><dd>${fmt(I.hh252[i])}</dd><dt>৫২-সপ্তাহের সর্বনিম্ন</dt><dd>${fmt(I.ll252[i])}</dd><dt>রেঞ্জে অবস্থান</dt><dd class="${cls}">${r.posRange==null?'–':r.posRange.toFixed(0)+'%'}</dd></dl><p class="note" style="margin-top:6px">এই ডেটার ব্যাকটেস্টে (১০ দিন হোল্ড) সর্বোচ্চের ১০% এর মধ্যে থাকা শেয়ারে কেনার সংকেত তেমন ভালো করেনি; ১০-২০% নিচে থাকা শেয়ার তুলনামূলক ভালো করেছে। তাই শর্টলিস্টে কমপক্ষে ১০% নিচে থাকা শেয়ার ধরা হয়। ২০%+ নিচে থাকলে দুর্বল বিবেচিত হয়।</p></div>`;
   }
   let rsPanel='';
   if(r.rsVal!=null){
@@ -2246,9 +2286,9 @@ function openDetailImpl(sym,keepScroll){
   }
   let dipPanel='';
   if(r.dip && r.dip.score > 0){
-    const verdict = r.dip.score >= DIP_MIN ? '🎯 কিনুন — dip reversal' : r.dip.score >= 4 ? '⏳ পর্যবেক্ষণ করুন' : '⛔ এখনো সুযোগ নয়';
+    const verdict = r.dip.score >= DIP_MIN ? '⏳ পর্যবেক্ষণ — ব্যাকটেস্টে বাড়তি সুবিধা মেলেনি' : r.dip.score >= 4 ? '⛔ ব্যাকটেস্টে এই স্কোরে গড়ে ক্ষতি' : '⛔ এখনো সুযোগ নয়';
     const pct = Math.min(100, r.dip.score / 10.5 * 100);
-    dipPanel = `<div class="early-panel" style="background:linear-gradient(135deg,#e8f8ec,#d0f0dc);border-color:#7fcf9f"><h4 style="color:#0f7a3a">🎯 DIP-BUY রিভার্সাল স্কোর: ${r.dip.score.toFixed(1)} / ১০.৫ — ${verdict}</h4><div class="early-bar"><i style="width:${pct}%;background:linear-gradient(90deg,#4caf50,#81c784)"></i></div><ul class="early-list">${r.dip.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul><p class="note" style="margin-top:6px">Dip-buying কৌশল: শক্তিশালী ট্রেন্ডে থাকা শেয়ার সাময়িক দুর্বল হলে কিনুন, তারপর ট্রেন্ডে ফিরলে লাভ নিন।</p></div>`;
+    dipPanel = `<div class="early-panel" style="background:linear-gradient(135deg,#e8f8ec,#d0f0dc);border-color:#7fcf9f"><h4 style="color:#0f7a3a">🎯 DIP-BUY রিভার্সাল স্কোর: ${r.dip.score.toFixed(1)} / ১০.৫ — ${verdict}</h4><div class="early-bar"><i style="width:${pct}%;background:linear-gradient(90deg,#4caf50,#81c784)"></i></div><ul class="early-list">${r.dip.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul><p class="note" style="margin-top:6px">ডিপ-বাই-এর ধারণা: শক্তিশালী ট্রেন্ডে থাকা শেয়ার সাময়িক দুর্বল হলে ফেরার সম্ভাবনা। তবে এই ডেটায় (১৩ মাস, ৩৭৮ শেয়ার) ডিপ-স্কোর ৪-৮ এ গড়ে ক্ষতি, ≥৮ এ গড়ের সমান, তাই এটিকে কেনার কারণ নয়, শুধু পর্যবেক্ষণের তথ্য ধরুন।</p></div>`;
   }
   let vwapPanel='';
   if(r.vwap!=null){
@@ -2266,10 +2306,10 @@ function openDetailImpl(sym,keepScroll){
   let peerPanel='';
   if(totalInSector>1){
     const sc20=sectorStats?sectorStats.avg_change_20d:null;
-    const secEps=sectorStats?sectorStats.avg_eps:null;
-    const epsBadge=(r.eps!=null&&secEps!=null)?(r.eps>=secEps?'<span class="badge b-b">✅ সেক্টর গড়ের উপরে</span>':'<span class="badge b-w">⚠️ সেক্টর গড়ের নিচে</span>'):'';
+    const secEps=sectorMedEps(mySector);
+    const epsBadge=(r.eps!=null&&secEps!=null)?(r.eps>=secEps?'<span class="badge b-b">✅ সেক্টরের মাঝামাঝির উপরে</span>':'<span class="badge b-w">⚠️ সেক্টরের মাঝামাঝির নিচে</span>'):'';
     const peerRow=(x,me)=>`<tr${me?' style="background:var(--warn-bg)"':` data-s="${esc(x.sym)}"`}><td>${esc(x.sym)}${me?' <span class="muted">← আপনি</span>':''}</td><td class="n">${fmt(x.close)}</td><td class="n">${x.buy.toFixed(1)}</td><td>${SIG[x.cl].t}</td></tr>`;
-    peerPanel=`<div class="peer-panel"><h4>🏭 সেক্টরে অবস্থান: ${esc(mySector)}</h4><dl class="kv" style="margin-top:4px"><dt>আপনার র্যাঙ্ক (স্কোর অনুযায়ী)</dt><dd>#${myRank} / ${totalInSector}</dd><dt>সেক্টর ২০ দিনের পরিবর্তন</dt><dd class="${sc20==null?'':sc20>=0?'up':'down'}">${sc20==null?'–':(sc20>=0?'+':'')+sc20.toFixed(2)+'%'}</dd><dt>আপনার EPS / সেক্টর গড় EPS</dt><dd>${r.eps==null?'–':r.eps.toFixed(2)} / ${secEps==null?'–':secEps.toFixed(2)} ${epsBadge}</dd><dt>সেক্টরে কোম্পানি</dt><dd>${totalInSector}টি</dd></dl><table class="ptb"><thead><tr><th>কোম্পানি</th><th class="n">দাম</th><th class="n">স্কোর</th><th>সংকেত</th></tr></thead><tbody>${peerRow(r,true)}${topPeers.map(x=>peerRow(x,false)).join('')}</tbody></table><p class="note" style="margin-top:6px">স্কোর বেশি = কেনার সম্ভাবনা বেশি</p></div>`;
+    peerPanel=`<div class="peer-panel"><h4>🏭 সেক্টরে অবস্থান: ${esc(mySector)}</h4><dl class="kv" style="margin-top:4px"><dt>আপনার র্যাঙ্ক (স্কোর অনুযায়ী)</dt><dd>#${myRank} / ${totalInSector}</dd><dt>সেক্টর ২০ দিনের পরিবর্তন</dt><dd class="${sc20==null?'':sc20>=0?'up':'down'}">${sc20==null?'–':(sc20>=0?'+':'')+sc20.toFixed(2)+'%'}</dd><dt>আপনার EPS / সেক্টর মিডিয়ান EPS</dt><dd>${r.eps==null?'–':r.eps.toFixed(2)} / ${secEps==null?'–':secEps.toFixed(2)} ${epsBadge}</dd><dt>সেক্টরে কোম্পানি</dt><dd>${totalInSector}টি</dd></dl><table class="ptb"><thead><tr><th>কোম্পানি</th><th class="n">দাম</th><th class="n">স্কোর</th><th>সংকেত</th></tr></thead><tbody>${peerRow(r,true)}${topPeers.map(x=>peerRow(x,false)).join('')}</tbody></table><p class="note" style="margin-top:6px">স্কোর বেশি = কেনার সম্ভাবনা বেশি</p></div>`;
   }
   const el=$('#detail');
   el.innerHTML=`<div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}" style="font-family:var(--sans);vertical-align:middle;margin-left:8px">${s.t}</span></h2><span class="muted">${esc(b[i].d)} · ক্লোজ ${fmt(b[i].c)} · SMA20 ${fmt(I.sma20[i])} · SMA50 ${fmt(I.sma50[i])} · VWAP20 ${fmt(I.vwap20[i])} · ATR ${fmt(I.atr[i],2)}</span></div>
