@@ -5,7 +5,8 @@ DSE দৈনিক ডেটা সংগ্রাহক। শুধু Python
 ব্যবহার:
   python scripts/update_data.py                 # আজকের (শেষ) বাজার-দিনের ডেটা যোগ করে
   python scripts/update_data.py --bootstrap     # প্রথমবার: সব কোম্পানির ইতিহাস নামায়
-  python scripts/update_data.py --bootstrap --days 400 --codes GP,SQURPHARMA
+  python scripts/update_data.py --bootstrap --days 760 --codes GP,SQURPHARMA
+  python scripts/update_data.py --bootstrap --backfill --days 760   # আগের ডেটা রেখে শুধু পুরনো অংশ (২ বছর পর্যন্ত) ভরে
   python scripts/update_data.py --force         # বাজার চলাকালীন আংশিক ডেটাও নেয় (সাধারণত দরকার নেই)
 
 আউটপুট: docs/data/prices.csv,  docs/data/index.csv  এবং  docs/data/meta.json
@@ -321,7 +322,7 @@ def fetch_snapshot():
     raise RuntimeError('সব ঠিকানায় ব্যর্থ:\n  ' + '\n  '.join(errs))
 
 
-def fetch_archive(base, code, start, end):
+def fetch_archive_once(base, code, start, end):
     qs = urllib.parse.urlencode({'startDate': start, 'endDate': end, 'inst': code, 'archive': 'data'})
     rows, _ = extract(http_get(f'{base}/day_end_archive.php?{qs}'))
     out = []
@@ -330,6 +331,22 @@ def fetch_archive(base, code, start, end):
         if r:
             r['TRADING CODE'] = code
             out.append(r)
+    return out
+
+
+CHUNK_DAYS = 360  # DSE আর্কাইভে একবারে এর বেশি দিন চাওয়া হয় না (আগে ৪০০ দিন চলেছে)
+
+
+def fetch_archive(base, code, start, end, chunk=CHUNK_DAYS):
+    """লম্বা সময়কে ৩৬০ দিনের টুকরোয় ভেঙে আনে, যাতে ২ বছরের ডেটাও নিরাপদে আসে।"""
+    s = datetime.strptime(start, '%Y-%m-%d').date()
+    e = datetime.strptime(end, '%Y-%m-%d').date()
+    out = []
+    cur = s
+    while cur <= e:
+        nxt = min(cur + timedelta(days=chunk - 1), e)
+        out.extend(fetch_archive_once(base, code, cur.isoformat(), nxt.isoformat()))
+        cur = nxt + timedelta(days=1)
     return out
 
 
@@ -394,26 +411,41 @@ def run_bootstrap(a):
         {(d.get('TRADINGCODE') or '').strip().upper() for d in rows if (d.get('TRADINGCODE') or '').strip()})
     end = datetime.now(DHAKA).date()
     start = end - timedelta(days=a.days)
-    log(f'{len(codes)}টি কোম্পানির ইতিহাস ({start} থেকে {end}) নামানো হচ্ছে। এতে বেশ কিছুক্ষণ লাগবে।')
     data = load_csv()
-    failed = []
+    # --backfill: যে কোম্পানির ডেটা আগে থেকে আছে তার শুধু পুরনো অংশ (প্রথম সংরক্ষিত দিনের আগে) আনা হয়
+    first = {}
+    if getattr(a, 'backfill', False):
+        for (d, c) in data:
+            if c not in first or d < first[c]:
+                first[c] = d
+    mode = 'শুধু পুরনো অংশ ভরা (backfill)' if first else 'পুরো ইতিহাস'
+    log(f'{len(codes)}টি কোম্পানির ইতিহাস ({start} থেকে {end}) নামানো হচ্ছে [{mode}]। এতে বেশ কিছুক্ষণ লাগবে।')
+    failed, skipped = [], 0
     for i, code in enumerate(codes, 1):
+        c_start, c_end = start, end
+        if code in first:
+            c_end = datetime.strptime(first[code], '%Y-%m-%d').date() - timedelta(days=1)
+            if c_end < c_start:
+                skipped += 1
+                continue
         try:
-            recs = fetch_archive(base, code, start.isoformat(), end.isoformat())
+            recs = fetch_archive(base, code, c_start.isoformat(), c_end.isoformat())
             merge(data, recs)
-            log(f'[{i}/{len(codes)}] {code}: {len(recs)} দিন')
+            log(f'[{i}/{len(codes)}] {code}: {len(recs)} দিন ({c_start} থেকে {c_end})')
         except Exception as e:
             failed.append(code)
             log(f'[{i}/{len(codes)}] {code}: ব্যর্থ ({e})')
         if i % 40 == 0:
             save(data, a.keep, base)
         time.sleep(a.sleep)
+    if skipped:
+        log(f'{skipped}টি কোম্পানির ডেটা আগেই যথেষ্ট পুরনো পর্যন্ত আছে, বাদ দেওয়া হলো।')
     if failed:
         log(f'ব্যর্থ হয়েছে ({len(failed)}টি): ' + ', '.join(failed))
     save(data, a.keep, base)
 
-    # ========== আজকের DSEX মান যোগ করা (ইতিহাস পরে জমা হবে) ==========
-    log('আজকের DSEX মান যোগ করা হচ্ছে (বাকি দিনগুলো প্রতিদিন জমা হবে)...')
+    # ========== আজকের DSEX মান যোগ করা (ইতিহাস fetch_dsex.py আলাদা করে ভরে) ==========
+    log('আজকের DSEX মান যোগ করা হচ্ছে...')
     try:
         update_index(end.isoformat())
     except Exception as e:
@@ -425,9 +457,10 @@ def run_bootstrap(a):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--bootstrap', action='store_true', help='প্রথমবার ইতিহাস নামান')
-    p.add_argument('--days', type=int, default=400, help='ইতিহাসের ক্যালেন্ডার-দিন (ডিফল্ট ৪০০)')
+    p.add_argument('--days', type=int, default=760, help='ইতিহাসের ক্যালেন্ডার-দিন (ডিফল্ট ৭৬০ ≈ ২ বছর)')
+    p.add_argument('--backfill', action='store_true', help='আগের ডেটা না ছুঁয়ে শুধু পুরনো অংশ ভরে (--bootstrap-এর সাথে)')
     p.add_argument('--codes', default='', help='কমা দিয়ে নির্দিষ্ট কোম্পানির কোড')
-    p.add_argument('--keep', type=int, default=320, help='সর্বাধিক কত ট্রেডিং-দিন রাখবে')
+    p.add_argument('--keep', type=int, default=560, help='সর্বাধিক কত ট্রেডিং-দিন রাখবে (ডিফল্ট ৫৬০ ≈ ২ বছর ২ মাস)')
     p.add_argument('--sleep', type=float, default=1.5, help='প্রতি কোম্পানির মাঝে বিরতি (সেকেন্ড)')
     p.add_argument('--cutoff', default='14:20', help='এর আগের (ঢাকা সময়) আংশিক ডেটা নেবে না')
     p.add_argument('--force', action='store_true')

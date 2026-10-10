@@ -2,8 +2,8 @@
 """DSEX দৈনিক ক্লোজ নামিয়ে data/dsex.csv-তে জমা করে। শুধু Python stdlib লাগে।
 
 ব্যবহার:
-    python fetch_dsex.py          # CSV না থাকলে ৪০০ দিন, থাকলে শেষ ১০ দিন
-    python fetch_dsex.py 800      # নিজে দিন সংখ্যা ঠিক করতে
+    python fetch_dsex.py          # CSV না থাকলে ৮০০ দিন, থাকলে শেষ ১০ দিন
+    python fetch_dsex.py 800      # নিজে দিন সংখ্যা ঠিক করতে (২ বছরের ইতিহাস ভরতে এটি চালান)
 
 অন্য স্ক্রিপ্ট থেকে:
     from fetch_dsex import get_latest_dsex
@@ -123,11 +123,8 @@ def walk(obj, out):
             walk(item, out)
 
 
-def from_archive(days_back):
-    today = dt.date.today()
-    url = ARCHIVE_URL.format(
-        f=(today - dt.timedelta(days=days_back)).isoformat(),
-        t=today.isoformat())
+def _archive_chunk(start, end):
+    url = ARCHIVE_URL.format(f=start.isoformat(), t=end.isoformat())
     text = http_get(url)
     try:
         data = json.loads(text)
@@ -138,6 +135,28 @@ def from_archive(days_back):
     if not out:
         raise RuntimeError("archive: DSEX মান পাওয়া যায়নি। JSON শুরু: "
                            + json.dumps(data, ensure_ascii=False)[:800])
+    return out
+
+
+CHUNK_DAYS = 180  # লম্বা সময় ১৮০ দিনের টুকরোয় আনা হয় (২ বছরের ইতিহাসের জন্য)
+
+
+def from_archive(days_back):
+    today = dt.date.today()
+    start = today - dt.timedelta(days=days_back)
+    out, errs = {}, []
+    cur = start
+    while cur <= today:
+        nxt = min(cur + dt.timedelta(days=CHUNK_DAYS - 1), today)
+        try:
+            out.update(_archive_chunk(cur, nxt))
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"{cur}..{nxt}: {e}")
+        cur = nxt + dt.timedelta(days=1)
+    if not out:
+        raise RuntimeError("archive ব্যর্থ: " + " | ".join(errs))
+    if errs:
+        print("সতর্কতা: কিছু টুকরো আনা যায়নি:\n" + "\n".join(errs), file=sys.stderr)
     return out
 
 
@@ -186,10 +205,10 @@ def save_csv(rows):
 
 def get_latest_dsex(days_back=None):
     """(তারিখ, মান) ফেরত দেয়। CSV-ও আপডেট করে।
-    CSV না থাকলে নিজে থেকে ৪০০ দিনের ইতিহাস নামায়, থাকলে শেষ ১০ দিন।"""
+    CSV না থাকলে নিজে থেকে ৮০০ দিনের ইতিহাস নামায়, থাকলে শেষ ১০ দিন।"""
     rows = load_csv()
     if days_back is None:
-        days_back = 10 if rows else 400
+        days_back = 10 if rows else 800
     new, errors = {}, []
     try:
         new = from_archive(days_back)

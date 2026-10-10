@@ -73,4 +73,29 @@ try:
     U.fetch_snapshot(); raise SystemExit('ব্যর্থ হওয়ার কথা ছিল')
 except RuntimeError:
     pass
+
+# 7) লম্বা সময় ৩৬০ দিনের টুকরোয় ভাঙে (২ বছরের ডেটার জন্য), আর backfill শুধু পুরনো অংশ আনে
+calls = []
+def fake_get(url, **k):
+    calls.append(url)
+    return archive_html()
+U.http_get = fake_get
+U.fetch_archive('x', 'CO001', '2024-10-01', '2026-09-30')
+assert len(calls) == 3, calls  # ~730 দিন => ৩ টুকরো
+assert 'startDate=2024-10-01' in calls[0] and 'endDate=2026-09-30' in calls[-1], calls
+
+calls.clear()
+tmp2 = tempfile.mkdtemp()
+U.DATA_DIR = tmp2; U.CSV_PATH = os.path.join(tmp2, 'prices.csv'); U.META_PATH = os.path.join(tmp2, 'meta.json')
+U.merge(d0 := {}, [U.to_record(rows[0], '2026-09-01')])
+U.save(d0, 560, 'x')
+class B:
+    bootstrap = True; backfill = True; days = 760; codes = 'CO001,CO002'; sleep = 0; keep = 560; force = False; cutoff = '14:20'
+U.http_get = lambda url, **k: snapshot_html() if 'latest_share' in url else (calls.append(url) or archive_html())
+U.update_index = lambda date_str: None
+U.run_bootstrap(B)
+arch_calls = [c for c in calls if 'day_end_archive' in c]
+co1 = [c for c in arch_calls if 'inst=CO001' in c]
+assert co1 and 'endDate=2026-08-31' in co1[-1], co1  # CO001-এর প্রথম সংরক্ষিত দিন ০১-০৯-২০২৬, তাই ৩১-০৮ পর্যন্ত
+assert any('inst=CO002' in c for c in arch_calls)  # CO002 এর ডেটা নেই, পুরোটা আনে
 print('সব টেস্ট পাস')

@@ -773,7 +773,7 @@ function backtest(b,I,hold,tplus){
   hold=hold||10;tplus=tplus==null?2:tplus;
   const trades=[],pulls=[];
   const buckets={'≤5':{n:0,sum:0,w:0},'5-7':{n:0,sum:0,w:0},'7-9':{n:0,sum:0,w:0},'9-11':{n:0,sum:0,w:0},'11+':{n:0,sum:0,w:0}};
-  const randomReturns=[];
+  const randomReturns=[],randomDates=[];
   let extN=0,nextOk=0;
   const exitSim=(f,stop,t1)=>{
     for(let k=f+tplus;k<=f+hold&&k<b.length;k++){
@@ -788,7 +788,7 @@ function backtest(b,I,hold,tplus){
       if(e<b.length-hold){
         const pr=plan(I,i);
         const eR=b[e].o>0?b[e].o:b[e].c;
-        if(eR>0&&eR>pr.stop) randomReturns.push((exitSim(e,pr.stop,pr.t1)/eR-1)*100);
+        if(eR>0&&eR>pr.stop){ randomReturns.push((exitSim(e,pr.stop,pr.t1)/eR-1)*100); randomDates.push(b[i].d); }
       }
     }
     if(i<nextOk)continue;
@@ -813,7 +813,7 @@ function backtest(b,I,hold,tplus){
     if(gg.cl!=='BUY'&&gg.cl!=='STRONG_BUY')continue;
     const e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
     const tags=sc0.tags.filter(t=>t!=='breakdown');
-    trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy});
+    trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy,d:b[i].d});
     if(ep.extended){
       extN++;let f=-1,fp=0;
       for(let k=i+1;k<=i+5&&k<b.length;k++){if(b[k].l<=ep.pull.hi){f=k;fp=Math.min(b[k].o>0?b[k].o:ep.pull.hi,ep.pull.hi);break}}
@@ -822,7 +822,7 @@ function backtest(b,I,hold,tplus){
     nextOk=i+hold;
   }
   const randomAvg = randomReturns.length ? randomReturns.reduce((x,y)=>x+y,0)/randomReturns.length : null;
-  return{trades,pulls,extN,buckets,randomAvg,randomReturns,randomN:randomReturns.length};
+  return{trades,pulls,extN,buckets,randomAvg,randomReturns,randomDates,randomN:randomReturns.length};
 }
 function btStats(rets){
   const n=rets.length;if(!n)return{n:0,win:null,avg:null};
@@ -1473,7 +1473,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const SIG={STRONG_BUY:{t:'শক্তিশালী কিনুন',c:'b-sb',rank:0},BUY:{t:'কিনুন',c:'b-b',rank:1},WAIT:{t:'পুলব্যাকের অপেক্ষা',c:'b-w',rank:2},WATCH:{t:'নজরে রাখুন',c:'b-w',rank:3},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',rank:4},SELL:{t:'বিক্রি করে বের হোন',c:'b-s',rank:5},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',rank:6}};
 const TABS=[['all','সব'],['buy','এখনই কেনার সংকেত'],['dip','🎯 ডিপ-বাই'],['early','⚡ আর্লি বাই'],['wait','পুলব্যাকের অপেক্ষা'],['watch','নজরে রাখুন'],['sell','বিক্রির সংকেত'],['neutral','নিরপেক্ষ']];
 const PT={breakout:'ব্রেকআউট',pullback:'পুলব্যাক',bounce:'ওভারসোল্ড বাউন্স',momentum:'ক্রসওভার মোমেন্টাম',breakdown:'ব্রেকডাউন','early-buy':'⚡ আর্লি বাই',engulfing:'🕯️ এনগালফিং',pinbar:'📍 পিন বার','vol-breakout':'🚀 ভলিউম ব্রেকআউট','bear-engulfing':'🐻 বিয়ারিশ এনগালফিং','shooting-star':'💫 শুটিং স্টার','weekly-bull':'📅 সাপ্তাহিক ঊর্ধ্বমুখী','weekly-bear':'📅 সাপ্তাহিক নিম্নমুখী','strong-trend':'📊 শক্তিশালী ট্রেন্ড','trending':'📊 ট্রেন্ডিং','weak-trend':'📊 দুর্বল ট্রেন্ড','sideways':'📊 পার্শ্ববর্তী','52w-high':'🎯 ৫২-সপ্তাহ উচ্চতা','rs-strong':'💪 আউটপারফর্মার','rs-good':'💪 ভালো পারফর্ম','rs-neutral':'💪 মাঝারি','rs-weak':'📉 দুর্বল পারফর্ম','vwap-above':'📈 VWAP-উপরে','vwap-below':'📉 VWAP-নিচে','vwap-touch':'📈 VWAP-টাচ','dip-buy':'🎯 ডিপ-বাই','dip-uptrend':'🎯 ডিপ: বড় ট্রেন্ড ঊর্ধ্বমুখী','dip-rsi-turn':'🎯 ডিপ: RSI ঘুরছে','dip-at-sma50':'🎯 ডিপ: SMA50 সাপোর্ট','dip-reversal-candle':'🎯 ডিপ: রিভার্সাল ক্যান্ডেল','dip-quiet':'🎯 ডিপ: কম ভলিউম','dip-market-up':'🎯 ডিপ: বাজার ঊর্ধ্বমুখী'};
-let FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
+let DSPAN=null,FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 let SECTORS=[], SECTOR_MAP={};
 let sectorFilter=null;
 function buildSectorMap(){
@@ -1541,7 +1541,9 @@ $('#btnClear').addEventListener('click',()=>{MAP={};DB={};RES=[];selected=null;m
 
 function analyze(){
   DB=finalize(MAP);RES=[];maxDate='';
-  for(const s in DB){const b=DB[s];if(b.length&&b[b.length-1].d>maxDate)maxDate=b[b.length-1].d}
+  const _ds=new Set();let _minD='9999';
+  for(const s in DB){const b=DB[s];if(b.length&&b[b.length-1].d>maxDate)maxDate=b[b.length-1].d;for(const x of b){_ds.add(x.d);if(x.d<_minD)_minD=x.d}}
+  DSPAN=_ds.size?{first:_minD,last:maxDate,days:_ds.size}:null;
   const hold=+$('#hold').value||10;EXT_PCT=+$('#extPct').value||5;
   for(const sym in DB){
     const b=DB[sym];if(b.length<35)continue;
@@ -1561,7 +1563,7 @@ function analyze(){
     const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
     const cost=+$('#cost').value||0;
     const bR=backtest(b,I,hold,2);
-    const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score}));
+    const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score,d:t.d}));
     const pulls=bR.pulls.map(t=>({ret:t.ret-cost,tags:t.tags}));
     const bt=btStats(trades.map(t=>t.ret));
     const randomRets = bR.randomReturns.map(x=>x-cost);
@@ -1571,7 +1573,7 @@ function analyze(){
       const bb=bR.buckets[k];
       if(bb.n) bucketStats[k]={n:bb.n,avg:bb.sum/bb.n - cost,win:bb.w/bb.n*100};
     }
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,sector: sectorOf(sym),chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly??null,adx:sc.adx??null,pdi:sc.pdi??null,ndi:sc.ndi??null,p52:sc.p52??null,posRange:sc.posRange??null,rsVal:sc.rsVal??null,stockRet:sc.stockRet??null,indexRet:sc.indexRet??null,vwap:sc.vwap??null,vwapDist:sc.vwapDist??null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
+    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,sector: sectorOf(sym),chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,pulls,extN:bR.extN,ep,view,dtags:(cl==='SELL'||cl==='STRONG_SELL')?sc.tags.filter(t=>t==='breakdown'):sc.tags.filter(t=>t!=='breakdown'),risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:sc.early||{score:0,why:[]},weekly:sc.weekly??null,adx:sc.adx??null,pdi:sc.pdi??null,ndi:sc.ndi??null,p52:sc.p52??null,posRange:sc.posRange??null,rsVal:sc.rsVal??null,stockRet:sc.stockRet??null,indexRet:sc.indexRet??null,vwap:sc.vwap??null,vwapDist:sc.vwapDist??null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,randomDates:bR.randomDates,bucketStats:bucketStats,dip:sc.dip||{score:0,why:[],tags:[]}});
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
@@ -1723,7 +1725,7 @@ function renderShortlist(){
   el.innerHTML=`<h3 style="margin:4px 0 4px">🎯 আজকের সুইং শর্টলিস্ট</h3>
     <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">এখানে শুধু সেই শেয়ার আসে যা সুইংয়ের উপযোগী (লিকুইড, যথেষ্ট নড়াচড়া), আগেই উঠে যায়নি, পিকে নেই, কেনার সেটআপ আছে এবং স্টপ ${SW.maxRisk}%-এর মধ্যে। সেরা ${SW.top}টি দেখানো হয় (কম স্টপ-দূরত্ব আগে)। কার্ডে ক্লিক করলে চার্ট ও কারণ দেখা যাবে।</p>
     ${mkt}
-    <p class="note" style="margin:4px 0;max-width:80ch">🧪 ব্যাকটেস্ট (নভেম্বর ২০২৫ – অক্টোবর ২০২৬, ৩৭৮ শেয়ার, পরদিন ওপেনে কেনা, ১০ দিন হোল্ড বা স্টপ/টার্গেট, ০.৫% খরচ বাদে): এই ফিল্টারে (৫২W-এর ১০%+ নিচে, সেক্টর −২%-এর উপরে, ট্রেন্ড-বাই) প্রায় ২৮০টি আলাদা ট্রেডে গড় রিটার্ন প্রায় +১.১%, জয়ের হার ৪৬-৫৩%। একই সময়ে সব শেয়ারের গড় ছিল প্রায় শূন্য (প্রথম অংশে +০.৩%, দ্বিতীয় অংশে −০.৫%)। সতর্কতা: থ্রেশহোল্ড ওই ডেটা দেখেই বাছা, ডেটা একটাই বাজার-পর্ব, নমুনা ছোট। তাই ভবিষ্যতে একই ফল হবে নিশ্চিত নয়; স্টপ-লস মানুন ও ছোট সাইজে নামুন।</p>
+    <p class="note" style="margin:4px 0;max-width:80ch">🧪 <b>ডেটার পরিধি:</b> ${DSPAN?`${esc(DSPAN.first)} থেকে ${esc(DSPAN.last)}, মোট ${DSPAN.days} ট্রেডিং-দিন (${(DSPAN.days/245).toFixed(1)} বছর)`:'–'}${DSPAN&&DSPAN.days<450?' — <b>২ বছরের চেয়ে কম।</b> GitHub Actions-এ "DSE ডেটা আপডেট" workflow-টি bootstrap=true দিয়ে একবার চালান।':''}। নিচের ফিল্টারগুলো আগে সেপ্টেম্বর ২০২৫ – অক্টোবর ২০২৬ ডেটা দেখে বাছা হয়েছিল (সেখানে ট্রেন্ড-বাইয়ে ৫২W-এর ১০%+ নিচে ও সেক্টর −২%-এর উপরে থাকলে গড় রিটার্ন প্রায় +১.১%, জয়ের হার ৪৬-৫৩%, খরচ বাদে)। এখন ডেটা দুই বছরের হলে নিচের "স্ট্র্যাটেজি বনাম র‍্যান্ডম" ছকে <b>পুরনো অংশ (যেটা বাছাইয়ে ব্যবহৃত হয়নি)</b> আলাদা দেখানো হয়, সেটাই আসল পরীক্ষা: সেখানেও র‍্যান্ডমের চেয়ে ভালো হলে নিয়মের ওপর আস্থা বাড়ে, না হলে স্টপ-লস মানুন ও ছোট সাইজে নামুন। ভবিষ্যতে একই ফল হবে নিশ্চিত নয়।</p>
     <div class="sl-ctl" style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin:6px 0 8px">
       <label><input type="checkbox" id="slSector" ${slSector?'checked':''}> দুর্বল সেক্টর বাদ (২০ দিনে −২% বা নিচে)</label>
       <label><input type="checkbox" id="slDipIn" ${slDipIn?'checked':''}> ডিপ-বাই সেটআপও দেখান (ব্যাকটেস্টে সুবিধা মেলেনি)</label>
@@ -2083,6 +2085,27 @@ function renderBaseline(base){
     html += '<tr><td><b>পার্থক্য (আলফা)</b></td><td class="n">—</td><td class="n">—</td><td class="n '+(diff>=0?'up':'down')+'"><b>'+(diff>=0?'+':'')+diff.toFixed(2)+'%</b></td></tr>';
   }
   html += '</tbody></table></div>';
+  /* সময়ভাগ: থ্রেশহোল্ড যে অংশে বাছা হয়েছিল (২০২৫-০৯-০১ থেকে) বনাম তার আগের অংশ (বাছাইয়ে ব্যবহৃত হয়নি) */
+  const SPLIT='2025-09-01';
+  const per=(lab,test)=>{
+    let n=0,sum=0,w=0,rn=0,rs=0,rw=0;
+    base.forEach(r=>{
+      r.trades.forEach(t=>{ if(t.d&&test(t.d)){ n++; sum+=t.ret; if(t.ret>0)w++; } });
+      (r.randomRets||[]).forEach((x,k)=>{ const d=r.randomDates&&r.randomDates[k]; if(d&&test(d)){ rn++; rs+=x; if(x>0)rw++; } });
+    });
+    if(!n&&!rn) return '';
+    const a=n?sum/n:null, ra=rn?rs/rn:null;
+    const al=(a!=null&&ra!=null)?a-ra:null;
+    const f=v=>v==null?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+    return '<tr><td>'+lab+(n&&n<30?' <span class="muted">(নমুনা কম)</span>':'')+'</td><td class="n">'+n+'</td><td class="n">'+(n?(w/n*100).toFixed(0)+'%':'–')+'</td><td class="n '+(a>=0?'up':'down')+'">'+f(a)+'</td><td class="n">'+f(ra)+'</td><td class="n '+(al>=0?'up':'down')+'"><b>'+f(al)+'</b></td></tr>';
+  };
+  const hasOld=base.some(r=>r.trades.some(t=>t.d&&t.d<SPLIT));
+  html += '<h3 style="margin:22px 0 8px">🔬 সময়ভাগ অনুযায়ী যাচাই (ওভারফিটিং ধরার পরীক্ষা)</h3>';
+  html += '<div class="tw"><table class="mini"><thead><tr><th>সময়কাল</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">স্ট্র্যাটেজি গড়</th><th class="n">র‍্যান্ডম গড়</th><th class="n">পার্থক্য (আলফা)</th></tr></thead><tbody>'
+    + per('পুরনো অংশ: '+SPLIT+'-এর আগে (থ্রেশহোল্ড বাছাইয়ে ব্যবহৃত হয়নি)', d=>d<SPLIT)
+    + per('আগের ১৩ মাস: '+SPLIT+' থেকে (এই অংশ দেখে থ্রেশহোল্ড বাছা হয়েছিল)', d=>d>=SPLIT)
+    + '</tbody></table></div>';
+  html += '<p class="note">'+(hasOld?'পুরনো অংশে আলফা ধনাত্মক (বিশেষ করে ১%+) থাকলে নিয়মগুলো সত্যিকারের সুবিধা দিচ্ছে, শুধু এক পর্বের সাথে মিলে যায়নি। পুরনো অংশে আলফা শূন্য বা ঋণাত্মক হলে নিয়মগুলো আগের ১৩ মাসের সাথে ওভারফিট ছিল।':'এখনও ২০২৫-০৯-০১-এর আগের ডেটা লোড হয়নি, তাই শুধু পরের অংশ দেখাচ্ছে। ২ বছরের ডেটা ভরলে পুরনো অংশের সারি আসবে।')+' র‍্যান্ডম = একই নিয়মে এলোমেলো দিনে কেনা।</p>';
   html += '<p class="note">বেসলাইনও স্ট্র্যাটেজির মতো একই নিয়মে চলে: পরদিন ওপেনে কেনা, একই ATR-ভিত্তিক স্টপ ও টার্গেট ১, T+2 নিয়ম, একই হোল্ড-দিন ও একই খরচ বাদ। শুধু দিনটা এলোমেলো। সবচেয়ে গুরুত্বপূর্ণ তুলনা: আপনার স্ট্র্যাটেজি এলোমেলো কেনার চেয়ে ভালো না হলে স্ক্যানার আসলে কাজ করছে না। পার্থক্য ১%+ হলে মূল্য আছে।</p>';
   html += '<h3 style="margin:22px 0 8px">📊 কোন স্কোর-রেঞ্জ ভালো কাজ করে</h3>';
   html += '<div class="tw"><table class="mini"><thead><tr><th>স্কোর</th><th class="n">ট্রেড</th><th class="n">জয়ের হার</th><th class="n">গড় রিটার্ন</th></tr></thead><tbody>';
@@ -2360,7 +2383,7 @@ async function autoLoad(){
     const last=meta&&meta.last_date?meta.last_date:maxDate;
     const age=Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5);
     const upd=meta&&meta.updated_utc?new Date(meta.updated_utc).toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}):'';
-    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
+    info.innerHTML=`স্বয়ংক্রিয় ডেটা লোড হয়েছে: ${Object.keys(DB).length}টি কোম্পানি, ${DSPAN?`<b>${esc(DSPAN.first)}</b> থেকে `:''}শেষ ট্রেডিং-দিন <b>${esc(last)}</b>${DSPAN?` (${DSPAN.days} ট্রেডিং-দিন ≈ ${(DSPAN.days/245).toFixed(1)} বছর)`:''}${upd?` (সর্বশেষ আপডেট ${esc(upd)})`:''}।`+(age>5?` <span class="down"><b>সতর্কতা:</b> ডেটা ${age} দিন পুরনো। GitHub Actions ঠিকমতো চলছে কি না দেখুন।</span>`:'');
     info.innerHTML+=FUND?` ক্যাটাগরি ও EPS তথ্য: ${Object.keys(FUND).length}টি কোম্পানি।`:' ক্যাটাগরি ও EPS তথ্য আসেনি।';
     info.innerHTML+=idxOK?` <b>💪 RS ডেটা:</b> DSEX ইনডেক্স লোড হয়েছে (${Object.keys(INDEX).length} দিন)।`:` <span class="down"><b>💪 RS কাজ করছে না:</b> <code>data/index.csv</code> ফাইল পাওয়া যায়নি।</span>`;
   }catch(e){
