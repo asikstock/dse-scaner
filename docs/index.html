@@ -813,7 +813,7 @@ function backtest(b,I,hold,tplus){
     if(gg.cl!=='BUY'&&gg.cl!=='STRONG_BUY')continue;
     const e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
     const tags=sc0.tags.filter(t=>t!=='breakdown');
-    trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy,d:b[i].d});
+    if(!ep.extended)trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags,ext:ep.extended,score:sc0.buy,d:b[i].d});
     if(ep.extended){
       extN++;let f=-1,fp=0;
       for(let k=i+1;k<=i+5&&k<b.length;k++){if(b[k].l<=ep.pull.hi){f=k;fp=Math.min(b[k].o>0?b[k].o:ep.pull.hi,ep.pull.hi);break}}
