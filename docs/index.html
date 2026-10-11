@@ -1,4 +1,3 @@
-``html
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -816,7 +815,23 @@ function genDemo(){
   return MAP;
 }
 /*CORE_END*/
-
+const SIG = {
+  STRONG_BUY: { t: 'শক্তিশালী কিনুন', c: 'b-sb', rank: 1 },
+  BUY: { t: 'কিনুন', c: 'b-b', rank: 2 },
+  WAIT: { t: 'পুলব্যাকের অপেক্ষা', c: 'b-e', rank: 3 },
+  WATCH: { t: 'নজরে রাখুন', c: 'b-w', rank: 4 },
+  NEUTRAL: { t: 'নিরপেক্ষ', c: 'b-n', rank: 5 },
+  SELL: { t: 'বিক্রি', c: 'b-s', rank: 6 },
+  STRONG_SELL: { t: 'শক্তিশালী বিক্রি', c: 'b-ss', rank: 7 }
+};
+const TABS = [
+  ['all', 'সব'],
+  ['buy', 'কেনা সংকেত'],
+  ['wait', 'অপেক্ষা'],
+  ['watch', 'নজরে'],
+  ['sell', 'বিক্রি সংকেত'],
+  ['neutral', 'নিরপেক্ষ']
+];
 let DSPAN=null,FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
 let SECTORS=[], SECTOR_MAP={};
 let sectorFilter=null;
