@@ -798,7 +798,7 @@ function backtest(b,I,hold,tplus){
       const e=i+1;
       if(e<b.length-hold){
         const eR=b[e].o>0?b[e].o:b[e].c;
-        const xR=b[Math.min(e+hold,b.length-1)].c;
+        const pr=plan(I,i); const xR=exitSim(e,pr.stop,pr.t1);
         if(eR>0){
           const rret=(xR/eR-1)*100;
           const sv=sc0.buy;
