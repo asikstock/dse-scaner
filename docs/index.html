@@ -454,24 +454,7 @@ const TABS = [
   ['sell', 'বিক্রি সংকেত'],
   ['neutral', 'নিরপেক্ষ']
 ];
-  const SIG = {
-  STRONG_BUY: { t: 'শক্তিশালী কিনুন', c: 'b-sb', rank: 1 },
-  BUY: { t: 'কিনুন', c: 'b-b', rank: 2 },
-  WAIT: { t: 'পুলব্যাকের অপেক্ষা', c: 'b-e', rank: 3 },
-  WATCH: { t: 'নজরে রাখুন', c: 'b-w', rank: 4 },
-  NEUTRAL: { t: 'নিরপেক্ষ', c: 'b-n', rank: 5 },
-  SELL: { t: 'বিক্রি', c: 'b-s', rank: 6 },
-  STRONG_SELL: { t: 'শক্তিশালী বিক্রি', c: 'b-ss', rank: 7 }
-};
-const TABS = [
-  ['all', 'সব'],
-  ['buy', 'কেনা সংকেত'],
-  ['wait', 'অপেক্ষা'],
-  ['watch', 'নজরে'],
-  ['sell', 'বিক্রি সংকেত'],
-  ['neutral', 'নিরপেক্ষ']
-];
-const $ = s => document.querySelector(s);
+
 const num=v=>{if(v==null)return NaN;const s=String(v).replace(/[,\s৳]/g,'');if(s===''||s==='-')return NaN;return parseFloat(s)};
 const r1=x=>Math.round(x*10)/10;
 function splitLine(line,d){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===d&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out.map(s=>s.trim())}
