@@ -72,7 +72,7 @@ code{font:12.5px ui-monospace,Menlo,Consolas,monospace;background:var(--line2);p
 
 .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px 18px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
-input[type=number],input[type=search],select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:7px 9px;min-height:38px;width:100%}
+input[type=number],input[type=search],input[type=text],select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:7px 9px;min-height:38px;width:100%}
 label.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:38px;align-self:end}
 
 .tally{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
@@ -87,11 +87,10 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:38px
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:1820px;font-size:13.5px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:13.5px}
 th,td{padding:6px 9px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
 th{font-weight:600;font-size:12.5px;color:var(--muted);background:var(--bg);position:sticky;top:0;cursor:pointer;user-select:none}
 th[aria-sort]{color:var(--ink)}
-th .ar{display:inline-block;width:10px;font-size:10px}
 td.n,th.n{text-align:right}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--line2)}
@@ -105,36 +104,8 @@ td.sym{font-weight:700;letter-spacing:.01em}
 .b-s,.b-ss{background:var(--down-bg);color:var(--down)}
 .b-sb{box-shadow:inset 0 0 0 1.5px var(--up)} .b-ss{box-shadow:inset 0 0 0 1.5px var(--down)}
 .b-e{background:#fff4d6;color:#8a5a00;box-shadow:inset 0 0 0 1.5px #b8860b}
-.b-wk{background:#e0f0ff;color:#0a4d8c;box-shadow:inset 0 0 0 1.5px #3a8bd8}
-.b-52{background:#e8f8ec;color:#0f7a3a;box-shadow:inset 0 0 0 1.5px #24a55e}
-.b-rs{background:#e6f7f0;color:#0a7049;box-shadow:inset 0 0 0 1.5px #1e9e6a}
-.b-vwap{background:#f0e0ff;color:#5b2a8c;box-shadow:inset 0 0 0 1.5px #7b2fbe}
-.meter{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
-.meter i{width:5px;height:14px;background:var(--meter-off);border-radius:1px}
-.meter.mb i.on{background:var(--up)} .meter.ms i.on{background:var(--down)}
-.tabs button[aria-pressed="true"] .muted{color:inherit;opacity:.75}
-table.mini{min-width:540px}
-table.mini th{cursor:default;position:static}
 .tg{display:inline-block;font-size:12.5px;padding:1px 8px;border-radius:999px;background:var(--flat-bg);margin-right:4px}
 .tg-early{background:#fff4d6;color:#8a5a00;font-weight:600}
-.tg-candle{background:#e8f2ff;color:#27408b;font-weight:600}
-.tg-bear{background:#f8e0dd;color:#c0392b;font-weight:600}
-.tg-weekly{background:#e0f0ff;color:#0a4d8c;font-weight:600}
-.tg-trend{background:#f0e0ff;color:#5b2a8c;font-weight:600}
-.tg-52w{background:#e8f8ec;color:#0f7a3a;font-weight:600}
-.tg-rs{background:#e6f7f0;color:#0a7049;font-weight:600}
-.tg-rs-weak{background:#f8e0dd;color:#c0392b;font-weight:600}
-.tg-vwap{background:#f0e0ff;color:#5b2a8c;font-weight:600}
-.ptb{width:100%;min-width:0;font-size:13.5px;margin-top:6px}
-.ptb th,.ptb td{padding:5px 8px;white-space:normal;position:static;cursor:default;background:transparent}
-.ptb thead th{font-weight:600;color:var(--ink);border-bottom:1px solid var(--line)}
-.ptb th[scope=row]{font-weight:400;color:var(--muted);text-align:left}
-.ptb td{text-align:right;font-weight:600}
-.chart .zone{fill:var(--warn);opacity:.16}
-.chart .sr{stroke-width:1;stroke-dasharray:2 3;opacity:.8}
-.chart .vwap{stroke:var(--vwap);fill:none;stroke-width:1.5;stroke-dasharray:4 2}
-table.plan{min-width:1040px}
-table.plan th{cursor:default;position:static}
 .empty{padding:34px 16px;text-align:center;color:var(--muted)}
 
 #tbl tbody td:first-child,
@@ -148,8 +119,6 @@ table.plan th{cursor:default;position:static}
 #tbl thead th:first-child{background:var(--bg);z-index:4}
 #tbl tbody tr:hover td:first-child{background:var(--line2)}
 #tbl tbody tr.sel td:first-child{background:var(--line2)}
-:root[data-theme="dark"] #tbl tbody td:first-child{background:var(--surface)}
-:root[data-theme="dark"] #tbl thead th:first-child{background:var(--bg)}
 
 #detail{display:none}
 #detail.show{display:block}
@@ -161,7 +130,7 @@ table.plan th{cursor:default;position:static}
 .chart .c-up{fill:var(--up);stroke:var(--up)} .chart .c-dn{fill:var(--down);stroke:var(--down)}
 .chart .v-up{fill:var(--up);opacity:.45} .chart .v-dn{fill:var(--down);opacity:.45}
 .chart .ln20{stroke:var(--l20);fill:none;stroke-width:1.5} .chart .ln50{stroke:var(--l50);fill:none;stroke-width:1.5}
-.chart .rsi{stroke:var(--ink);fill:none;stroke-width:1.3}
+.chart .vwap{stroke:var(--vwap);fill:none;stroke-width:1.5;stroke-dasharray:4 2}
 .chart .plan{stroke-width:1.2;stroke-dasharray:5 4}
 .legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin:0 0 8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:6px}
@@ -172,48 +141,6 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-weight:600}
 .blk li{margin:3px 0;font-size:14px}
 .note{font-size:13px;color:var(--muted);margin-top:8px}
 .warnbox{border-left:3px solid var(--warn);background:var(--warn-bg);padding:10px 14px;font-size:14px;border-radius:0 4px 4px 0}
-.sec-row{cursor:pointer}
-.sec-row:hover{background:var(--line2)}
-.sec-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.sec-mood{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:2px}
-.sec-bar{display:flex;align-items:center;gap:8px;min-width:150px}
-.sec-bar .trk{flex:1;height:10px;background:var(--meter-off,var(--line));border-radius:3px;position:relative;overflow:hidden}
-.sec-bar .trk i{position:absolute;top:0;bottom:0;border-radius:2px}
-.sec-bar .trk i.p{left:50%;background:var(--up)}
-.sec-bar .trk i.m{right:50%;background:var(--down)}
-.sec-bar .trk:after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);opacity:.6}
-.sec-bar .v{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-.peer-panel{background:linear-gradient(135deg,#e8f1fc,#d3e5fa);border:1px solid #8db4e2;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.peer-panel h4{color:#1d4f8f;margin:0 0 6px}
-.peer-panel .ptb tr[data-s]{cursor:pointer}
-.peer-panel .ptb tr[data-s]:hover td{background:rgba(0,0,0,.05)}
-.peer-panel .ptb td,.peer-panel .ptb th{text-align:left}
-.peer-panel .ptb td.n,.peer-panel .ptb th.n{text-align:right}
-:root[data-theme="dark"] .peer-panel{background:linear-gradient(135deg,#14243a,#0e1a2b);border-color:#2f4f7a}
-:root[data-theme="dark"] .peer-panel h4{color:#8fbcf0}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .peer-panel{background:linear-gradient(135deg,#14243a,#0e1a2b);border-color:#2f4f7a}:root:not([data-theme="light"]) .peer-panel h4{color:#8fbcf0}}
-.early-panel{background:linear-gradient(135deg,#fff8e6,#fdf0d0);border:1px solid #e0c377;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-:root[data-theme="dark"] .early-panel{background:linear-gradient(135deg,#2a2210,#1a1608);border-color:#5a4a1f}
-.early-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#8a5a00}
-:root[data-theme="dark"] .early-panel h4{color:#e6b450}
-.candle-panel{background:linear-gradient(135deg,#e8f2ff,#d6e4f7);border:1px solid #9fb8dd;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.candle-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#27408b}
-.bear-panel{background:linear-gradient(135deg,#fbe6e2,#f5cfc8);border:1px solid #d89583;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.bear-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#9e2f1f}
-.weekly-panel{background:linear-gradient(135deg,#e0f0ff,#c8e0f5);border:1px solid #7fb2d9;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.weekly-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#0a4d8c}
-.adx-panel{background:linear-gradient(135deg,#f0e0ff,#e0c8f5);border:1px solid #a77fd9;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.adx-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#5b2a8c}
-.p52-panel{background:linear-gradient(135deg,#e8f8ec,#d0f0dc);border:1px solid #7fcf9f;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.p52-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#0f7a3a}
-.rs-panel{background:linear-gradient(135deg,#e6f7f0,#d0ecdf);border:1px solid #7fc9a7;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.rs-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#0a7049}
-.vwap-panel{background:linear-gradient(135deg,#f0e0ff,#e0c8f5);border:1px solid #a77fd9;border-radius:6px;padding:10px 14px;margin-bottom:14px}
-.vwap-panel h4{margin:0 0 6px;font-family:var(--serif);font-weight:400;font-size:15px;color:#5b2a8c}
-.early-bar{height:8px;background:var(--line2);border-radius:4px;overflow:hidden;margin:6px 0}
-.early-bar i{display:block;height:100%;background:linear-gradient(90deg,#d4a017,#e6b450);transition:width .3s}
-.early-list{margin:6px 0 0;padding-left:18px;font-size:13.5px}
-.early-list li{margin:2px 0}
 footer{padding-top:22px;font-size:13px;color:var(--muted)}
 footer p{max-width:90ch;margin-bottom:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -224,35 +151,8 @@ footer p{max-width:90ch;margin-bottom:6px}
 .sl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 14px;margin:8px 0}
 .sl-grid b{display:block;font-size:15.5px}
 .sl-grid span{font-size:12.5px;color:var(--muted)}
-.sl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.sl-funnel{font-size:13.5px;color:var(--muted);margin:6px 0 2px}
-#shortlist details{margin:8px 0;font-size:14px}
-#shortlist summary{cursor:pointer;color:var(--muted)}
-#shortlist .nm{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line2);cursor:pointer}
 .h-card{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px 14px;margin:10px 0}
-.h-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
-.h-top .sym{font-size:17px;cursor:pointer}
-.h-top .sp{flex:1 1 auto}
-.h-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 14px;margin:10px 0}
-.h-grid b{display:block;font-size:15.5px}
-.h-grid span{font-size:12.5px;color:var(--muted)}
-.h-lv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0}
-@media(max-width:560px){.h-lv{grid-template-columns:1fr}}
-.h-lv h4{margin:0 0 3px;font-size:13.5px}
-.h-lv ul{margin:0;padding-left:18px;font-size:14px}
-.h-act{border-left:3px solid var(--accent);padding:8px 12px;background:var(--flat-bg);border-radius:0 4px 4px 0;font-size:14.5px;margin:8px 0}
-.h-act.sell{border-color:var(--down)} .h-act.hold{border-color:var(--up)}
-.h-ed{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
-.h-ed input{width:92px;padding:4px 6px}
-.h-card details{font-size:14px;margin-top:6px} .h-card summary{cursor:pointer;color:var(--muted)}
-
 .news-card{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:12px 14px;margin:10px 0}
-.news-card h3{font-size:16px;margin:5px 0 7px;line-height:1.45}
-.news-card h3 a{color:var(--ink);text-decoration:none}
-.news-card h3 a:hover{text-decoration:underline;color:var(--accent)}
-.news-meta{display:flex;flex-wrap:wrap;gap:6px 12px;color:var(--muted);font-size:12.5px}
-.news-symbol{display:inline-block;border-radius:3px;background:var(--flat-bg);padding:1px 7px;font-weight:700;font-size:12px}
-
 </style>
 </head>
 <body>
@@ -295,7 +195,7 @@ footer p{max-width:90ch;margin-bottom:6px}
       <li>কলামের নাম আপনি চিনিয়ে দিতে হবে না। <code>DATE</code>, <code>TRADING CODE</code>, <code>OPENP</code>, <code>HIGH</code>, <code>LOW</code>, <code>CLOSEP</code>, <code>LTP</code>, <code>VOLUME</code> বা এদের ইংরেজি সমার্থক নাম নিজে থেকে চিনে নেয়।</li>
       <li>তারিখ <code>2026-09-30</code>, <code>30-09-2026</code>, <code>30/09/2026</code> বা <code>30-Sep-2026</code> যেকোনো ফরম্যাটে চলে।</li>
       <li>ডেটার উৎস: DSE-র ওয়েবসাইটের Day End Archive পেজ থেকে নির্দিষ্ট তারিখের ডেটা নামানো যায়। ব্রোকারের প্ল্যাটফর্ম বা তৃতীয় পক্ষের সাইট থেকেও হিস্টোরিক্যাল CSV পাওয়া যায়। কোন সাইট কী দেয় তা বদলাতে পারে, তাই নিজে একবার দেখে নিন।</li>
-      <li><b>Relative Strength (RS)</b> ব্যবহার করতে <code>data/index.csv</code> ফাইল লাগবে — এতে DSEX সূচকের দৈনিক ক্লোজ থাকবে (DATE, CLOSE)। এই ফাইল না থাকলে RS কলাম "–" দেখাবে, কিন্তু অন্য সব কাজ করবে।</li>
+      <li><b>Relative Strength (RS)</b> ব্যবহার করতে <code>data/dsex.csv</code> ফাইল লাগবে — এতে DSEX সূচকের দৈনিক ক্লোজ থাকবে (DATE, CLOSE)।</li>
       <li>ভালো সংকেতের জন্য প্রতিটি কোম্পানির অন্তত ৬০–১২০ ট্রেডিং দিনের ডেটা দিন। ৩৫ দিনের কম ডেটা থাকলে সেই কোম্পানি বাদ যায়।</li>
     </ul>
   </details>
@@ -352,91 +252,57 @@ footer p{max-width:90ch;margin-bottom:6px}
     </fieldset>
   </div>
 </section>
+
 <section id="sector-sec">
-  <div class="sec-h">
-    <h2>৩ক. সেক্টর বিশ্লেষণ</h2>
-    <div class="row">
-      <button data-sortsec="avg_change_20d">২০ দিনের পরিবর্তন</button>
-      <button data-sortsec="avg_change_5d">৫ দিনের</button>
-      <button data-sortsec="avg_change_1d">আজকের</button>
-      <button data-sortsec="med_eps">মিডিয়ান EPS</button>
-      <button data-sortsec="avg_volume">গড় ভলিউম</button>
-    </div>
-  </div>
-  <p class="muted" style="font-size:13.5px;margin:0 0 10px">
-    কোন সেক্টর ভালো করছে, কোথায় টাকা ঢুকছে, গড় EPS কেমন। সবুজ = উপরে, লাল = নিচে।
-  </p>
+  <div class="sec-h"><h2>৩ক. সেক্টর বিশ্লেষণ</h2></div>
   <div id="sectorOut"></div>
 </section>
+
 <section id="results-sec" aria-live="polite">
   <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
   <div id="shortlist"></div>
   <div class="tally" id="tally"></div>
   <p id="fundnote" class="note" style="margin:8px 0 0"></p>
-  <div id="pstats" style="margin-top:18px"></div>
-  <div id="baselineOut" style="margin-top:18px"></div>
   <div class="row" style="margin-top:14px">
     <div class="tabs" id="tabs" role="group" aria-label="সংকেত ফিল্টার" style="margin:0;flex:1 1 auto"></div>
     <input type="search" id="q" placeholder="কোম্পানির কোড খুঁজুন" aria-label="কোম্পানির কোড খুঁজুন" style="max-width:220px">
   </div>
-  <div class="tabs" id="ptypes" role="group" aria-label="সংকেতের ধরন" style="margin:2px 0 0"></div>
-  <label class="chk" style="display:inline-flex;margin-top:8px;font-size:13.5px;align-items:center;gap:6px">
-    <input type="checkbox" id="compactCols"> শুধু গুরুত্বপূর্ণ কলাম দেখান (স্ক্রল কমবে)
-  </label>
   <div class="tw" style="margin-top:8px"><table id="tbl"></table></div>
-  <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কলামের শিরোনামে ক্লিক করলে সাজানো যায়। কোম্পানির নাম কলামটি সবসময় বাঁদিকে আটকে থাকে।</p>
+  <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কোম্পানির নাম কলামটি সবসময় বাঁদিকে আটকে থাকে।</p>
 </section>
 
 <section id="news-sec" aria-live="polite">
   <div class="sec-h"><h2>৪. শেয়ারবাজারের খবর</h2><button id="newsReload" type="button">খবর আবার লোড করুন</button></div>
-  <p id="newsStatus" class="note" role="status" aria-live="polite">খবর লোড হচ্ছে…</p>
-  <div id="newsList"><div class="empty">খবর লোড হচ্ছে…</div></div>
+  <p id="newsStatus" class="note" role="status" aria-live="polite"></p>
+  <div id="newsList"><div class="empty">খবরের উৎস এখনো সংযুক্ত করা হয়নি।</div></div>
 </section>
 
 <section id="detail" aria-live="polite"></section>
 
 <section id="holdings-sec">
   <div class="sec-h"><h2>৫. আমার হোল্ডিং: ধরে রাখব, না বেচব?</h2></div>
-  <p class="muted" style="font-size:14px;margin-bottom:12px;max-width:80ch">যে শেয়ারগুলো কিনেছেন সেগুলোর কোড সার্চ করে ক্রয়মূল্য (ও চাইলে শেয়ার সংখ্যা) দিন। স্ক্যানার সামনের সাপোর্ট ও রেজিস্ট্যান্স, লাভ-ক্ষতি, ট্রেন্ড ও সংকেত মিলিয়ে বলবে: <b>ধরে রাখুন</b>, <b>নিরপেক্ষ</b>, <b>বিক্রি</b> বা <b>শক্তিশালী বিক্রি</b>। তালিকা এই ব্রাউজারেই সংরক্ষিত থাকে।</p>
-  <div class="settings" style="align-items:end">
-    <label class="f">কোম্পানির কোড (লিখে সার্চ করুন)<input type="text" id="hSym" list="hSyms" autocomplete="off" placeholder="যেমন: CITYBANK" style="text-transform:uppercase"></label>
-    <label class="f">ক্রয়মূল্য (টাকা)<input type="number" id="hPrice" min="0" step="0.1" placeholder="যেমন: 29.5"></label>
-    <label class="f">শেয়ার সংখ্যা (ঐচ্ছিক)<input type="number" id="hQty" min="0" step="1" placeholder="যেমন: 500"></label>
-    <label class="f">ক্ষতির সীমা (%)<input type="number" id="hLoss" value="8" min="2" max="30" step="1"></label>
-    <div class="f"><button id="hAdd" type="button" style="width:100%">➕ যোগ করুন</button></div>
-  </div>
-  <datalist id="hSyms"></datalist>
-  <p id="hMsg" class="note" style="margin:6px 0 0"></p>
-  <div id="holdingsOut" style="margin-top:14px"></div>
+  <div id="holdingsOut"></div>
 </section>
 
 <section id="planner-sec">
   <details>
-  <summary style="cursor:pointer;font-size:17px;font-weight:700;margin:6px 0">নতুন কী কেনা যেত? (আগের পোর্টফোলিও প্ল্যানার, মূলধন থেকে হিসাব)</summary>
-  <div class="sec-h" style="margin-top:10px"><h2 style="font-size:15px">মূলধন অনুযায়ী কেনার তালিকা</h2>
-    <div class="row"><button data-cap="100000">১ লক্ষ টাকা</button><button data-cap="500000">৫ লক্ষ টাকা</button></div></div>
-  <p class="muted" style="font-size:14px;margin-bottom:14px;max-width:80ch">আপনার মূলধন ও ঝুঁকি-নিয়ম মেনে আজকের সংকেত থেকে কোন কোম্পানিতে কতটি শেয়ার কিনলে কত টাকা লাগত, আর স্টপ লাগলে মোট কত ক্ষতি হতো তা হিসাব করে। মূলধন ও প্রতি ট্রেডের ঝুঁকি উপরের "ফিল্টার ও ঝুঁকির হিসাব" অংশ থেকে আসে। এটি নিয়মভিত্তিক গণনা, কেনার পরামর্শ নয়।</p>
-  <div class="settings">
-    <label class="f">সর্বোচ্চ কয়টি কোম্পানি<input type="number" id="pMaxN" value="5" min="1" max="20" step="1"></label>
-    <label class="f">একটি কোম্পানিতে সর্বোচ্চ (% মূলধন)<input type="number" id="pMaxPct" value="25" min="5" max="100" step="5"></label>
-    <label class="f">স্টপ সর্বোচ্চ কত % দূরে হলে নেবেন<input type="number" id="pMaxStop" value="10" min="2" max="30" step="1"></label>
-    <label class="f">সব ট্রেডের মোট ঝুঁকি (% মূলধন)<input type="number" id="pTotRisk" value="5" min="1" max="20" step="0.5"></label>
-    <label class="f">গড় দৈনিক ভলিউমের সর্বোচ্চ কত %<input type="number" id="pLiq" value="5" min="0.5" max="50" step="0.5"></label>
-    <label class="chk"><input type="checkbox" id="pWait" checked> "পুলব্যাকের অপেক্ষা" শেয়ারও ধরুন (লিমিট অর্ডার)</label>
-  </div>
+  <summary style="cursor:pointer;font-size:17px;font-weight:700;margin:6px 0">নতুন কী কেনা যেত? (পোর্টফোলিও প্ল্যানার)</summary>
   <div id="plannerOut" style="margin-top:18px"></div>
   </details>
 </section>
 
 <footer>
   <p><b>সতর্কতা:</b> এটি শিক্ষামূলক বিশ্লেষণ টুল, বিনিয়োগ পরামর্শ নয়। টেকনিক্যাল সংকেত ভুল হতে পারে এবং অতীতের ফল ভবিষ্যতের নিশ্চয়তা দেয় না। ট্রেডের আগে নিজে যাচাই করুন এবং শুধু সেই টাকা খাটান যা হারালে ক্ষতি সামলাতে পারবেন।</p>
-  <p>DSE-তে সাধারণত শেয়ার কেনার পর T+2 দিনের আগে বিক্রি করা যায় না, তাই স্টপ-লস প্রথম দুই দিন কাজ নাও করতে পারে। সার্কিট ব্রেকার ও লভ্যাংশ বা রাইট শেয়ারের দাম-সমন্বয় এখানে ধরা হয়নি। এসব ডেটায় ফাঁক তৈরি করে সংকেত বিকृत করতে পারে। শর্ট সেলিং নেই, তাই "বিক্রি" সংকেত মানে যাদের কাছে শেয়ার আছে তাদের জন্য বের হওয়ার সতর্কতা।</p>
+  <p>DSE-তে সাধারণত শেয়ার কেনার পর T+2 দিনের আগে বিক্রি করা যায় না, তাই স্টপ-লস প্রথম দুই দিন কাজ নাও করতে পারে। সার্কিট ব্রেকার ও লভ্যাংশ বা রাইট শেয়ারের দাম-সমন্বয় এখানে ধরা হয়নি। শর্ট সেলিং নেই, তাই "বিক্রি" সংকেত মানে যাদের কাছে শেয়ার আছে তাদের জন্য বের হওয়ার সতর্কতা।</p>
 </footer>
 </div>
 
 <script>
-/*CORE_START*/
+'use strict';
+/* ===== মূল সহায়ক ===== */
 const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 const SIG = {
   STRONG_BUY: { t: 'শক্তিশালী কিনুন', c: 'b-sb', rank: 1 },
   BUY: { t: 'কিনুন', c: 'b-b', rank: 2 },
@@ -455,8 +321,18 @@ const TABS = [
   ['neutral', 'নিরপেক্ষ']
 ];
 
+/* ===== গ্লোবাল স্টেট (সব একবারই ডিক্লেয়ার) ===== */
+let DSPAN=null, FUND=null, INDEX=null, MAP={}, DB={}, RES=[];
+let sortKey='rank', sortDir=1, tab='all', selected=null, maxDate='';
+let SECTORS=[], SECTOR_MAP={}, sectorFilter=null;
+let EXT_PCT=5;
+let _idxDatesCache=null, _idxDatesSrc=null;
+
 const num=v=>{if(v==null)return NaN;const s=String(v).replace(/[,\s৳]/g,'');if(s===''||s==='-')return NaN;return parseFloat(s)};
 const r1=x=>Math.round(x*10)/10;
+const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
+
 function splitLine(line,d){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===d&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out.map(s=>s.trim())}
 function parseCSV(text){
   text=text.replace(/^\uFEFF/,'').trim();
@@ -481,7 +357,7 @@ const AL={date:['date','tradingdate','day','timestamp','time'],sym:['tradingcode
   close:['closep','close','closeprice','closingprice','adjclose'],ltp:['ltp','lasttradeprice','last','price'],vol:['volume','vol','totalvolume','qty','quantity'],ycp:['ycp','yclose','prevclose','previousclose']};
 const findCol=(h,names)=>{for(const n of names){const i=h.indexOf(n);if(i>=0)return i}return -1};
 
-function ingest(MAP,text,fname){
+function ingest(M,text,fname){
   const p=parseCSV(text);if(!p.rows.length)return 0;
   const h=p.headers.map(norm);const ix={};for(const k in AL)ix[k]=findCol(h,AL[k]);
   if(ix.date<0||(ix.close<0&&ix.ltp<0))throw new Error(`"${fname}" ফাইলে তারিখ বা ক্লোজ/LTP কলাম পাওয়া যায়নি`);
@@ -492,11 +368,11 @@ function ingest(MAP,text,fname){
     const yc=ix.ycp>=0?num(r[ix.ycp]):NaN,o=ix.open>=0?num(r[ix.open]):NaN,hi=ix.high>=0?num(r[ix.high]):NaN,lo=ix.low>=0?num(r[ix.low]):NaN,v=ix.vol>=0?num(r[ix.vol]):0;
     let O=o>0?o:(yc>0?yc:c);let H=hi>0?hi:Math.max(O,c),L=lo>0?lo:Math.min(O,c);if(!(o>0)&&hi>0&&lo>0)O=Math.min(Math.max(O,L),H);H=Math.max(H,O,c);L=Math.min(L,O,c);
     const sym=ix.sym>=0?String(r[ix.sym]).trim().toUpperCase():fb;if(!sym)continue;
-    (MAP[sym]||(MAP[sym]=new Map())).set(d,{d,o:O,h:H,l:L,c,v:v>0?v:0});cnt++;
+    (M[sym]||(M[sym]=new Map())).set(d,{d,o:O,h:H,l:L,c,v:v>0?v:0});cnt++;
   }
   return cnt;
 }
-function finalize(MAP){const out={};for(const s in MAP)out[s]=[...MAP[s].values()].sort((a,b)=>a.d<b.d?-1:1);return out}
+function finalize(M){const out={};for(const s in M)out[s]=[...M[s].values()].sort((a,b)=>a.d<b.d?-1:1);return out}
 
 function loadIndex(text,merge){
   const p=parseCSV(text);if(!p.rows.length)return 0;
@@ -515,23 +391,6 @@ function loadIndex(text,merge){
   }
   INDEX=I;return n;
 }
-function indexReturn(days){
-  if(!INDEX)return null;
-  const dates=Object.keys(INDEX).sort();
-  if(dates.length<days+1)return null;
-  const last=INDEX[dates[dates.length-1]];
-  const past=INDEX[dates[dates.length-1-days]];
-  if(!(past>0))return null;
-  return (last/past-1)*100;
-}
-function stockReturnAt(b,days){
-  if(b.length<days+1)return null;
-  const last=b[b.length-1].c;
-  const past=b[b.length-1-days].c;
-  if(!(past>0))return null;
-  return (last/past-1)*100;
-}
-let _idxDatesCache=null,_idxDatesSrc=null;
 function idxDatesSorted(){
   if(_idxDatesSrc!==INDEX){_idxDatesSrc=INDEX;_idxDatesCache=INDEX?Object.keys(INDEX).sort():[]}
   return _idxDatesCache;
@@ -542,146 +401,117 @@ function idxPosOnOrBefore(dates,d){
   return ans;
 }
 function calcRS(b,i){
-  if(!INDEX) return null;
-  if(i==null) i=b.length-1;
-  const N=20;
-  if(i<N) return null;
-  const lastStockDate=b[i].d, pastStockDate=b[i-N].d;
+  if(!INDEX)return null;
+  if(i==null)i=b.length-1;
+  const N=20;if(i<N)return null;
   const idxDates=idxDatesSorted();
-  const endPos=idxPosOnOrBefore(idxDates,lastStockDate);
-  if(endPos<0) return null;
-  const startPos=idxPosOnOrBefore(idxDates,pastStockDate);
-  if(startPos<0) return null;
-  const idxLast=INDEX[idxDates[endPos]], idxPast=INDEX[idxDates[startPos]];
-  if(!(idxPast>0)||!(idxLast>0)) return null;
+  const endPos=idxPosOnOrBefore(idxDates,b[i].d);if(endPos<0)return null;
+  const startPos=idxPosOnOrBefore(idxDates,b[i-N].d);if(startPos<0)return null;
+  const idxLast=INDEX[idxDates[endPos]],idxPast=INDEX[idxDates[startPos]];
+  if(!(idxPast>0)||!(idxLast>0))return null;
   const indexRet=(idxLast/idxPast-1)*100;
-  const p1=b[i].c, p0=b[i-N].c;
-  if(!(p0>0)) return null;
+  const p1=b[i].c,p0=b[i-N].c;if(!(p0>0))return null;
   const sr=(p1/p0-1)*100;
-  const rs=((1+sr/100)/(1+indexRet/100))*100;
-  return {rs, stockRet:sr, indexRet, daysMatched:endPos-startPos};
+  return {rs:((1+sr/100)/(1+indexRet/100))*100,stockRet:sr,indexRet,daysMatched:endPos-startPos};
 }
 
+/* ===== ইন্ডিকেটর ===== */
 function SMA(a,n){const o=Array(a.length).fill(null);let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];if(i>=n-1)o[i]=s/n}return o}
-function EMA(a,n){const o=Array(a.length).fill(null),k=2/(n+1);let prev=null;const buf=[];for(let i=0;i<a.length;i++){const v=a[i];if(v==null)continue;if(prev==null){buf.push(v);if(buf.length===n){prev=buf.reduce((x,y)=>x+y,0)/n;o[i]=prev}}else{prev=v*k+prev*(1-k);o[i]=prev}}return o}
 function RSI(c,n=14){const o=Array(c.length).fill(null);if(c.length<=n)return o;let g=0,l=0;for(let i=1;i<=n;i++){const d=c[i]-c[i-1];if(d>=0)g+=d;else l-=d}g/=n;l/=n;o[n]=l===0?100:100-100/(1+g/l);for(let i=n+1;i<c.length;i++){const d=c[i]-c[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;o[i]=l===0?100:100-100/(1+g/l)}return o}
 function ATR(b,n=14){const o=Array(b.length).fill(null);if(b.length<=n)return o;const tr=b.map((x,i)=>i===0?x.h-x.l:Math.max(x.h-x.l,Math.abs(x.h-b[i-1].c),Math.abs(x.l-b[i-1].c)));let a=0;for(let i=1;i<=n;i++)a+=tr[i];a/=n;o[n]=a;for(let i=n+1;i<b.length;i++){a=(a*(n-1)+tr[i])/n;o[i]=a}return o}
 function rollPrior(a,n,fn){const o=Array(a.length).fill(null);for(let i=n;i<a.length;i++){let m=a[i-1];for(let k=i-n;k<i;k++)m=fn(m,a[k]);o[i]=m}return o}
-
 function VWAP(b,n=20){
   const o=Array(b.length).fill(null);
   for(let i=n-1;i<b.length;i++){
-    let pv=0, vsum=0;
-    for(let k=i-n+1;k<=i;k++){
-      const tp=(b[k].h + b[k].l + b[k].c) / 3;
-      const vol=b[k].v>0 ? b[k].v : 1;
-      pv += tp * vol;
-      vsum += vol;
-    }
-    o[i] = vsum>0 ? pv/vsum : b[i].c;
+    let pv=0,vsum=0;
+    for(let k=i-n+1;k<=i;k++){const tp=(b[k].h+b[k].l+b[k].c)/3,vol=b[k].v>0?b[k].v:1;pv+=tp*vol;vsum+=vol}
+    o[i]=vsum>0?pv/vsum:b[i].c;
   }
   return o;
 }
-
 function ADX(b,n=14){
-  const len=b.length, out=Array(len).fill(null);
-  if(len<n*2)return out;
-  const tr=Array(len).fill(0), pdm=Array(len).fill(0), ndm=Array(len).fill(0);
+  const len=b.length,empty=()=>Array(len).fill(null);
+  if(len<n*2)return{adx:empty(),pdi:empty(),ndi:empty()};
+  const tr=Array(len).fill(0),pdm=Array(len).fill(0),ndm=Array(len).fill(0);
   for(let i=1;i<len;i++){
-    const up=b[i].h-b[i-1].h, dn=b[i-1].l-b[i].l;
-    pdm[i]=(up>dn && up>0)?up:0;
-    ndm[i]=(dn>up && dn>0)?dn:0;
-    tr[i]=Math.max(b[i].h-b[i].l, Math.abs(b[i].h-b[i-1].c), Math.abs(b[i].l-b[i-1].c));
+    const up=b[i].h-b[i-1].h,dn=b[i-1].l-b[i].l;
+    pdm[i]=(up>dn&&up>0)?up:0;ndm[i]=(dn>up&&dn>0)?dn:0;
+    tr[i]=Math.max(b[i].h-b[i].l,Math.abs(b[i].h-b[i-1].c),Math.abs(b[i].l-b[i-1].c));
   }
   let sTR=0,sPDM=0,sNDM=0;
   for(let i=1;i<=n;i++){sTR+=tr[i];sPDM+=pdm[i];sNDM+=ndm[i]}
-  const pdi=Array(len).fill(null), ndi=Array(len).fill(null), dx=Array(len).fill(null);
-  const calc=(i)=>{const a=100*sPDM/sTR, bb=100*sNDM/sTR; pdi[i]=a; ndi[i]=bb; dx[i]=(a+bb)===0?0:100*Math.abs(a-bb)/(a+bb);};
+  const pdi=empty(),ndi=empty(),dx=empty(),out=empty();
+  const calc=i=>{const a=sTR?100*sPDM/sTR:0,bb=sTR?100*sNDM/sTR:0;pdi[i]=a;ndi[i]=bb;dx[i]=(a+bb)===0?0:100*Math.abs(a-bb)/(a+bb)};
   calc(n);
-  for(let i=n+1;i<len;i++){
-    sTR=sTR-sTR/n+tr[i]; sPDM=sPDM-sPDM/n+pdm[i]; sNDM=sNDM-sNDM/n+ndm[i];
-    calc(i);
-  }
-  let sDX=0,start=2*n-1;
-  if(start>=len)return out;
-  for(let i=n;i<=start && i<len;i++) sDX+=dx[i]||0;
+  for(let i=n+1;i<len;i++){sTR=sTR-sTR/n+tr[i];sPDM=sPDM-sPDM/n+pdm[i];sNDM=sNDM-sNDM/n+ndm[i];calc(i)}
+  const start=2*n-1;
+  if(start>=len)return{adx:out,pdi,ndi};
+  let sDX=0;for(let i=n;i<=start;i++)sDX+=dx[i]||0;
   out[start]=sDX/n;
-  for(let i=start+1;i<len;i++){ out[i]=(out[i-1]*(n-1)+(dx[i]||0))/n; }
-  return {adx:out, pdi, ndi};
+  for(let i=start+1;i<len;i++)out[i]=(out[i-1]*(n-1)+(dx[i]||0))/n;
+  return{adx:out,pdi,ndi};
 }
 function compute(b){
   const c=b.map(x=>x.c),v=b.map(x=>x.v);
-  const hh252=Array(b.length).fill(null), ll252=Array(b.length).fill(null);
+  const hh252=Array(b.length).fill(null),ll252=Array(b.length).fill(null);
   for(let i=0;i<b.length;i++){
-    const s=Math.max(0,i-251);
-    let hh=-Infinity,ll=Infinity;
-    for(let k=s;k<=i;k++){ if(b[k].h>hh)hh=b[k].h; if(b[k].l<ll)ll=b[k].l; }
-    hh252[i]=hh; ll252[i]=ll;
+    const s=Math.max(0,i-251);let hh=-Infinity,ll=Infinity;
+    for(let k=s;k<=i;k++){if(b[k].h>hh)hh=b[k].h;if(b[k].l<ll)ll=b[k].l}
+    hh252[i]=hh;ll252[i]=ll;
   }
-  const adxRes=ADX(b,14);
+  const a=ADX(b,14);
   return{c,v,sma20:SMA(c,20),sma50:SMA(c,50),sma200:SMA(c,200),rsi:RSI(c),atr:ATR(b),vavg:SMA(v,20),vwap20:VWAP(b,20),
     hh20:rollPrior(b.map(x=>x.h),20,Math.max),ll10:rollPrior(b.map(x=>x.l),10,Math.min),
-    adx:adxRes.adx||Array(b.length).fill(null), pdi:adxRes.pdi||Array(b.length).fill(null), ndi:adxRes.ndi||Array(b.length).fill(null),
-    hh252, ll252};
+    adx:a.adx,pdi:a.pdi,ndi:a.ndi,hh252,ll252};
 }
 
+/* ===== স্কোর ও সংকেত ===== */
 function scoreAt(b,I,i){
   if(i<30)return null;
-  const r={buy:0,sell:0,rb:[],rs:[],tags:[]};
+  const r={buy:0,sell:0,rb:[],rs:[],tags:[],vwapDist:null,p52:null};
   const B=(p,t)=>{r.buy+=p;r.rb.push(t)},S=(p,t)=>{r.sell+=p;r.rs.push(t)},T=t=>{if(!r.tags.includes(t))r.tags.push(t)};
-  const c=I.c[i],pc=I.c[i-1],s20=I.sma20[i],s50=I.sma50[i],rsi=I.rsi[i];
+  const c=I.c[i],s20=I.sma20[i],s50=I.sma50[i],rsi=I.rsi[i];
   const vr=I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1;
-  
-  if(s20!=null && s50!=null){
-    if(c>s20 && s20>s50) B(2, 'আপট্রেন্ড: দাম SMA20 ও SMA50-এর উপরে (+২)');
-    else if(c<s20 && s20<s50) S(2, 'ডাউনট্রেন্ড: দাম SMA20 ও SMA50-এর নিচে (+২ বিক্রি)');
+  if(I.hh252[i]>0)r.p52=(I.hh252[i]-c)/I.hh252[i]*100;
+  if(s20!=null&&s50!=null){
+    if(c>s20&&s20>s50)B(2,'আপট্রেন্ড: দাম SMA20 ও SMA50-এর উপরে (+২)');
+    else if(c<s20&&s20<s50)S(2,'ডাউনট্রেন্ড: দাম SMA20 ও SMA50-এর নিচে (+২ বিক্রি)');
   }
-  const hh=I.hh20[i], ll=I.ll10[i];
-  if(hh!=null && c>hh){
+  const hh=I.hh20[i];
+  if(hh!=null&&c>hh){
     T('breakout');
-    B(2, `২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট (+২)`);
-    if(vr>=1.5){ B(2, `বিশাল ভলিউম স্পাইক: গড়ের ${vr.toFixed(1)} গুণ (+২)`); }
+    B(2,`২০ দিনের সর্বোচ্চ ${hh.toFixed(1)} ভেঙে ব্রেকআউট (+২)`);
+    if(vr>=1.5)B(2,`বিশাল ভলিউম স্পাইক: গড়ের ${vr.toFixed(1)} গুণ (+২)`);
   }
   const vwap=I.vwap20[i];
   if(vwap!=null){
-    const vwapDist=(c-vwap)/vwap*100;
-    if(vwapDist>=1 && vwapDist<=4){
-      B(1.5, `দাম VWAP-এর উপরে সুস্থ অবস্থানে (${vwapDist.toFixed(1)}%) (+১.৫)`);
-    } else if(vwapDist<-2){
-      S(1.5, `দাম VWAP-এর অনেক নিচে — বিক্রির চাপ (${vwapDist.toFixed(1)}%) (+১.৫ বিক্রি)`);
-    }
+    const vd=(c-vwap)/vwap*100;r.vwapDist=vd;
+    if(vd>=1&&vd<=4)B(1.5,`দাম VWAP-এর উপরে সুস্থ অবস্থানে (${vd.toFixed(1)}%) (+১.৫)`);
+    else if(vd<-2)S(1.5,`দাম VWAP-এর অনেক নিচে — বিক্রির চাপ (${vd.toFixed(1)}%) (+১.৫ বিক্রি)`);
   }
   if(rsi!=null){
-    if(rsi>=40 && rsi<=60){
-      B(1, `RSI সুস্থ জ়োনে আছে (${rsi.toFixed(0)}) (+১)`);
-    } else if(rsi>75){
-      S(2, `RSI অতিরিক্ত ওভারবট (${rsi.toFixed(0)}) (+২ বিক্রি)`);
-    }
+    if(rsi>=40&&rsi<=60)B(1,`RSI সুস্থ জোনে আছে (${rsi.toFixed(0)}) (+১)`);
+    else if(rsi>75)S(2,`RSI অতিরিক্ত ওভারবট (${rsi.toFixed(0)}) (+২ বিক্রি)`);
   }
   return r;
 }
-
 function getThresholds(){
   const g=(id,def)=>{const el=document.getElementById(id);return el?(+el.value||def):def};
-  return {
-    strongBuy: g('thStrongBuy',7), strongBuyDiff: g('thStrongBuyDiff',4),
-    buy: g('thBuy',5), buyDiff: g('thBuyDiff',3),
-    strongSell: g('thStrongSell',7), strongSellDiff: g('thStrongSellDiff',4),
-    sell: g('thSell',5), sellDiff: g('thSellDiff',3),
-    watch: g('thWatch',4), watchDiff: g('thWatchDiff',2),
-    earlyBuy: g('thEarlyBuy',7.5), earlyBuy2: g('thEarlyBuy2',6)
+  return{
+    strongBuy:g('thStrongBuy',7),strongBuyDiff:g('thStrongBuyDiff',4),buy:g('thBuy',5),buyDiff:g('thBuyDiff',3),
+    strongSell:g('thStrongSell',7),strongSellDiff:g('thStrongSellDiff',4),sell:g('thSell',5),sellDiff:g('thSellDiff',3),
+    watch:g('thWatch',4),watchDiff:g('thWatchDiff',2)
   };
 }
 function classify(r){
-  if(!r)return'NA';
-  const d=r.buy-r.sell;
-  const t=getThresholds();
-  if(r.buy>=t.strongBuy && d>=t.strongBuyDiff) return 'STRONG_BUY';
-  if(r.buy>=t.buy && d>=t.buyDiff) return 'BUY';
-  if(r.sell>=t.strongSell && -d>=t.strongSellDiff) return 'STRONG_SELL';
-  if(r.sell>=t.sell && -d>=t.sellDiff) return 'SELL';
-  if(r.buy>=t.watch && d>=t.watchDiff) return 'WATCH';
-  return 'NEUTRAL';
+  if(!r)return'NEUTRAL';
+  const d=r.buy-r.sell,t=getThresholds();
+  if(r.buy>=t.strongBuy&&d>=t.strongBuyDiff)return'STRONG_BUY';
+  if(r.buy>=t.buy&&d>=t.buyDiff)return'BUY';
+  if(r.sell>=t.strongSell&&-d>=t.strongSellDiff)return'STRONG_SELL';
+  if(r.sell>=t.sell&&-d>=t.sellDiff)return'SELL';
+  if(r.buy>=t.watch&&d>=t.watchDiff)return'WATCH';
+  return'NEUTRAL';
 }
 function plan(I,i){
   const c=I.c[i],a=I.atr[i]||c*0.03;
@@ -690,7 +520,6 @@ function plan(I,i){
   const risk=c-stop;
   return{entry:r1(c),stop:r1(stop),t1:r1(c+2*risk),t2:r1(c+3*risk),riskPct:risk/c*100,rr:2};
 }
-let EXT_PCT=5;
 function levels(b,I,i){
   const c=b[i].c,a=I.atr[i]||c*0.03,s0=Math.max(2,i-120),tol=Math.max(a*0.6,c*0.012),piv=[];
   for(let k=s0;k<=i-2;k++){
@@ -763,9 +592,8 @@ function applyBuyGates(sc,b,I,i,pl,cl0,ep){
 }
 function backtest(b,I,hold,tplus){
   hold=hold||10;tplus=tplus==null?2:tplus;
-  const trades=[],pulls=[];
+  const trades=[],randomReturns=[],randomDates=[];
   const buckets={'≤5':{n:0,sum:0,w:0},'5-7':{n:0,sum:0,w:0},'7-9':{n:0,sum:0,w:0},'9-11':{n:0,sum:0,w:0},'11+':{n:0,sum:0,w:0}};
-  const randomReturns=[],randomDates=[];
   let nextOk=0;
   const exitSim=(f,stop,t1)=>{
     for(let k=f+tplus;k<=f+hold&&k<b.length;k++){
@@ -778,24 +606,21 @@ function backtest(b,I,hold,tplus){
     if(i%5===0){
       const e=i+1;
       if(e<b.length-hold){
-        const pr=plan(I,i);
-        const eR=b[e].o>0?b[e].o:b[e].c;
-        if(eR>0&&eR>pr.stop){ randomReturns.push((exitSim(e,pr.stop,pr.t1)/eR-1)*100); randomDates.push(b[i].d); }
+        const pr=plan(I,i),eR=b[e].o>0?b[e].o:b[e].c;
+        if(eR>0&&eR>pr.stop){randomReturns.push((exitSim(e,pr.stop,pr.t1)/eR-1)*100);randomDates.push(b[i].d)}
       }
     }
     if(i<nextOk)continue;
-    const sc0=scoreAt(b,I,i);
-    const cl=sc0?classify(sc0):'NA';
-    if(sc0 && sc0.buy>=3){
+    const sc0=scoreAt(b,I,i);if(!sc0)continue;
+    const cl=classify(sc0);
+    if(sc0.buy>=3){
       const e=i+1;
       if(e<b.length-hold){
-        const eR=b[e].o>0?b[e].o:b[e].c;
-        const xR=b[Math.min(e+hold,b.length-1)].c;
+        const eR=b[e].o>0?b[e].o:b[e].c,xR=b[Math.min(e+hold,b.length-1)].c;
         if(eR>0){
-          const rret=(xR/eR-1)*100;
-          const sv=sc0.buy;
-          const key = sv>=11?'11+': sv>=9?'9-11': sv>=7?'7-9': sv>=5?'5-7':'≤5';
-          buckets[key].n++; buckets[key].sum+=rret; if(rret>0) buckets[key].w++;
+          const rret=(xR/eR-1)*100,sv=sc0.buy;
+          const key=sv>=11?'11+':sv>=9?'9-11':sv>=7?'7-9':sv>=5?'5-7':'≤5';
+          buckets[key].n++;buckets[key].sum+=rret;if(rret>0)buckets[key].w++;
         }
       }
     }
@@ -803,16 +628,16 @@ function backtest(b,I,hold,tplus){
     const pl=plan(I,i),ep=entryPlan(b,I,i);
     const gg=applyBuyGates(sc0,b,I,i,pl,cl,ep);
     if(gg.cl!=='BUY'&&gg.cl!=='STRONG_BUY')continue;
-    const e=i+1,entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
+    const e=i+1;if(e>=b.length)continue;
+    const entry=b[e].o>0?b[e].o:b[e].c;if(entry<=pl.stop)continue;
     trades.push({ret:(exitSim(e,pl.stop,pl.t1)/entry-1)*100,tags:sc0.tags,ext:ep.extended,score:sc0.buy,d:b[i].d});
     nextOk=i+hold;
   }
-  const randomAvg = randomReturns.length ? randomReturns.reduce((x,y)=>x+y,0)/randomReturns.length : null;
-  return{trades,pulls,extN:0,buckets,randomAvg,randomReturns,randomDates,randomN:randomReturns.length};
+  return{trades,buckets,randomReturns,randomDates};
 }
 function btStats(rets){
   const n=rets.length;if(!n)return{n:0,win:null,avg:null};
-  const w=rets.filter(x=>x>0);const lo=rets.filter(x=>x<=0);
+  const w=rets.filter(x=>x>0),lo=rets.filter(x=>x<=0);
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
   return{n,win:w.length/n*100,avg:avg(rets),avgWin:avg(w),avgLoss:avg(lo)};
 }
@@ -821,58 +646,25 @@ function genDemo(){
   const rnd=mulberry(42),gauss=()=>Math.sqrt(-2*Math.log(rnd()+1e-9))*Math.cos(2*Math.PI*rnd());
   const total=300,dates=[];const dt=new Date();dt.setHours(12,0,0,0);
   while(dates.length<total){const wd=dt.getDay();if(wd!==5&&wd!==6)dates.unshift(`${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}`);dt.setDate(dt.getDate()-1)}
-  const MAP={};
+  const M={};
   for(let pi=1;pi<=3;pi++){
-    const sym='DEMO'+p2(pi);let p=100+rnd()*50;MAP[sym]=new Map();
+    const sym='DEMO'+p2(pi);let p=100+rnd()*50;M[sym]=new Map();
     for(let di=0;di<total;di++){
       const o=p*(1+gauss()*.003),c=Math.max(10,p*(1+(.001+gauss()*.015)));
       const h=Math.max(o,c)*(1+rnd()*.008),l=Math.min(o,c)*(1-rnd()*.008);
-      MAP[sym].set(dates[di],{d:dates[di],o:+o.toFixed(1),h:+h.toFixed(1),l:+l.toFixed(1),c:+c.toFixed(1),v:100000});p=c;
+      M[sym].set(dates[di],{d:dates[di],o:+o.toFixed(1),h:+h.toFixed(1),l:+l.toFixed(1),c:+c.toFixed(1),v:100000});p=c;
     }
   }
   INDEX={};dates.forEach(d=>INDEX[d]=1000);
-  return MAP;
+  return M;
 }
-/*CORE_END*/
-const SIG = {
-  STRONG_BUY: { t: 'শক্তিশালী কিনুন', c: 'b-sb', rank: 1 },
-  BUY: { t: 'কিনুন', c: 'b-b', rank: 2 },
-  WAIT: { t: 'পুলব্যাকের অপেক্ষা', c: 'b-e', rank: 3 },
-  WATCH: { t: 'নজরে রাখুন', c: 'b-w', rank: 4 },
-  NEUTRAL: { t: 'নিরপেক্ষ', c: 'b-n', rank: 5 },
-  SELL: { t: 'বিক্রি', c: 'b-s', rank: 6 },
-  STRONG_SELL: { t: 'শক্তিশালী বিক্রি', c: 'b-ss', rank: 7 }
-};
-const TABS = [
-  ['all', 'সব'],
-  ['buy', 'কেনা সংকেত'],
-  ['wait', 'অপেক্ষা'],
-  ['watch', 'নজরে'],
-  ['sell', 'বিক্রি সংকেত'],
-  ['neutral', 'নিরপেক্ষ']
-];
-let DSPAN=null,FUND=null,INDEX=null,ptype='all',MAP={},DB={},RES=[],sortKey='rank',sortDir=1,tab='all',selected=null,maxDate='';
-let SECTORS=[], SECTOR_MAP={};
-let sectorFilter=null;
-function buildSectorMap(){
-  SECTOR_MAP={};
-  for(const s of SECTORS){for(const sym of (s.symbols||[])) SECTOR_MAP[sym]=s.sector;}
-}
-function sectorOf(sym){return SECTOR_MAP[String(sym).toUpperCase()]||''}
-function sectorData(name){return SECTORS.find(s=>s.sector===name)||null}
-function sectorMood(v){return v==null?'⚪ তথ্য নেই':v>=3?'🟢 শক্তিশালী':v>=1?'🟢 ভালো':v>-1?'⚪ নিরপেক্ষ':v>=-3?'🔻 দুর্বল':'🔴 খুব দুর্বল'}
-function sectorMedEps(name){
-  const a=RES.filter(r=>r.eps!=null&&(r.sector||sectorOf(r.sym))===name).map(r=>r.eps).sort((x,y)=>x-y);
-  if(!a.length)return null;const m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;
-}
-function sectorRank20(name){
-  const l=SECTORS.filter(s=>s.sector!=='Unknown'&&s.companies>0&&s.avg_change_20d!=null).sort((a,b)=>b.avg_change_20d-a.avg_change_20d);
-  const i=l.findIndex(s=>s.sector===name);return i<0?null:{n:i+1,of:l.length};
-}
-const fmt=(x,d=1)=>x==null||isNaN(x)?'–':x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
-const SK_NUM=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
+/* ===== সেক্টর ===== */
+function buildSectorMap(){SECTOR_MAP={};for(const s of SECTORS){for(const sym of (s.symbols||[]))SECTOR_MAP[sym]=s.sector}}
+function sectorOf(sym){return SECTOR_MAP[String(sym).toUpperCase()]||''}
+
+/* ===== সেটিংস সংরক্ষণ ===== */
+const SK_NUM=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'];
 const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth','exABOnly','exPriceBand'];
 try{
   const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');
@@ -888,80 +680,7 @@ function saveSettings(){
   }catch(e){}
 }
 
-function setMsg(t,cls){const m=$('#msg');m.textContent=t;m.className='msg '+(cls||'')}
-async function handleFiles(files){
-  let total=0,errs=[];
-  for(const f of files){try{const tx=await f.text();total+=isFundText(tx)?loadFund(tx):ingest(MAP,tx,f.name)}catch(e){errs.push(e.message)}}
-  afterIngest(total,errs);
-}
-function afterIngest(total,errs){
-  if(errs&&errs.length)setMsg(errs.join(' | '),'err');
-  else if(!total)setMsg('কোনো বৈধ সারি পাওয়া যায়নি।','err');
-  else setMsg(`${fmtInt(total)}টি সারি যোগ হয়েছে।`,'ok');
-  if(total)analyze();
-}
-const drop=$('#drop'),fileIn=$('#file');
-drop.addEventListener('click',()=>fileIn.click());
-drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileIn.click()}});
-fileIn.addEventListener('change',()=>{handleFiles([...fileIn.files]);fileIn.value=''});
-['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
-['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
-drop.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
-$('#btnPaste').addEventListener('click',()=>{const t=$('#paste').value;if(!t.trim())return;try{afterIngest(isFundText(t)?loadFund(t):ingest(MAP,t,'PASTE'),[])}catch(e){setMsg(e.message,'err')}});
-$('#btnDemo').addEventListener('click',()=>{MAP=genDemo();setMsg('ডেমো ডেটা লোড হয়েছে।','ok');analyze()});
-$('#btnClear').addEventListener('click',()=>{MAP={};DB={};RES=[];selected=null;maxDate='';INDEX=null;setMsg('');render();$('#detail').className='';$('#detail').innerHTML=''});
-
-function analyze(){
-  DB=finalize(MAP);RES=[];maxDate='';
-  const _ds=new Set();let _minD='9999';
-  for(const s in DB){const b=DB[s];if(b.length&&b[b.length-1].d>maxDate)maxDate=b[b.length-1].d;for(const x of b){_ds.add(x.d);if(x.d<_minD)_minD=x.d}}
-  DSPAN=_ds.size?{first:_minD,last:maxDate,days:_ds.size}:null;
-  const hold=+$('#hold').value||10;EXT_PCT=+$('#extPct').value||5;
-  for(const sym in DB){
-    const b=DB[sym];if(b.length<30)continue;
-    const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i);
-    let cl0=classify(sc);
-    const pl=plan(I,i),ep=entryPlan(b,I,i);
-    const gateTags=[];
-    if(cl0==='BUY'||cl0==='STRONG_BUY'){
-      const g=applyBuyGates(sc,b,I,i,pl,cl0,ep);
-      cl0=g.cl;g.tags.forEach(t=>gateTags.push(t));g.notes.forEach(t=>sc.rs.push(t));
-      if(ep.extended){ cl0='WAIT'; gateTags.push('উঠে গেছে'); }
-    }
-    const cl=cl0;
-    const view=cl==='WAIT'?{entry:fmt(ep.pull.lo)+' – '+fmt(ep.pull.hi),stop:ep.pull.stop,t1:ep.pull.t1,t2:ep.pull.t2,risk:ep.pull.riskPct}:{entry:fmt(pl.entry),stop:pl.stop,t1:pl.t1,t2:pl.t2,risk:pl.riskPct};
-    const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
-    const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
-    const cost=+$('#cost').value||0;
-    const bR=backtest(b,I,hold,2);
-    const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score,d:t.d}));
-    const bt=btStats(trades.map(t=>t.ret));
-    const randomRets = bR.randomReturns.map(x=>x-cost);
-    const randomAvg = randomRets.length ? randomRets.reduce((x,y)=>x+y,0)/randomRets.length : null;
-    RES.push({sym,b,I,sc,cl,pl,close:b[i].c,sector:sectorOf(sym),chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,extN:0,ep,view,dtags:sc.tags,risk:view.risk,cat:'',eps:null,lastQ:null,f:null,avg:bt.n?bt.avg:null,rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,early:{score:0,why:[]},weekly:null,adx:null,pdi:null,ndi:null,p52:null,posRange:null,rsVal:null,stockRet:null,indexRet:null,vwap:null,vwapDist:null,gateTags:gateTags,randomAvg:randomAvg,randomRets:randomRets,randomDates:bR.randomDates,bucketStats:bR.buckets,dip:{score:0,why:[],tags:[]}});
-  }
-  selected=null;$('#detail').className='';$('#detail').innerHTML='';
-  applyFund();
-  render();
-}
-function isMFSymbol(s){return /MF$|^1STMF|^2NDMF|^3RDMF|GROWTHFUND|INCOMEFUND|MUTUALFUND|BONDFUND|BOND$/.test(String(s).toUpperCase());}
-function baseList(){
-  const minV=+$('#minVol').value||0,minP=+$('#minPrice').value||0,hs=$('#hideStale').checked,q=$('#q').value.trim().toUpperCase();
-  const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked;
-  const noMF=$('#exMF')?$('#exMF').checked:true;
-  const noSmallN=$('#exSmallN')?$('#exSmallN').checked:false;
-  const abOnly=$('#exABOnly')&&$('#exABOnly').checked;
-  const priceBand=$('#exPriceBand')&&$('#exPriceBand').checked;
-  return RES.filter(r=>r.avgVol>=minV&&r.close>=minP&&(!hs||!r.stale)&&(!q||r.sym.includes(q))&&(!noZ||r.cat!=='Z')&&(!noL||!(r.eps!=null&&r.eps<=0))&&(!noQ||!(r.lastQ!=null&&r.lastQ<0))
-    &&(!noMF||!isMFSymbol(r.sym))
-    &&(!noSmallN||(r.bt&&r.bt.n>=5))
-    &&(!abOnly||(r.cat==='A'||r.cat==='B'))
-    &&(!priceBand||(r.close>=30&&r.close<=100))
-    &&(!sectorFilter||(r.sector||sectorOf(r.sym))===sectorFilter));
-}
-const tabOK=(r)=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
-function meter(v,max,cls){let h=`<span class="meter ${cls}" aria-hidden="true">`;for(let k=0;k<7;k++)h+=`<i class="${v>=(k+1)*max/7-0.01&&v>0?'on':''}"></i>`;return h+'</span>'}
-
+/* ===== ডেটা ইনপুট ===== */
 const EPS_NAMES=['Q1','Q2','৬ মাস','Q3','৯ মাস','বার্ষিক'];
 function isFundText(t){const h=(t.split(/\r?\n/)[0]||'').split(/[,\t;|]/).map(norm);return h.includes('category')&&h.includes('code')}
 function loadFund(text){
@@ -985,32 +704,85 @@ function epsInfo(f){
 }
 function applyFund(){RES.forEach(r=>{const f=FUND?FUND[r.sym]||null:null,e=epsInfo(f);r.f=f;r.cat=f?f.cat:'';r.eps=e.latest;r.epsP=e.period;r.lastQ=e.lastQ})}
 
-function swingEval(r){
-  const i=r.b.length-1,I=r.I,c=r.close;
-  const atrPct=(I.atr[i]||c*0.03)/c*100,val=r.avgVol*c;
-  if(r.stale) return {st:1,why:'সাম্প্রতিক ট্রেড নেই'};
-  if(r.b.length<30) return {st:1,why:'ডেটা কম'};
-  if(val<3e6) return {st:1,why:'লেনদেন কম'};
-  if(r.cat==='Z'||isMFSymbol(r.sym)||(r.eps!=null&&r.eps<=0)) return {st:1,why:'Z/ফান্ড/লোকসানি'};
-  if(r.cl==='SELL'||r.cl==='STRONG_SELL') return {st:3,why:'বিক্রির সংকেত'};
-  const isTrend=r.cl==='BUY'||r.cl==='STRONG_BUY';
-  if(!isTrend) return {st:3,why:'কেনার সেটআপ নেই'};
-  return {st:4,setup:'ট্রেন্ড-বাই',isDip:false,atrPct,near:r.pl.riskPct>8};
+function setMsg(t,cls){const m=$('#msg');m.textContent=t;m.className='msg '+(cls||'')}
+async function handleFiles(files){
+  let total=0;const errs=[];
+  for(const f of files){try{const tx=await f.text();total+=isFundText(tx)?loadFund(tx):ingest(MAP,tx,f.name)}catch(e){errs.push(e.message)}}
+  afterIngest(total,errs);
 }
-let slSector=true, slCap=true;
+function afterIngest(total,errs){
+  if(errs&&errs.length)setMsg(errs.join(' | '),'err');
+  else if(!total)setMsg('কোনো বৈধ সারি পাওয়া যায়নি।','err');
+  else setMsg(`${fmtInt(total)}টি সারি যোগ হয়েছে।`,'ok');
+  if(total)analyze();
+}
+
+/* ===== বিশ্লেষণ ===== */
+function analyze(){
+  DB=finalize(MAP);RES=[];maxDate='';
+  const ds=new Set();let minD='9999';
+  for(const s in DB){const b=DB[s];if(b.length&&b[b.length-1].d>maxDate)maxDate=b[b.length-1].d;for(const x of b){ds.add(x.d);if(x.d<minD)minD=x.d}}
+  DSPAN=ds.size?{first:minD,last:maxDate,days:ds.size}:null;
+  const hold=+$('#hold').value||10;EXT_PCT=+$('#extPct').value||5;
+  const cost=+$('#cost').value||0;
+  for(const sym in DB){
+    try{
+      const b=DB[sym];if(b.length<35)continue;
+      const I=compute(b),i=b.length-1,sc=scoreAt(b,I,i);
+      if(!sc)continue;
+      let cl0=classify(sc);
+      const pl=plan(I,i),ep=entryPlan(b,I,i);
+      const gateTags=[];
+      if(cl0==='BUY'||cl0==='STRONG_BUY'){
+        const g=applyBuyGates(sc,b,I,i,pl,cl0,ep);
+        cl0=g.cl;g.tags.forEach(t=>gateTags.push(t));g.notes.forEach(t=>sc.rs.push(t));
+        if(cl0!=='WATCH'&&ep.extended){cl0='WAIT';gateTags.push('উঠে গেছে')}
+      }
+      const cl=cl0;
+      const view=cl==='WAIT'
+        ?{entry:fmt(ep.pull.lo)+' – '+fmt(ep.pull.hi),stop:ep.pull.stop,t1:ep.pull.t1,t2:ep.pull.t2,risk:ep.pull.riskPct}
+        :{entry:fmt(pl.entry),stop:pl.stop,t1:pl.t1,t2:pl.t2,risk:pl.riskPct};
+      const vs=I.v.slice(-20);const avgVol=vs.reduce((x,y)=>x+y,0)/vs.length;
+      const gap=(new Date(maxDate)-new Date(b[i].d))/864e5;
+      const bR=backtest(b,I,hold,2);
+      const trades=bR.trades.map(t=>({ret:t.ret-cost,tags:t.tags,ext:t.ext,score:t.score,d:t.d}));
+      const bt=btStats(trades.map(t=>t.ret));
+      const rr=calcRS(b,i);
+      RES.push({sym,b,I,sc,cl,pl,ep,close:b[i].c,sector:sectorOf(sym),chg:(b[i].c/b[i-1].c-1)*100,avgVol,rsi:I.rsi[i],
+        vr:I.vavg[i-1]?I.v[i]/I.vavg[i-1]:1,stale:gap>7,bt,trades,view,cat:'',eps:null,lastQ:null,f:null,
+        rank:SIG[cl].rank,buy:sc.buy,sell:sc.sell,rsVal:rr?rr.rs:null,gateTags,adx:I.adx[i],vwapDist:sc.vwapDist,p52:sc.p52});
+    }catch(err){console.error('স্ক্যান ব্যর্থ:',sym,err)}
+  }
+  selected=null;$('#detail').className='';$('#detail').innerHTML='';
+  applyFund();
+  render();
+}
+function isMFSymbol(s){return /MF$|^1STMF|^2NDMF|^3RDMF|GROWTHFUND|INCOMEFUND|MUTUALFUND|BONDFUND|BOND$/.test(String(s).toUpperCase())}
+function baseList(){
+  const minV=+$('#minVol').value||0,minP=+$('#minPrice').value||0,hs=$('#hideStale').checked,q=$('#q').value.trim().toUpperCase();
+  const noZ=$('#exZ').checked,noL=$('#exLoss').checked,noQ=$('#exQLoss').checked,noMF=$('#exMF').checked,noSmallN=$('#exSmallN').checked;
+  const abOnly=$('#exABOnly').checked,priceBand=$('#exPriceBand').checked;
+  return RES.filter(r=>r.avgVol>=minV&&r.close>=minP&&(!hs||!r.stale)&&(!q||r.sym.includes(q))&&(!noZ||r.cat!=='Z')
+    &&(!noL||!(r.eps!=null&&r.eps<=0))&&(!noQ||!(r.lastQ!=null&&r.lastQ<0))
+    &&(!noMF||!isMFSymbol(r.sym))&&(!noSmallN||(r.bt&&r.bt.n>=5))
+    &&(!abOnly||(r.cat==='A'||r.cat==='B'))&&(!priceBand||(r.close>=30&&r.close<=100))
+    &&(!sectorFilter||(r.sector||sectorOf(r.sym))===sectorFilter));
+}
+const tabOK=r=>tab==='all'||(tab==='buy'&&(r.cl==='BUY'||r.cl==='STRONG_BUY'))||(tab==='wait'&&r.cl==='WAIT')||(tab==='watch'&&r.cl==='WATCH')||(tab==='sell'&&(r.cl==='SELL'||r.cl==='STRONG_SELL'))||(tab==='neutral'&&r.cl==='NEUTRAL');
+
+/* ===== শর্টলিস্ট ===== */
 function renderShortlist(){
   const el=$('#shortlist');if(!el)return;
   if(!RES.length){el.innerHTML='';return}
-  let ev=RES.filter(r=>!sectorFilter||(r.sector||sectorOf(r.sym))===sectorFilter).map(r=>({r,e:swingEval(r)}));
-  let ok=ev.filter(x=>x.e.st===4&&!x.e.near),near=ev.filter(x=>x.e.st===4&&x.e.near);
-  ok.sort((a,b)=>a.r.pl.riskPct-b.r.pl.riskPct);
-  near.sort((a,b)=>a.r.pl.riskPct-b.r.pl.riskPct);
-  const card=x=>{
-    const r=x.r,p=r.pl,ps=p.entry-p.stop,g1=(p.t1/p.entry-1)*100;
+  const ok=baseList().filter(r=>r.cl==='BUY'||r.cl==='STRONG_BUY').sort((a,b)=>a.pl.riskPct-b.pl.riskPct).slice(0,5);
+  const cap=+$('#capital').value||0,rkp=(+$('#riskPct').value||1)/100;
+  const card=r=>{
+    const p=r.pl,ps=p.entry-p.stop,g1=(p.t1/p.entry-1)*100;
     let size='<span class="muted">মূলধন বসালে শেয়ার সংখ্যা দেখাবে</span>';
-    const cap=+$('#capital').value||0,rkp=(+$('#riskPct').value||1)/100,maxPct=0.25,liq=0.05;
-    if(cap>0&&ps>0){const q=Math.max(0,Math.min(Math.floor(cap*rkp/ps),Math.floor(cap*maxPct/p.entry),Math.floor(r.avgVol*liq)));
-      size=q>0?`আপনার ঝুঁকি-সীমায় <b>${fmtInt(q)}</b> শেয়ার, বিনিয়োগ ${fmtInt(q*p.entry)} টাকা`:'<span class="muted">শেয়ার আঁটে না</span>'}
+    if(cap>0&&ps>0){
+      const q=Math.max(0,Math.min(Math.floor(cap*rkp/ps),Math.floor(cap*0.25/p.entry),Math.floor(r.avgVol*0.05)));
+      size=q>0?`আপনার ঝুঁকি-সীমায় <b>${fmtInt(q)}</b> শেয়ার, বিনিয়োগ ${fmtInt(q*p.entry)} টাকা`:'<span class="muted">শেয়ার আঁটে না</span>';
+    }
     return `<div class="sl-card" data-s="${esc(r.sym)}" tabindex="0">
       <div class="sl-top"><b class="sym">${esc(r.sym)}</b><span class="badge b-b">ট্রেন্ড-বাই</span><span class="muted">ক্লোজ ${fmt(r.close)}</span></div>
       <div class="sl-grid">
@@ -1023,40 +795,28 @@ function renderShortlist(){
   };
   el.innerHTML=`<h3 style="margin:4px 0 4px">🎯 আজকের সুইং শর্টলিস্ট</h3>
     <p class="muted" style="font-size:14px;margin:0 0 6px">সেরা শেয়ারগুলোর তালিকা:</p>
-    ${ok.length?ok.slice(0,5).map(card).join(''):`<div class="warnbox" style="margin:8px 0">আজ নিয়ম মেনে কোনো শেয়ার মেলেনি।</div>`}`;
+    ${ok.length?ok.map(card).join(''):'<div class="warnbox" style="margin:8px 0">আজ নিয়ম মেনে কোনো শেয়ার মেলেনি।</div>'}`;
 }
 
-const HD={HOLD:{t:'ধরে রাখুন',c:'b-b',cls:'hold'},NEUTRAL:{t:'নিরপেক্ষ',c:'b-n',cls:''},SELL:{t:'বিক্রি',c:'b-s',cls:'sell'},STRONG_SELL:{t:'শক্তিশালী বিক্রি',c:'b-ss',cls:'sell'}};
-function holdEval(r,h,lossLimit){
-  const pnl=(r.close/h.price-1)*100;
-  let dec='HOLD',why='ট্রেন্ড ঠিক আছে';
-  if(pnl<=-lossLimit){dec='STRONG_SELL';why='ক্ষতি সীমা পেরিয়েছে';}
-  else if(r.cl==='STRONG_SELL'||r.cl==='SELL'){dec='SELL';why='বিক্রির সংকেত';}
-  return {dec,why,pnl,stop:r.pl.stop,sup:[],res:[],reasons:['স্ক্যানার সংকেত: '+SIG[r.cl].t],acts:['স্টপলেভেল মেনে চলুন'],a:1};
-}
-let HOLD=[];
-function renderHoldings(){const el=$('#holdingsOut');if(el)el.innerHTML='<p class="muted">হোল্ডিং ফিচার চালু আছে।</p>';}
-function renderPlanner(){const el=$('#plannerOut');if(el)el.innerHTML='<p class="muted">প্ল্যানার চালু আছে।</p>';}
-function renderSectors(){
-  const el=$('#sectorOut');if(!el)return;
-  el.innerHTML='<p class="muted">সেক্টর সামারি প্রস্তুত।</p>';
-}
+/* ===== স্টাব সেকশন ===== */
+function renderHoldings(){const el=$('#holdingsOut');if(el)el.innerHTML='<p class="muted">হোল্ডিং ফিচার চালু আছে।</p>'}
+function renderPlanner(){const el=$('#plannerOut');if(el)el.innerHTML='<p class="muted">প্ল্যানার চালু আছে।</p>'}
+function renderSectors(){const el=$('#sectorOut');if(el)el.innerHTML='<p class="muted">সেক্টর সামারি প্রস্তুত।</p>'}
 
+/* ===== টেবিল রেন্ডার ===== */
 function render(){
   renderSectors();renderHoldings();renderPlanner();renderShortlist();
   const base=baseList();
   const nb=base.filter(r=>r.cl==='STRONG_BUY'||r.cl==='BUY').length,ns=base.filter(r=>r.cl==='SELL'||r.cl==='STRONG_SELL').length;
-  $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>শেষ তারিখ`:'<b>ডেটা নেই</b>';
+  $('#asof').innerHTML=maxDate?`<b>${esc(maxDate)}</b>শেষ তারিখ`:'<b>ডেটা নেই</b>ডেটা লোড করলে এখানে শেষ তারিখ দেখাবে';
   $('#tally').innerHTML=`<div><b>${base.length}</b><span>স্ক্যান হয়েছে</span></div><div class="t-buy"><b>${nb}</b><span>কেনা</span></div><div class="t-sell"><b>${ns}</b><span>বিক্রি</span></div>`;
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button data-t="${k}" aria-pressed="${tab===k}">${t}</button>`).join('');
-  const pool=base.filter(tabOK);
-  $('#ptypes').innerHTML='';
-  pool.sort((a,b)=>b.buy-a.buy);
-  const cols=[['sym','কোম্পানি','','core'],['close','ক্লোজ','n','core'],['chg','পরিবর্তন','n','core'],['rank','সংকেত','','core'],['buy','স্কোর','n','']];
-  const th=cols.map(([k,t,n])=>`<th class="${n||''}">${t}</th>`).join('');
+  const pool=base.filter(tabOK).sort((a,b)=>b.buy-a.buy);
+  const cols=[['sym','কোম্পানি',''],['close','ক্লোজ','n'],['chg','পরিবর্তন','n'],['rank','সংকেত',''],['buy','স্কোর','n']];
+  const th=cols.map(([k,t,n])=>`<th class="${n}">${t}</th>`).join('');
   const rows=pool.map(r=>{
     const s=SIG[r.cl],ch=r.chg;
-    return`<tr data-s="${esc(r.sym)}" tabindex="0">
+    return `<tr data-s="${esc(r.sym)}" tabindex="0"${r.sym===selected?' class="sel"':''}>
       <td class="sym">${esc(r.sym)}</td>
       <td class="n">${fmt(r.close)}</td>
       <td class="n ${ch>0?'up':ch<0?'down':''}">${ch>0?'+':''}${ch.toFixed(2)}%</td>
@@ -1067,11 +827,106 @@ function render(){
   $('#tbl').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows||`<tr><td colspan="${cols.length}" class="empty">কোনো কোম্পানি মেলেনি।</td></tr>`}</tbody>`;
 }
 
-$('#tbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
-$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render()});
+/* ===== ডিটেইল ও চার্ট ===== */
+function chartSVG(r){
+  const N=Math.min(80,r.b.length),s=r.b.length-N,bars=r.b.slice(s),I=r.I;
+  const W=760,H=330,PL=8,PR=52,PT=10,PH=228,VT=250,VH=66;
+  const pl=r.pl;
+  let lo=Math.min(...bars.map(x=>x.l),pl.stop),hi=Math.max(...bars.map(x=>x.h),pl.t1);
+  if(!(hi>lo)){hi=lo+1}
+  const y=v=>PT+(hi-v)/(hi-lo)*PH,step=(W-PL-PR)/N,x=k=>PL+(k+0.5)*step,cw=Math.max(1.5,step*0.6);
+  const vmax=Math.max(1,...bars.map(b=>b.v));
+  let g='';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,yy=y(v);g+=`<line class="grid" x1="${PL}" x2="${W-PR}" y1="${yy}" y2="${yy}"/><text x="${W-PR+4}" y="${yy+3}">${v.toFixed(1)}</text>`}
+  const path=arr=>{let d='',on=false;for(let k=0;k<N;k++){const v=arr[s+k];if(v==null){on=false;continue}d+=(on?'L':'M')+x(k).toFixed(1)+' '+y(v).toFixed(1)+' ';on=true}return d};
+  let cs='',vs='';
+  bars.forEach((b,k)=>{
+    const up=b.c>=b.o,cl=up?'c-up':'c-dn',top=y(Math.max(b.o,b.c)),bot=y(Math.min(b.o,b.c));
+    cs+=`<line class="${cl}" x1="${x(k)}" x2="${x(k)}" y1="${y(b.h)}" y2="${y(b.l)}"/><rect class="${cl}" x="${x(k)-cw/2}" y="${top}" width="${cw}" height="${Math.max(1,bot-top)}"/>`;
+    const vh=b.v/vmax*VH;vs+=`<rect class="${up?'v-up':'v-dn'}" x="${x(k)-cw/2}" y="${VT+VH-vh}" width="${cw}" height="${vh}"/>`;
+  });
+  const hl=(v,col,lab)=>`<line class="plan" stroke="${col}" x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}"/><text x="${PL+2}" y="${y(v)-3}" style="fill:${col}">${lab} ${v.toFixed(1)}</text>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(r.sym)} দামের চার্ট">${g}${vs}${cs}
+    <path class="ln20" d="${path(I.sma20)}"/><path class="ln50" d="${path(I.sma50)}"/><path class="vwap" d="${path(I.vwap20)}"/>
+    ${hl(pl.stop,'var(--down)','স্টপ')}${hl(pl.entry,'var(--accent)','এন্ট্রি')}${hl(pl.t1,'var(--up)','টার্গেট ১')}
+    <text x="${PL}" y="${H-4}">${esc(bars[0].d)}</text><text x="${W-PR-60}" y="${H-4}">${esc(bars[N-1].d)}</text></svg>`;
+}
+function openDetail(sym){
+  const r=RES.find(x=>x.sym===sym);if(!r)return;
+  selected=sym;
+  const s=SIG[r.cl],p=r.pl,ep=r.ep,i=r.b.length-1;
+  const li=a=>a&&a.length?`<ul>${a.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="muted">নেই</p>';
+  const bt=r.bt;
+  const sup=ep.sup.map(x=>`${fmt(x.p)} (${x.label})`),res=ep.res.map(x=>`${fmt(x.p)} (${x.label})`);
+  $('#detail').innerHTML=`
+    <div class="sec-h"><h2>${esc(sym)} <span class="badge ${s.c}">${s.t}</span></h2><button id="closeDetail" type="button">বন্ধ করুন</button></div>
+    <div class="dgrid">
+      <div>
+        <div class="legend"><span><i style="background:var(--l20)"></i>SMA20</span><span><i style="background:var(--l50)"></i>SMA50</span><span><i style="background:var(--vwap)"></i>VWAP20</span></div>
+        ${chartSVG(r)}
+      </div>
+      <div>
+        <div class="blk"><h3>ট্রেড প্ল্যান</h3>
+          <dl class="kv"><dt>ক্লোজ</dt><dd>${fmt(r.close)}</dd>
+          <dt>এন্ট্রি</dt><dd>${r.view.entry}</dd>
+          <dt>স্টপ-লস</dt><dd class="down">${fmt(r.view.stop)}</dd>
+          <dt>টার্গেট ১</dt><dd class="up">${fmt(r.view.t1)}</dd>
+          <dt>টার্গেট ২</dt><dd class="up">${fmt(r.view.t2)}</dd>
+          <dt>ঝুঁকি</dt><dd>${fmt(r.view.risk)}%</dd>
+          <dt>RSI</dt><dd>${fmt(r.rsi,0)}</dd>
+          <dt>ADX</dt><dd>${fmt(r.adx,0)}</dd>
+          <dt>RS (২০ দিন)</dt><dd>${fmt(r.rsVal,0)}</dd>
+          <dt>ভলিউম / গড়</dt><dd>${fmt(r.vr,2)}×</dd></dl></div>
+        <div class="blk"><h3>কেনার কারণ</h3>${li(r.sc.rb)}</div>
+        <div class="blk"><h3>বিক্রি / সতর্কতা</h3>${li(r.sc.rs)}</div>
+        <div class="blk"><h3>সাপোর্ট ও রেজিস্ট্যান্স</h3><p class="note">সাপোর্ট:</p>${li(sup)}<p class="note">রেজিস্ট্যান্স:</p>${li(res)}</div>
+        <div class="blk"><h3>ব্যাকটেস্ট</h3>${bt.n?`<p style="font-size:14px">${bt.n}টি ট্রেড, জয়ের হার ${fmt(bt.win,0)}%, গড় রিটার্ন ${fmt(bt.avg,2)}% (খরচ বাদে)</p>`:'<p class="muted">যথেষ্ট ট্রেড নেই</p>'}</div>
+      </div>
+    </div>`;
+  $('#detail').className='show';
+  render();
+  $('#detail').scrollIntoView({behavior:'smooth',block:'start'});
+}
 
+/* ===== ইভেন্ট ===== */
+const dropEl=$('#drop'),fileIn=$('#file');
+dropEl.addEventListener('click',()=>fileIn.click());
+dropEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileIn.click()}});
+fileIn.addEventListener('change',()=>{handleFiles([...fileIn.files]);fileIn.value=''});
+['dragover','dragenter'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('over')}));
+dropEl.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
+$('#btnPaste').addEventListener('click',()=>{
+  const t=$('#paste').value;if(!t.trim())return;
+  try{afterIngest(isFundText(t)?loadFund(t):ingest(MAP,t,'PASTE'),[])}catch(e){setMsg(e.message,'err')}
+});
+$('#btnDemo').addEventListener('click',()=>{MAP=genDemo();setMsg('ডেমো ডেটা লোড হয়েছে।','ok');analyze()});
+$('#btnClear').addEventListener('click',()=>{
+  MAP={};DB={};RES=[];selected=null;maxDate='';INDEX=null;FUND=null;
+  setMsg('');render();$('#detail').className='';$('#detail').innerHTML='';
+});
+$('#tbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
+$('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)}});
+$('#shortlist').addEventListener('click',e=>{const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
+$('#shortlist').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
+$('#detail').addEventListener('click',e=>{if(e.target.closest('#closeDetail')){selected=null;$('#detail').className='';$('#detail').innerHTML='';render()}});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render()});
+$('#q').addEventListener('input',render);
+$('#settings-sec').addEventListener('change',()=>{saveSettings();if(Object.keys(MAP).length)analyze();else render()});
+$('#btnExport').addEventListener('click',()=>{
+  const rows=baseList().filter(tabOK).sort((a,b)=>b.buy-a.buy);
+  if(!rows.length)return;
+  const lines=['Symbol,Signal,Close,Change%,BuyScore,SellScore,Entry,Stop,Target1,Target2'];
+  rows.forEach(r=>lines.push([r.sym,SIG[r.cl].t,r.close,r.chg.toFixed(2),r.buy,r.sell,'"'+r.view.entry+'"',r.view.stop,r.view.t1,r.view.t2].join(',')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='dse-scan-'+(maxDate||'result')+'.csv';a.click();URL.revokeObjectURL(a.href);
+});
+$('#newsReload').addEventListener('click',()=>{$('#newsStatus').textContent='খবরের উৎস এখনো সংযুক্ত করা হয়নি।'});
+
+/* ===== স্বয়ংক্রিয় লোড ===== */
 async function autoLoad(){
-  if(!/^https?:$/.test(location.protocol))return;
+  if(!/^https?:$/.test(location.protocol)){render();return}
   try{
     const rc=await fetch('data/prices.csv',{cache:'no-cache'});
     if(!rc.ok)throw new Error('HTTP '+rc.status);
@@ -1080,7 +935,8 @@ async function autoLoad(){
     try{const ri=await fetch('data/dsex.csv',{cache:'no-cache'});if(ri.ok)loadIndex(await ri.text(),true)}catch(e){}
     analyze();
   }catch(e){
-    $('#autoinfo').innerHTML='ডেমো ডেটা ব্যবহার করুন।';
+    $('#autoinfo').textContent='স্বয়ংক্রিয় ডেটা পাওয়া যায়নি — CSV দিন বা ডেমো ডেটা ব্যবহার করুন।';
+    render();
   }
 }
 autoLoad();
