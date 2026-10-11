@@ -2373,7 +2373,7 @@ async function autoLoad(){
     try{const rf=await fetch('data/fundamentals.csv',{cache:'no-cache'});if(rf.ok)loadFund(await rf.text())}catch(e){}
     let idxOK=false;
     INDEX=null;
-    for(const nm of ['data/dsex.csv','data/Dsex.csv','data/DSEX.csv','data/index.csv','data/Index.csv']){
+    for(const nm of ['data/dsex.csv','data/dsex.csv','data/dsex.csv','data/index.csv','data/Index.csv']){
       try{
         const ri=await fetch(nm,{cache:'no-cache'});
         if(ri.ok){const ni=loadIndex(await ri.text(),true);if(ni>0)idxOK=true}
