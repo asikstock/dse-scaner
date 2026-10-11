@@ -436,6 +436,7 @@ footer p{max-width:90ch;margin-bottom:6px}
 
 <script>
 /*CORE_START*/
+const $ = s => document.querySelector(s);
 const num=v=>{if(v==null)return NaN;const s=String(v).replace(/[,\s৳]/g,'');if(s===''||s==='-')return NaN;return parseFloat(s)};
 const r1=x=>Math.round(x*10)/10;
 function splitLine(line,d){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===d&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out.map(s=>s.trim())}
