@@ -331,6 +331,7 @@ footer p{max-width:90ch;margin-bottom:6px}
     <label class="chk"><input type="checkbox" id="exRR2"> 🎯 নিকটতম রেজিস্ট্যান্স পর্যন্ত R:R ≥ ১:২ না হলে বাই নয় (নিয়ম ৪)</label>
     <label class="chk"><input type="checkbox" id="exScore75"> ⚡ কেনার স্কোর ≥ ৭.৫ না হলে বাই নয় (নিয়ম ৭) — ব্যাকটেস্টে স্কোর আর রিটার্নের সম্পর্ক মেলেনি</label>
     <label class="chk"><input type="checkbox" id="exHealth" checked> 🩺 দুর্বল সেটআপে বাই নয় (নিয়ম ৮): RSI &lt; ৫০, VWAP-এর ১%+ নিচে, আজ ১.৫%+ পতন, ৫২-সপ্তাহের উচ্চ থেকে ২০%+ নিচে বা ATR &gt; ৪.৫% হলে — ব্যাকটেস্টে যাচাইকৃত</label>
+    <label class="chk"><input type="checkbox" id="exMktDown" checked> 🌐 ডিএসইএক্স ৫০ দিনের গড়ের নিচে থাকলে বাই নয় (নিয়ম ৯) — ব্যাকটেস্টে গড় প্রায় একই, বাজার পড়ার সময় কেনা এড়ায়</label>
     <label class="chk"><input type="checkbox" id="exABOnly"> 🏅 শুধু A/B ক্যাটাগরি শেয়ার দেখান (নিয়ম ৫)</label>
     <label class="chk"><input type="checkbox" id="exPriceBand"> 💵 শুধু ৩০–১০০ টাকার শেয়ার দেখান (নিয়ম ৫)</label>
     <fieldset style="grid-column:1/-1;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:6px">
@@ -735,8 +736,17 @@ function entryPlan(b,I,i){
   return{extended,chg,stretch,why,chase,pull,sup:L.sup,res:L.res,nearS,nearR};
 }
 /* ===== কেনার সংকেতের গেট: লাইভ স্ক্যান ও ব্যাকটেস্ট একই ফাংশন ব্যবহার করে ===== */
-const GATE_DEF={exVol15:false,exTurnover:true,exSma200:true,exRR2:false,exScore75:false,exHealth:true};
+const GATE_DEF={exVol15:false,exTurnover:true,exSma200:true,exRR2:false,exScore75:false,exHealth:true,exMktDown:true};
 function gateOn(id){const el=document.getElementById(id);return el?!!el.checked:!!GATE_DEF[id]}
+/* বাজার-অবস্থা: সংকেতের দিনে ডিএসইএক্স তার ৫০ দিনের গড়ের নিচে (বা সমান) কি না। ইনডেক্স ডেটা না থাকলে null */
+function mktState(d){
+  if(!INDEX)return null;
+  const ds=idxDatesSorted(),p=idxPosOnOrBefore(ds,d);
+  if(p<49)return null;
+  let t=0;for(let k=p-49;k<=p;k++)t+=INDEX[ds[k]];
+  const sma=t/50,c=INDEX[ds[p]];
+  return{c,sma,down:c<=sma};
+}
 function applyBuyGates(sc,b,I,i,pl,cl0,ep){
   let cl=cl0;const tags=[],notes=[];
   if(cl0!=='BUY'&&cl0!=='STRONG_BUY')return{cl,tags,notes};
@@ -763,6 +773,9 @@ function applyBuyGates(sc,b,I,i,pl,cl0,ep){
     if(atrp>4.5)weak.push('অতি অস্থির (ATR '+atrp.toFixed(1)+'%)');
     if(weak.length)drop('দুর্বল সেটআপ','দুর্বল সেটআপ — '+weak.join(', '));
   }
+  /* নিয়ম ৯: বাজার-অবস্থা। ডিএসইএক্স ৫০ দিনের গড়ের নিচে থাকলে নতুন কেনা নয়।
+     ২৪ মাসের ব্যাকটেস্টে (১০ দিন হোল্ড) গড় প্রায় একই (−০.০৫% → +০.০২%), তাই এটি প্রমাণিত আলফা নয়, ঝুঁকি-নিয়ন্ত্রণ। ইনডেক্স ডেটা না থাকলে নিষ্ক্রিয় */
+  if(gateOn('exMktDown')){const m=mktState(b[i].d);if(m&&m.down)drop('বাজার দুর্বল','ডিএসইএক্স '+m.c.toFixed(0)+' তার ৫০ দিনের গড়ের ('+m.sma.toFixed(0)+') নিচে — নতুন কেনা নয়')}
   /* আগের গেট (রাখা): স্টপ ৮%-এর বেশি দূরে হলে নয়। ব্যাকটেস্টেও সমর্থিত */
   if(pl.riskPct>8)drop('স্টপ দূরে','স্টপ '+pl.riskPct.toFixed(1)+'% দূরে — ৮% এর বেশি, WATCH-এ নামানো হলো');
   /* সাপ্তাহিক ট্রেন্ড নিম্নমুখী হলে নয় */
@@ -1500,7 +1513,7 @@ const fmtInt=x=>x==null||isNaN(x)?'–':Math.round(x).toLocaleString('en-US');
 
 /* সেটিংস সেভ/লোড — সংখ্যা ও চেকবক্স আলাদা করে */
 const SK_NUM=['minVol','minPrice','capital','riskPct','hold','cost','extPct','minAdx','max52w','minRS','maxVwap','thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2','pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq','hLoss'];
-const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth','exABOnly','exPriceBand'];
+const SK_CHK=['hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth','exMktDown','exABOnly','exPriceBand'];
 try{
   const s=JSON.parse(localStorage.getItem('dse-scan-settings')||'{}');
   SK_NUM.forEach(k=>{if(s[k]!=null&&$('#'+k))$('#'+k).value=s[k]});
@@ -2012,7 +2025,7 @@ function renderSupportPicks(){
   };
   el.innerHTML=`<h3 style="margin:4px 0 4px">📍 সাপোর্ট-বাই প্রার্থী (নজরে রাখুন / কেনার তালিকা থেকে)</h3>
     <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">নিয়ম: দাম সাপোর্টের ৩% এর মধ্যে, স্টপ সাপোর্টের নিচে ধরলে নিকটতম রেজিস্ট্যান্স পর্যন্ত লাভ:ঝুঁকি ≥ ১:২, আর ট্রেন্ড ভালো (সাপ্তাহিক ঊর্ধ্বমুখী, SMA50 ও SMA200-এর উপরে)। বাকি দুটি শর্ত (ADX, একাধিকবার টেস্ট হওয়া সাপোর্ট) মিললে বাড়তি নির্ভরযোগ্য।</p>
-    <div class="warnbox" style="margin:6px 0 10px"><b>ব্যাকটেস্টের সতর্কতা:</b> প্রায় ২ বছরের ডেটায় (১০ দিন হোল্ড, খরচ ০.৫% বাদে) এই নিয়ম সব শর্তসহ ৩২৮টি ট্রেডে গড় মাত্র +০.১১% (±০.৩১) দিয়েছে, যা শূন্য থেকে আলাদা বলা যায় না। শুধু "সাপোর্টের কাছে" শর্তে গড় ছিল −০.৫০%। তাই এটিকে সুনিশ্চিত সংকেত নয়, বাছাইয়ের ছাঁকনি হিসেবে দেখুন: ছোট সাইজ, কঠোর স্টপ।</div>
+    <div class="warnbox" style="margin:6px 0 10px"><b>ব্যাকটেস্টের সতর্কতা:</b> প্রায় ২ বছরের ডেটায় (১০ দিন হোল্ড, খরচ ০.৫% বাদে) এই নিয়ম সব শর্তসহ ৩২৮টি ট্রেডে গড় মাত্র +০.১১% (±০.৩১) দিয়েছে, যা শূন্য থেকে আলাদা বলা যায় না। শুধু "সাপোর্টের কাছে" শর্তে গড় ছিল −০.৫০%। তাই এটিকে সুনিশ্চিত সংকেত নয়, বাছাইয়ের ছাঁকনি হিসেবে দেখুন: ছোট সাইজ, কঠোর স্টপ। <br><b>সংখ্যার সীমা (২০২৬-১০-১২ হেডলেস ব্যাকটেস্ট):</b> ট্রেডগুলো বাজারের একই পর্বে ঘনীভূত। মূল ব্যাকটেস্টের ২,৫২৩ ট্রেড এসেছে মাত্র ৯১টি সংকেত-সপ্তাহ থেকে, তাই সপ্তাহ-ক্লাস্টার ধরলে ত্রুটি প্রায় তিন গুণ (০.১৩ থেকে ০.৩৫)। ট্রেডের সংখ্যা নয়, আলাদা বাজার-পর্বের সংখ্যাই প্রমাণের শক্তি ঠিক করে। বাজার-গেট (নিয়ম ৯) চালু থাকলে ১০ দিন হোল্ডে গড় +০.১৫% (±০.১৫), অর্থাৎ শূন্য থেকে আলাদা বলা যায় না। বিস্তারিত: tools/headless_backtest/README.md</div>
     ${picks.length?picks.map(card).join(''):`<div class="warnbox" style="margin:8px 0">আজ কোনো শেয়ার তিনটি মূল শর্ত (সাপোর্টের কাছে, রেজিস্ট্যান্স দূরে, ট্রেন্ড ভালো) একসাথে মেটায়নি।</div>`}
     <p class="note" style="margin:6px 0">সাপোর্ট ও রেজিস্ট্যান্স শেষ ১২০ দিনের সুইং-পয়েন্ট ও SMA/VWAP থেকে নেওয়া, এলাকা হিসেবে দেখুন। কেনার আগে খবর ও রেকর্ড ডেট দেখে নিন। এটি শিক্ষামূলক বিশ্লেষণ, বিনিয়োগ পরামর্শ নয়।</p>
     <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">`;
@@ -2229,7 +2242,7 @@ $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.c
 /* ফিল্টার (রেন্ডার-only): */
 ['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q','exABOnly','exPriceBand'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',()=>{saveSettings();render()})});
 /* নতুন হার্ড-গেট (analyze দরকার): */
-['exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
+['exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth','exMktDown'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
 ['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();renderSupportPicks();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 ['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));

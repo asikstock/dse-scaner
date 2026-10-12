@@ -1,10 +1,13 @@
-// Headless runner for the scanner's own JS (docs/index.html lines 439..1479).
+// Headless runner for the scanner's own JS (docs/index.html, from /*CORE_START*/ to the 'let SECTORS' line).
 // Usage: node harness.js <repoDocsDir> <outJson> [variantsJson]
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const docs = process.argv[2], outFile = process.argv[3];
 const lines = fs.readFileSync(path.join(docs, 'index.html'), 'utf8').split('\n');
-// CORE + add-ons + constants (stop before SK_NUM / DOM-heavy code)
-const code = lines.slice(438, 1479).join('\n');
+// CORE + add-ons + constants: from /*CORE_START*/ up to the 'let SECTORS' line (before DOM-heavy code)
+const a = lines.findIndex(l => l.includes('/*CORE_START*/'));
+const b = lines.findIndex(l => l.startsWith('let SECTORS='));
+if (a < 0 || b < 0) throw new Error('markers not found in index.html');
+const code = lines.slice(a, b + 1).join('\n');
 
 const gateState = {};            // overrides for checkboxes read by gateOn()
 const fakeEl = id => (id in gateState ? { checked: !!gateState[id] } : null);
