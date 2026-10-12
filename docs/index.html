@@ -389,6 +389,14 @@ footer p{max-width:90ch;margin-bottom:6px}
   <p class="note">সারিতে ক্লিক করলে চার্ট, ট্রেড প্ল্যান ও কারণ দেখা যাবে। কলামের শিরোনামে ক্লিক করলে সাজানো যায়। কোম্পানির নাম কলামটি সবসময় বাঁদিকে আটকে থাকে।</p>
 </section>
 
+<section id="wyckoff-sec" aria-live="polite">
+  <div class="sec-h"><h2>৩খ. Wyckoff ফেজ (পরীক্ষামূলক)</h2></div>
+  <p class="note" style="margin:0 0 8px;max-width:90ch">ছয়টি ওয়াইকফ ফেজ (Accumulation, Re-accumulation, Markup, Distribution, Re-distribution, Markdown) প্রতিটি কোডের সর্বশেষ দিনের জন্য, সাপোর্ট, রেসিস্ট্যান্স, স্টপ ও টার্গেটসহ। "Entry" মানে ফেজ, ইভেন্ট (Spring/Upthrust/SOS/SOW) ও ক্যান্ডেল একসঙ্গে মিলেছে। <b>সতর্কতা:</b> ২০২৫-১১ থেকে ২০২৬-১০-এর walk-forward ব্যাকটেস্টে Entry সংকেত বাজারের গড়ের চেয়ে বেশি রিটার্ন দেখায়নি (বিস্তারিত: <code>tools/wyckoff_backtest/README.md</code>)। এটিকে কেনার সংকেত নয়, শুধু বাজার-কাঠামো বোঝার ছক হিসেবে দেখুন। উপরের ফিল্টার (ফান্ড বাদ, সেক্টর, কোড খোঁজা) এখানেও চলে।</p>
+  <div class="tabs" id="wkTabs" role="group" aria-label="Wyckoff ফেজ ফিল্টার" style="margin:6px 0"></div>
+  <div class="tw" style="margin-top:8px"><table id="wkTbl" style="min-width:0"></table></div>
+  <p class="note" id="wkNote"></p>
+</section>
+
 <section id="news-sec" aria-live="polite">
   <div class="sec-h"><h2>৪. শেয়ারবাজারের খবর</h2><button id="newsReload" type="button">খবর আবার লোড করুন</button></div>
   <p id="newsStatus" class="note" role="status" aria-live="polite">খবর লোড হচ্ছে…</p>
@@ -1481,6 +1489,95 @@ const SW={
   maxRsi:65, maxStretch:1.5, minP52:10, maxRisk:8, minBars:100, top:5
 };
 
+/*WYCKOFF_START*/
+/* Wyckoff ফেজ শনাক্তকরণ: রুটের wyckoff_scanner.py-এর analyze()-এর হুবহু JS রূপ (tools/wyckoff_backtest/check_js_parity.js দিয়ে মেলানো)। শুধু বার {d,o,h,l,c,v} লাগে, DOM লাগে না। */
+const WK_CFG={rangeLen:40,recent:5,trendLen:60,trendPct:0.15,maxWidth:0.30,volSpike:1.5,minScore:60};
+function wyckoffAnalyze(bars,cfg){
+  cfg=cfg||WK_CFG;
+  const need=Math.max(cfg.rangeLen+cfg.recent+cfg.trendLen+5,210);
+  if(bars.length<need)return{phase:null,reason:'ডেটা কম'};
+  const b=bars.slice(-260),n=b.length,last=b[n-1],prev=b[n-2];
+  const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+  const sma=k=>mean(b.slice(n-k).map(x=>x.c));
+  const sma50=sma(50),sma200=sma(200);
+  const tr=[];for(let i=n-14;i<n;i++){const pc=b[i-1].c;tr.push(Math.max(b[i].h-b[i].l,Math.abs(b[i].h-pc),Math.abs(b[i].l-pc)))}
+  const atr=mean(tr);
+  const volAvg20=mean(b.slice(n-20).map(x=>x.v));
+  const base=b.slice(n-cfg.rangeLen-cfg.recent,n-cfg.recent),recent=b.slice(n-cfg.recent);
+  const pre=b.slice(n-cfg.rangeLen-cfg.recent-cfg.trendLen,n-cfg.rangeLen-cfg.recent);
+  const sup=Math.min(...base.map(x=>x.l)),res=Math.max(...base.map(x=>x.h));
+  const mid=(sup+res)/2,width=(res-sup)/mid,height=res-sup;
+  const preRet=pre[pre.length-1].c/pre[0].c-1;
+  const preUp=preRet>=cfg.trendPct,preDown=preRet<=-cfg.trendPct;
+  const drift=Math.abs(base[base.length-1].c/base[0].c-1);
+  const isRange=width<=cfg.maxWidth&&drift<=0.5*width;
+  const half=Math.floor(cfg.rangeLen/2);
+  const v1=mean(base.slice(0,half).map(x=>x.v)),v2=mean(base.slice(half).map(x=>x.v));
+  const contraction=v1>0?v2/v1<0.85:false;
+  const volVsPre=mean(base.map(x=>x.v))/Math.max(mean(pre.map(x=>x.v)),1e-9);
+  const heavyVol=volVsPre>1.1;
+  let upV=0,dnV=0;for(const x of base){if(x.c>x.o)upV+=x.v;else dnV+=x.v}
+  const ud=upV/Math.max(dnV,1e-9);
+  const pos=(last.c-sup)/Math.max(res-sup,1e-9);
+  const spring=recent.some(x=>x.l<sup&&x.c>sup)&&last.c>sup;
+  const upthrust=recent.some(x=>x.h>res&&x.c<res)&&last.c<res;
+  const sos=last.c>res&&last.v>=cfg.volSpike*volAvg20;
+  const sow=last.c<sup&&last.v>=cfg.volSpike*volAvg20;
+  const upStruct=sma50>sma200&&last.c>sma50,dnStruct=sma50<sma200&&last.c<sma50;
+  const k=b.slice(n-20),k1=k.slice(0,10),k2=k.slice(10);
+  const mxH=a=>Math.max(...a.map(x=>x.h)),mnL=a=>Math.min(...a.map(x=>x.l));
+  const hhHl=mxH(k2)>mxH(k1)&&mnL(k2)>mnL(k1),llLh=mnL(k2)<mnL(k1)&&mxH(k2)<mxH(k1);
+  const holdSup=Math.min(...recent.map(x=>x.l))>=sup*0.99,holdRes=Math.max(...recent.map(x=>x.h))<=res*1.01;
+  const o1=prev.o,c1=prev.c,o2=last.o,c2=last.c,h2=last.h,l2=last.l;
+  const body=Math.abs(c2-o2),lower=Math.min(o2,c2)-l2,upper=h2-Math.max(o2,c2),okR=(h2-l2)>0;
+  const cd={
+    bullEngulf:c1<o1&&c2>o2&&c2>=o1&&o2<=c1,bearEngulf:c1>o1&&c2<o2&&c2<=o1&&o2>=c1,
+    hammer:okR&&lower>=2*body&&upper<=Math.max(body,1e-9)*0.7,
+    shootingStar:okR&&upper>=2*body&&lower<=Math.max(body,1e-9)*0.7};
+  const B=x=>x?1:0;
+  let S={
+    'Accumulation':25*B(preDown)+20*B(isRange)+15*B(contraction)+25*B(spring)+10*B(ud>=1)+5*B(pos<0.5),
+    'Re-accumulation':25*B(preUp)+20*B(isRange)+15*B(contraction)+15*B(upStruct)+10*B(pos>=0.5)+15*B(holdSup),
+    'Distribution':25*B(preUp)+20*B(isRange)+15*B(heavyVol)+25*B(upthrust)+10*B(ud<1)+5*B(pos>0.5),
+    'Re-distribution':25*B(preDown)+20*B(isRange)+15*B(dnStruct)+15*B(holdRes)+15*B(ud<1)+10*B(pos<0.5),
+    'Markup':35*B(sos)+15*B(upStruct)+20*B(hhHl)+15*B(isRange)+15*B(last.c>sma50),
+    'Markdown':35*B(sow)+15*B(dnStruct)+20*B(llLh)+15*B(isRange)+15*B(last.c<sma50)};
+  if(sos)S={'Markup':S['Markup']};else if(sow)S={'Markdown':S['Markdown']};
+  let phase=null,score=-1;for(const p in S){if(S[p]>score){score=S[p];phase=p}}
+  if(score<cfg.minScore)return{phase:null,scores:S,reason:'স্পষ্ট ওয়াইকফ ফেজ নেই'};
+  let bias='WATCH',trigger='',entry=false;
+  if(phase==='Accumulation'||phase==='Re-accumulation'){
+    bias='BULLISH';
+    if(spring&&(cd.bullEngulf||cd.hammer)){trigger='Spring/Liquidity Sweep + বুলিশ রিভার্সাল ক্যান্ডেল';entry=true}
+    else if(spring)trigger='Spring হয়েছে, বুলিশ ক্যান্ডেলের কনফার্মেশনের অপেক্ষা';
+    else trigger='রেঞ্জ গঠন চলছে; Spring বা SOS-এর অপেক্ষা';
+  }else if(phase==='Distribution'||phase==='Re-distribution'){
+    bias='BEARISH';
+    if(upthrust&&(cd.bearEngulf||cd.shootingStar)){trigger='Upthrust + বেয়ারিশ রিভার্সাল ক্যান্ডেল';entry=true}
+    else if(upthrust)trigger='Upthrust হয়েছে, বেয়ারিশ ক্যান্ডেলের কনফার্মেশনের অপেক্ষা';
+    else trigger='রেঞ্জ গঠন চলছে; Upthrust বা SOW-এর অপেক্ষা';
+  }else if(phase==='Markup'){bias='BULLISH';entry=true;trigger='রেঞ্জ ব্রেকআউট + ভলিউম স্পাইক (SOS)'}
+  else if(phase==='Markdown'){bias='BEARISH';entry=true;trigger='সাপোর্ট ব্রেকডাউন + ভলিউম স্পাইক (SOW)'}
+  let stop,target;
+  if(bias==='BULLISH'){stop=(phase!=='Markup'?Math.min(Math.min(...recent.map(x=>x.l)),sup):res)-0.5*atr;target=res+height}
+  else{stop=(phase!=='Markdown'?Math.max(Math.max(...recent.map(x=>x.h)),res):sup)+0.5*atr;target=sup-height}
+  const r2=x=>Math.round(x*100)/100;
+  return{phase,score,bias,entry,trigger,support:r2(sup),resistance:r2(res),stop:r2(stop),target:r2(target),close:r2(last.c),scores:S,
+    flags:{spring,upthrust,sos,sow,contraction,preTrendPct:Math.round(preRet*1000)/10}};
+}
+const WK_PHASES={'Accumulation':{t:'Accumulation',c:'b-b'},'Re-accumulation':{t:'Re-accumulation',c:'b-wk'},'Markup':{t:'Markup',c:'b-sb'},
+  'Distribution':{t:'Distribution',c:'b-w'},'Re-distribution':{t:'Re-distribution',c:'b-n'},'Markdown':{t:'Markdown',c:'b-ss'}};
+function wyckoffScanAll(DBx){
+  const out=[];
+  for(const sym in DBx){
+    const b=DBx[sym];if(b.length<210)continue;
+    let r;try{r=wyckoffAnalyze(b)}catch(e){continue}
+    if(r&&r.phase)out.push({sym,...r,last:b[b.length-1].d});
+  }
+  return out;
+}
+/*WYCKOFF_END*/
+
 /* ================= UI ================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1551,7 +1648,7 @@ fileIn.addEventListener('change',()=>{handleFiles([...fileIn.files]);fileIn.valu
 drop.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
 $('#btnPaste').addEventListener('click',()=>{const t=$('#paste').value;if(!t.trim()){setMsg('আগে CSV পেস্ট করুন।','err');return}try{afterIngest(isFundText(t)?loadFund(t):ingest(MAP,t,'PASTE'),[])}catch(e){setMsg(e.message,'err')}});
 $('#btnDemo').addEventListener('click',()=>{MAP=genDemo();setMsg('ডেমো ডেটা লোড হয়েছে। এটি কাল্পনিক ডেটা, আসল বাজার নয়।','ok');analyze()});
-$('#btnClear').addEventListener('click',()=>{MAP={};DB={};RES=[];selected=null;maxDate='';INDEX=null;setMsg('');render();$('#detail').className='';$('#detail').innerHTML=''});
+$('#btnClear').addEventListener('click',()=>{MAP={};DB={};RES=[];WK=[];selected=null;maxDate='';INDEX=null;setMsg('');render();$('#detail').className='';$('#detail').innerHTML=''});
 
 function analyze(){
   DB=finalize(MAP);RES=[];maxDate='';
@@ -1591,6 +1688,7 @@ function analyze(){
   }
   selected=null;$('#detail').className='';$('#detail').innerHTML='';
   applyFund();
+  try{WK=wyckoffScanAll(DB)}catch(e){WK=[];try{console.error(e)}catch(_){}}
   render();
 }
 function isMFSymbol(s){
@@ -2031,8 +2129,30 @@ function renderSupportPicks(){
     <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">`;
 }
 /*SP_END*/
+/*WK_UI_START*/
+let WK=[],wkTab='entry';
+const WK_TABS=[['entry','Entry সংকেত'],['Accumulation','Accumulation'],['Re-accumulation','Re-accumulation'],['Markup','Markup'],['Distribution','Distribution'],['Re-distribution','Re-distribution'],['Markdown','Markdown'],['all','সব']];
+function renderWyckoff(){
+  const tb=$('#wkTbl');if(!tb)return;
+  if(!WK.length){$('#wkTabs').innerHTML='';tb.innerHTML='<tbody><tr><td class="empty">ডেটা লোড হলে (কমপক্ষে ২১০ ট্রেডিং-দিন) এখানে ফেজ দেখাবে।</td></tr></tbody>';$('#wkNote').textContent='';return}
+  const noMF=$('#exMF')?$('#exMF').checked:true,q=($('#q')?$('#q').value:'').trim().toUpperCase();
+  const base=WK.filter(r=>!(noMF&&isMFSymbol(r.sym))&&(!q||r.sym.includes(q))&&(!sectorFilter||sectorOf(r.sym)===sectorFilter));
+  const inTab=(r,k)=>k==='all'||(k==='entry'?r.entry:r.phase===k);
+  $('#wkTabs').innerHTML=WK_TABS.map(([k,t])=>`<button data-k="${k}" aria-pressed="${wkTab===k}">${t} <span class="muted">${base.filter(r=>inTab(r,k)).length}</span></button>`).join('');
+  const rows=base.filter(r=>inTab(r,wkTab)).sort((a,b)=>(b.entry-a.entry)||(b.score-a.score)||(a.sym<b.sym?-1:1));
+  const CAP=200,shown=rows.slice(0,CAP),f=x=>x==null?'–':x.toFixed(2);
+  const th='<th>কোড</th><th>ফেজ</th><th class="n">স্কোর</th><th>অবস্থা</th><th>ট্রিগার</th><th class="n">ক্লোজ</th><th class="n">সাপোর্ট</th><th class="n">রেজিস্ট্যান্স</th><th class="n">স্টপ</th><th class="n">টার্গেট</th>';
+  const body=shown.map(r=>{const P=WK_PHASES[r.phase],bz=r.bias==='BULLISH'?'up':r.bias==='BEARISH'?'down':'';
+    return `<tr${RES.some(x=>x.sym===r.sym)?` data-s="${esc(r.sym)}"`:''}><td class="sym">${esc(r.sym)}</td><td><span class="badge ${P.c}">${P.t}</span></td><td class="n">${r.score}</td><td class="${bz}">${r.bias==='BULLISH'?'বুলিশ':r.bias==='BEARISH'?'বেয়ারিশ':'নজরে'}${r.entry?' · Entry':''}</td><td>${esc(r.trigger)}</td><td class="n">${f(r.close)}</td><td class="n">${f(r.support)}</td><td class="n">${f(r.resistance)}</td><td class="n">${f(r.stop)}</td><td class="n">${f(r.target)}</td></tr>`}).join('');
+  tb.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${body||'<tr><td colspan="10" class="empty">এই ফিল্টারে কিছু মেলেনি।</td></tr>'}</tbody>`;
+  $('#wkNote').textContent=(rows.length>CAP?`সর্বোচ্চ ${CAP}টি দেখানো হলো (মোট ${rows.length})। `:'')+'DSE-তে শর্ট করা সাধারণ নয়, তাই বেয়ারিশ সারিগুলো "এড়ানোর সংকেত" হিসেবে পড়ুন। সারিতে ক্লিক করলে (স্ক্যানে থাকলে) চার্ট খুলবে।';
+}
+$('#wkTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;wkTab=b.dataset.k;renderWyckoff()});
+$('#wkTbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-s]');if(tr)openDetail(tr.dataset.s)});
+/*WK_UI_END*/
   function render(){
   renderSectors();
+  renderWyckoff();
   renderSupportPicks();
   renderHoldings();
   renderPlanner();
