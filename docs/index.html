@@ -370,6 +370,7 @@ footer p{max-width:90ch;margin-bottom:6px}
 </section>
 <section id="results-sec" aria-live="polite">
   <div class="sec-h"><h2>৩. স্ক্যান ফলাফল</h2><button id="btnExport">ফলাফল CSV নামান</button></div>
+  <div id="supportPicks"></div>
   <div id="shortlist"></div>
   <div class="tally" id="tally"></div>
   <p id="fundnote" class="note" style="margin:8px 0 0"></p>
@@ -1960,8 +1961,66 @@ function renderPlanner(){
     <li>এই টুলে কোম্পানির খাত (ব্যাংক, ওষুধ ইত্যাদি) নেই। একই খাতের কয়েকটি শেয়ার একসাথে নামে, তাই নিজে মিলিয়ে নিন। কেনার আগে খবর, লভ্যাংশ বা রেকর্ড ডেট ও ক্যাটাগরি দেখুন। ব্রোকারেজ, কমিশন ও সরকারি খরচের আসল হার আপনার ব্রোকারের কাছ থেকে নিন। সেটিংসের খরচ ${(costP*100).toFixed(2)}% ধরে আনুমানিক খরচ প্রায় ${fmtInt(fees)} টাকা।</li>
   </ul>`;
 }
+/*SP_START*/
+/* ================= সাপোর্ট-বাই প্রার্থী: সাপোর্টের কাছে, রেজিস্ট্যান্স দূরে, ট্রেন্ড ভালো ================= */
+function supportEval(r){
+  const i=r.b.length-1,I=r.I,c=r.close,a=I.atr[i]||c*0.03;
+  const S=r.ep&&r.ep.sup&&r.ep.sup[0],Z=r.ep&&r.ep.res&&r.ep.res[0];
+  if(!S||!Z)return null;
+  const dS=(c/S.p-1)*100,dR=(Z.p/c-1)*100;
+  const stop=S.p-0.35*a,risk=c-stop;
+  if(!(risk>0))return null;
+  const rr=(Z.p-c)/risk;
+  const wk=r.weekly?r.weekly.state:'unknown';
+  const s50=I.sma50[i],s200=I.sma200?I.sma200[i]:null;
+  const c1=dS<=3;
+  const c2=rr>=2;
+  const c3=(wk==='bull'||wk==='bullish-neutral')&&s50!=null&&c>s50&&(s200==null||c>s200);
+  const c4=r.adx!=null&&r.adx>=25&&r.pdi!=null&&r.ndi!=null&&r.pdi>r.ndi;
+  const c5=S.n>=2;
+  return {S,Z,dS,dR,stop,risk,rr,wk,c1,c2,c3,c4,c5,score:(c1?1:0)+(c2?1:0)+(c3?1:0)+(c4?1:0)+(c5?1:0)};
+}
+function renderSupportPicks(){
+  const el=$('#supportPicks');if(!el)return;
+  if(!RES.length){el.innerHTML='';return}
+  const ok=r=>r.cl==='WATCH'||r.cl==='WAIT'||r.cl==='BUY'||r.cl==='STRONG_BUY';
+  const ev=baseList().filter(ok).map(r=>({r,e:supportEval(r)})).filter(x=>x.e);
+  const picks=ev.filter(x=>x.e.c1&&x.e.c2&&x.e.c3);
+  picks.sort((p,q)=>q.e.score-p.e.score||q.e.rr-p.e.rr);
+  const cap=+$('#capital').value||0,rkp=(+$('#riskPct').value||1)/100,maxPct=(+$('#pMaxPct').value||25)/100,liq=(+$('#pLiq').value||5)/100;
+  const chk=(v,t)=>`<span class="tg ${v?'tg-52w':''}" style="${v?'':'opacity:.6'}">${v?'✓':'✗'} ${t}</span>`;
+  const card=x=>{
+    const r=x.r,e=x.e,full=e.score===5;
+    const qty=cap>0?Math.max(0,Math.min(Math.floor(cap*rkp/(r.close-e.stop)),Math.floor(cap*maxPct/r.close),Math.floor((r.avgVol||0)*liq))):0;
+    const warn=[];
+    if(r.chg<=-2&&r.vr>=1.5)warn.push(`আজ ${r.chg.toFixed(1)}% পতন, ভলিউম গড়ের ${r.vr.toFixed(1)} গুণ: বিক্রির চাপ হতে পারে, সাপোর্ট ধরে রাখা দেখে ঢুকুন`);
+    else if(r.chg<=-2)warn.push(`আজ ${r.chg.toFixed(1)}% পতন`);
+    if(r.gateTags&&r.gateTags.length)warn.push('স্ক্যানারের গেট: '+r.gateTags.join(', '));
+    if(r.eps==null||r.eps<=0.5)warn.push(r.eps==null?'EPS তথ্য নেই':'EPS দুর্বল ('+r.eps.toFixed(2)+')');
+    return `<div class="sl-card" data-s="${esc(r.sym)}" tabindex="0">
+      <div class="sl-top"><b class="sym">${esc(r.sym)}</b><span class="badge ${full?'b-sb':'b-w'}">${full?'সব ৫ শর্ত মিলেছে':'৫টির মধ্যে '+e.score+'টি'}</span><span class="muted">ক্লোজ ${fmt(r.close)} (${r.chg>0?'+':''}${r.chg.toFixed(2)}%)</span><span class="muted">${esc(r.sector||sectorOf(r.sym)||'')}</span></div>
+      <div class="sl-grid">
+        <div><b class="up">${fmt(e.S.p)}</b><span>সাপোর্ট (${e.dS.toFixed(1)}% নিচে${e.S.n?', '+e.S.n+' বার টেস্ট':', শুধু গড়-রেখা'})</span></div>
+        <div><b class="down">${fmt(e.stop)}</b><span>স্টপ (সাপোর্টের নিচে, ${(e.risk/r.close*100).toFixed(1)}% দূরে)</span></div>
+        <div><b class="down">${fmt(e.Z.p)}</b><span>রেজিস্ট্যান্স (+${e.dR.toFixed(1)}%)</span></div>
+        <div><b>১ : ${e.rr.toFixed(1)}</b><span>লাভ : ঝুঁকি</span></div>
+      </div>
+      <div class="sl-chips">${chk(e.c1,'সাপোর্টের ৩% এর মধ্যে')}${chk(e.c2,'লাভ:ঝুঁকি ≥ ১:২')}${chk(e.c3,'ট্রেন্ড ভালো')}${chk(e.c4,'ADX ≥ ২৫ ও +DI > −DI')}${chk(e.c5,'সাপোর্টে ≥ ২ বার টেস্ট')}</div>
+      ${qty>0?`<div style="font-size:14px;margin-top:6px">আপনার ঝুঁকি-সীমায় <b>${fmtInt(qty)}</b> শেয়ার, বিনিয়োগ ${fmtInt(qty*r.close)} টাকা, স্টপ লাগলে ক্ষতি ${fmtInt(qty*(r.close-e.stop))} টাকা</div>`:''}
+      ${warn.length?`<div class="warnbox" style="margin-top:8px">⚠️ ${warn.map(esc).join(' · ')}</div>`:''}
+    </div>`;
+  };
+  el.innerHTML=`<h3 style="margin:4px 0 4px">📍 সাপোর্ট-বাই প্রার্থী (নজরে রাখুন / কেনার তালিকা থেকে)</h3>
+    <p class="muted" style="font-size:14px;margin:0 0 6px;max-width:80ch">নিয়ম: দাম সাপোর্টের ৩% এর মধ্যে, স্টপ সাপোর্টের নিচে ধরলে নিকটতম রেজিস্ট্যান্স পর্যন্ত লাভ:ঝুঁকি ≥ ১:২, আর ট্রেন্ড ভালো (সাপ্তাহিক ঊর্ধ্বমুখী, SMA50 ও SMA200-এর উপরে)। বাকি দুটি শর্ত (ADX, একাধিকবার টেস্ট হওয়া সাপোর্ট) মিললে বাড়তি নির্ভরযোগ্য।</p>
+    <div class="warnbox" style="margin:6px 0 10px"><b>ব্যাকটেস্টের সতর্কতা:</b> প্রায় ২ বছরের ডেটায় (১০ দিন হোল্ড, খরচ ০.৫% বাদে) এই নিয়ম সব শর্তসহ ৩২৮টি ট্রেডে গড় মাত্র +০.১১% (±০.৩১) দিয়েছে, যা শূন্য থেকে আলাদা বলা যায় না। শুধু "সাপোর্টের কাছে" শর্তে গড় ছিল −০.৫০%। তাই এটিকে সুনিশ্চিত সংকেত নয়, বাছাইয়ের ছাঁকনি হিসেবে দেখুন: ছোট সাইজ, কঠোর স্টপ।</div>
+    ${picks.length?picks.map(card).join(''):`<div class="warnbox" style="margin:8px 0">আজ কোনো শেয়ার তিনটি মূল শর্ত (সাপোর্টের কাছে, রেজিস্ট্যান্স দূরে, ট্রেন্ড ভালো) একসাথে মেটায়নি।</div>`}
+    <p class="note" style="margin:6px 0">সাপোর্ট ও রেজিস্ট্যান্স শেষ ১২০ দিনের সুইং-পয়েন্ট ও SMA/VWAP থেকে নেওয়া, এলাকা হিসেবে দেখুন। কেনার আগে খবর ও রেকর্ড ডেট দেখে নিন। এটি শিক্ষামূলক বিশ্লেষণ, বিনিয়োগ পরামর্শ নয়।</p>
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">`;
+}
+/*SP_END*/
   function render(){
   renderSectors();
+  renderSupportPicks();
   renderHoldings();
   renderPlanner();
   renderShortlist();
@@ -2171,7 +2230,7 @@ $('#tbl').addEventListener('keydown',e=>{if(e.key==='Enter'){const tr=e.target.c
 ['minVol','minPrice','hideStale','exZ','exLoss','exQLoss','exWeekBear','exSideways','exRSWeak','exBelowVwap','exMF','exSmallN','minAdx','max52w','minRS','maxVwap','q','exABOnly','exPriceBand'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',()=>{saveSettings();render()})});
 /* নতুন হার্ড-গেট (analyze দরকার): */
 ['exVol15','exTurnover','exSma200','exRR2','exScore75','exHealth'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>{saveSettings();if(RES.length)analyze()})});
-['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();if(selected)openDetail(selected,true)}));
+['capital','riskPct'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner();renderShortlist();renderSupportPicks();if(selected)openDetail(selected,true)}));
 ['pMaxN','pMaxPct','pMaxStop','pTotRisk','pLiq'].forEach(id=>$('#'+id).addEventListener('input',()=>{saveSettings();renderPlanner()}));
 ['thStrongBuy','thStrongBuyDiff','thBuy','thBuyDiff','thWatch','thWatchDiff','thStrongSell','thStrongSellDiff','thSell','thSellDiff','thEarlyBuy','thEarlyBuy2'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 $('#pWait').addEventListener('change',renderPlanner);
@@ -2198,6 +2257,8 @@ $('#shortlist').addEventListener('change',e=>{
   renderShortlist();
 });
 $('#shortlist').addEventListener('click',e=>{if(e.target.closest('.sl-ctl'))return;const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
+$('#supportPicks').addEventListener('click',e=>{const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)});
+$('#supportPicks').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
 $('#shortlist').addEventListener('keydown',e=>{if(e.key==='Enter'){const c=e.target.closest('[data-s]');if(c)openDetail(c.dataset.s)}});
 ['hold','cost','extPct'].forEach(id=>$('#'+id).addEventListener('change',()=>{saveSettings();if(RES.length)analyze()}));
 
