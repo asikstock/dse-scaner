@@ -1,7 +1,11 @@
 """অফলাইন টেস্ট: নকল HTML দিয়ে পার্সার ও মার্জ যাচাই।  চালান: python tests/test_update_data.py"""
-import os, sys, tempfile
+import datetime as _dt, os, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts'))
 import update_data as U
+
+# ঘড়ি স্থির: নকল ডেটার দিন ২০২৬-০৯-৩০, বাজার বন্ধের পর। না হলে কোড "১০ দিনের বেশি পুরনো তারিখ" বাতিল করায় টেস্ট সময়ের সঙ্গে ফেল করত।
+FROZEN_NOW = _dt.datetime(2026, 9, 30, 15, 0, tzinfo=U.DHAKA)
+U.now_dhaka = lambda: FROZEN_NOW
 
 
 def snapshot_html(n=60, ts='On  Sep 30, 2026 at 2:45 PM'):
@@ -55,7 +59,7 @@ U.merge(d, [U.to_record(rows[0], '2026-09-29')])
 assert d[('2026-09-29', 'CO001')]['OPENP'] == '10.5'
 
 # 4) বাজার চলাকালীন আংশিক ডেটা বাদ
-n = U.datetime.now(U.DHAKA)
+n = U.now_dhaka()
 U.http_get = lambda url, **k: snapshot_html(ts=f'On  {n:%b} {n.day}, {n.year} at 11:00 AM')
 before = os.path.getmtime(U.CSV_PATH)
 assert U.run_daily(A) == 0 and os.path.getmtime(U.CSV_PATH) == before
