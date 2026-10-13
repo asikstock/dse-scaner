@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from wyckoff_scanner import Config, analyze  # noqa: E402
 
 W = 260                      # প্রতি বিশ্লেষণে বার সংখ্যা (SMA200 + রেঞ্জ + ট্রেন্ডের জন্য যথেষ্ট)
-HOLDS = (5, 10, 20)
+HOLDS = (5, 10, 20, 30, 40)
 LEVEL_MAX = 20
 MF = re.compile(r"MF$|^1STMF|^2NDMF|^3RDMF|GROWTHFUND|INCOMEFUND|MUTUALFUND|BONDFUND|BOND$")
 
@@ -64,7 +64,9 @@ def run_symbol(args):
             continue
         row = {
             "sym": sym, "date": dates[t], "phase": r["phase"], "score": r["score"], "bias": r["bias"],
-            "entry": bool(r["entry_signal"]), "spring": r["flags"]["spring"], "upthrust": r["flags"]["upthrust"],
+            "entry": bool(r["entry_signal"]), "tier": r.get("tier"), "risk_pct": r.get("risk_pct"), "rr": r.get("rr"),
+            "ud": r.get("ud"), "why_not": r.get("why_not"),
+            "spring": r["flags"]["spring"], "upthrust": r["flags"]["upthrust"],
             "sos": r["flags"]["SOS"], "sow": r["flags"]["SOW"],
             "close": r["close"], "support": r["support"], "resistance": r["resistance"],
             "stop": r["stop_loss"], "target": r["target"],

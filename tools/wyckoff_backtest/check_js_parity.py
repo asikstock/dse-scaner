@@ -1,5 +1,5 @@
 """docs/index.html-এর JS wyckoffAnalyze() আর রুটের Python analyze() একই ফল দেয় কি না মেলায়।
-ডেটার প্রতিটি কোডের ৪টি করে শেষ-বার (শেষ দিন, -37, -113, -251) নিয়ে ফেজ, স্কোর, entry, লেভেল তুলনা করে।
+ডেটার প্রতিটি কোডের ৪টি করে শেষ-বার (শেষ দিন, -37, -113, -251) নিয়ে ফেজ, স্কোর, স্তর (SIGNAL/WATCH), কারণ-বার্তা, ভলিউম অনুপাত, ঝুঁকি ও লেভেল তুলনা করে।
 চালান:  python3 tools/wyckoff_backtest/check_js_parity.py
 """
 import json, os, subprocess, sys, tempfile
@@ -38,24 +38,32 @@ J = json.load(open(f"{tmp}/out.json"))
 
 # pandas rolling().mean() ও সরাসরি গড়ে ১e-14 পর্যন্ত তফাত হয়। দাম একই জায়গায় আটকে থাকা (ফ্লোর প্রাইস) কোডে
 # close == SMA50 হলে "close < SMA50" শর্ত দুই দিকে ভিন্ন আসে; তাতে ঠিক ১৫ পয়েন্টের (একটি শর্তের) অমিল হয়, ফেজ একই থাকে।
+close = lambda a, b, tol: (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= tol)
 bad, edge = 0, 0
 for (s, end), j in zip(samples, J):
     p = analyze(frames[s].iloc[:end + 1])
     if p.get("phase") != j.get("phase"):
+        # ফ্লোট-এজে ১৫ পয়েন্টের তফাত ফেজের সীমা (৬০) পেরিয়ে একদিকে "ফেজ নেই" করে দিতে পারে
+        sc = [x for x in (p.get("score"), j.get("score")) if x is not None]
+        if (p.get("phase") is None or j.get("phase") is None) and len(sc) == 1 and sc[0] == 60:
+            edge += 1
+            continue
         ok = False
     elif not p.get("phase"):
         ok = True
     else:
-        ok = (p["score"] == j["score"] and p["entry_signal"] == j["entry"] and p["bias"] == j["bias"]
+        ok = (p["score"] == j["score"] and p["tier"] == j["tier"] and p["bias"] == j["bias"]
+              and p["why_not"] == j["whyNot"]
+              and close(p["ud"], j["ud"], 0.011) and close(p["rr"], j["rr"], 0.011) and abs(p["risk_pct"] - j["riskPct"]) <= 0.11
               and all(abs(p[k] - j[m]) < 0.011 for k, m in (("support", "support"), ("resistance", "resistance"),
                       ("stop_loss", "stop"), ("target", "target"), ("close", "close"))))
-        if not ok and abs(p["score"] - j["score"]) == 15 and p["phase"] == j["phase"] and p["entry_signal"] == j["entry"]:
+        if not ok and abs(p["score"] - j["score"]) == 15 and p["phase"] == j["phase"]:
             edge += 1
             continue
     if not ok:
         bad += 1
         if bad <= 5:
-            print("MISMATCH", s, end, p.get("phase"), p.get("score"), "| js:", j.get("phase"), j.get("score"))
+            print("MISMATCH", s, end, p.get("phase"), p.get("score"), p.get("tier"), "| js:", j.get("phase"), j.get("score"), j.get("tier"))
 phases = {}
 for j in J:
     phases[j.get("phase")] = phases.get(j.get("phase"), 0) + 1
