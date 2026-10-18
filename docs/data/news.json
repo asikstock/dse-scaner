@@ -73,30 +73,21 @@
   },
   {
     "date": "Sun, 18 Oct 26 00:00:00 +0600",
-    "symbol": "PRIMEBANK",
-    "title": "Prime Bank partners with Blucheez to offer discounts to priority customers",
-    "summary": "Prime Bank PLC has signed an agreement with Blucheez, a lifestyle and fashion brand in Bangladesh, to provide discounts and other lifestyle benefits to the bank’s priority banking customers.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/prime-bank-partners-blucheez-offer-discounts-priority-customers-4301271"
-  },
-  {
-    "date": "Sun, 18 Oct 26 00:00:00 +0600",
-    "symbol": "DUTCHBANGL",
-    "title": "Dutch-Bangla Bank holds strategy meeting for Rajshahi, Rangpur",
-    "summary": "Dutch-Bangla Bank on Friday held a strategy meeting for its Rajshahi and Rangpur regions to plan business activities and improve customer service.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/dutch-bangla-bank-holds-strategy-meeting-rajshahi-rangpur-4301261"
-  },
-  {
-    "date": "Sun, 18 Oct 26 00:00:00 +0600",
     "symbol": "RENATA",
     "title": "Renata’s profit jumps 64% as finance costs fall",
     "summary": "Renata PLC, a listed pharmaceutical company, staged a profit turnaround in fiscal year 2025-26 (FY26), with annual profit rising 64 percent and revenue growing at a more modest pace.",
     "source": "https://www.thedailystar.net/business/economy/rss.xml",
     "source_name": "The Daily Star - Journalism without fear or favour",
     "link": "https://www.thedailystar.net/business/economy/news/renatas-profit-jumps-64-finance-costs-fall-4301236"
+  },
+  {
+    "date": "Sun, 18 Oct 2026 21:33:58 +0600",
+    "symbol": "POLITICS-BUSINESS",
+    "title": "৭ জানুয়ারি শুরু হচ্ছে অমর একুশে বইমেলা",
+    "summary": "মহান ভাষা আন্দোলনের শহীদদের প্রতি শ্রদ্ধা জানিয়ে আগামী ৭ জানুয়ারি শুরু হচ্ছে অমর একুশে বইমেলা ২০২৭। রোববার (১৮ অক্টোবর) বাংলা একাডেমির মহাপরিচালক মোহাম্মদ আজম স্বাক্ষরিত এক বিজ্ঞপ্তিতে এ তথ্য জানানো হয়। এতে বলা হয়, গত ১৩ অক্টোবর সংস্কৃতিমন্ত্রী নিতাই রায় চৌধুরীর সভাপতিত্বে অনুষ্ঠিত এক বৈঠকে এ সিদ্ধান্ত নেওয়া হয়। প্রকাশক-প্রতিনিধিদের সঙ্গে অমর একুশে বইমেলা ২০২৭ আয়োজন বিষয়ক ওই সভায় উপস্থিত... বিস্তারিত",
+    "source": "https://www.ittefaq.com.bd/feed/",
+    "source_name": "The Daily Ittefaq",
+    "link": "https://www.ittefaq.com.bd/815920/%E0%A7%AD-%E0%A6%9C%E0%A6%BE%E0%A6%A8%E0%A7%81%E0%A7%9F%E0%A6%BE%E0%A6%B0%E0%A6%BF-%E0%A6%B6%E0%A7%81%E0%A6%B0%E0%A7%81-%E0%A6%B9%E0%A6%9A%E0%A7%8D%E0%A6%9B%E0%A7%87-%E0%A6%85%E0%A6%AE%E0%A6%B0-%E0%A6%8F%E0%A6%95%E0%A7%81%E0%A6%B6%E0%A7%87-%E0%A6%AC%E0%A6%87%E0%A6%AE%E0%A7%87%E0%A6%B2%E0%A6%BE"
   },
   {
     "date": "Sun, 18 Oct 2026 18:24:09 +0600",
@@ -115,6 +106,15 @@
     "source": "https://www.ittefaq.com.bd/feed/",
     "source_name": "The Daily Ittefaq",
     "link": "https://www.ittefaq.com.bd/815876/%E0%A6%AC%E0%A6%BF%E0%A6%8F%E0%A6%A8%E0%A6%AA%E0%A6%BF-%E0%A6%A8%E0%A7%9F-%E0%A6%86%E0%A6%93%E0%A7%9F%E0%A6%BE%E0%A6%AE%E0%A7%80-%E0%A6%B2%E0%A7%80%E0%A6%97%E0%A6%95%E0%A7%87-%E0%A6%AE%E0%A6%BE%E0%A6%AB-%E0%A6%95%E0%A6%B0%E0%A6%A4%E0%A7%87-%E0%A6%9A%E0%A7%87%E0%A7%9F%E0%A7%87%E0%A6%9B%E0%A6%BF%E0%A6%B2-%E0%A6%9C%E0%A6%BE%E0%A6%AE%E0%A6%BE%E0%A7%9F%E0%A6%BE%E0%A6%A4"
+  },
+  {
+    "date": "Sun, 18 Oct 2026 14:06:21 +0000",
+    "symbol": "MARKET",
+    "title": "এআই প্রযুক্তিতে বদলাবে পুঁজিবাজারে বিনিয়োগের অভিজ্ঞতা: বিএসইসি কমিশনার",
+    "summary": "কৃত্রিম বুদ্ধিমত্তা (এআই) পুঁজিবাজারের তথ্য সহজে পাওয়া, বিনিয়োগের সিদ্ধান্ত নিতে সহায়তা করা এবং আর্থিক সেবাকে আরও অন্তর্ভুক্তিমূলক করার নতুন সুযোগ তৈরি করছে বলে মন্তব্য করেছেন বাংলাদেশ সিকিউরিটিজ অ্যান্ড এক্সচেঞ্জ কমিশনের (বিএসইসি) কমিশনার নাফিজ আল তারিক। তাঁর মতে, তরুণ ও ক্ষুদ্র বিনিয়োগকারীদের কাছে প্রযুক্তিনির্ভর পরামর্শ পৌঁছে দিতে এআই গুরুত্বপূর্ণ ভূমিকা রাখতে পারে। রোববার (১৮ অক্টোবর) রাজধানীর [&#8230;] The post এআই প্রযুক্তিতে বদলাবে পুঁজিবাজারে বিনিয়োগের অভিজ্ঞতা: বিএসইসি কমিশনার appeared first on Orthosongbad | অর্থসংবাদ .",
+    "source": "https://orthosongbad.com/sharemarket/feed/",
+    "source_name": "পুঁজিবাজার – Orthosongbad | অর্থসংবাদ",
+    "link": "https://orthosongbad.com/420014/%e0%a6%8f%e0%a6%86%e0%a6%87-%e0%a6%aa%e0%a7%8d%e0%a6%b0%e0%a6%af%e0%a7%81%e0%a6%95%e0%a7%8d%e0%a6%a4%e0%a6%bf%e0%a6%a4%e0%a7%87-%e0%a6%ac%e0%a6%a6%e0%a6%b2%e0%a6%be%e0%a6%ac%e0%a7%87-%e0%a6%aa/"
   },
   {
     "date": "Sun, 18 Oct 2026 12:09:57 +0000",
@@ -178,33 +178,6 @@
     "source": "https://orthosongbad.com/sharemarket/feed/",
     "source_name": "পুঁজিবাজার – Orthosongbad | অর্থসংবাদ",
     "link": "https://orthosongbad.com/419962/%e0%a7%a8%e0%a7%ae-%e0%a6%85%e0%a6%95%e0%a7%8d%e0%a6%9f%e0%a7%8b%e0%a6%ac%e0%a6%b0-%e0%a6%86%e0%a6%87%e0%a6%b8%e0%a6%bf%e0%a6%ac%e0%a6%bf%e0%a6%b0-%e0%a6%ac%e0%a7%8b%e0%a6%b0%e0%a7%8d%e0%a6%a1/"
-  },
-  {
-    "date": "Sun, 18 Oct 2026 10:12:31 +0000",
-    "symbol": "MARKET",
-    "title": "প্যারামাউন্ট ইন্স্যুরেন্সের বোর্ড সভা ২৭ অক্টোবর",
-    "summary": "পুঁজিবাজারে তালিকাভুক্ত বিমা খাতের কোম্পানি প্যারামাউন্ট ইন্স্যুরেন্স পিএলসি পরিচালনা পর্ষদ সভার তারিখ ঘোষণা করেছে। কোম্পানিটির পর্ষদ সভা আগামী ২৭ অক্টোবর বেলা ৩টায় অনুষ্ঠিত হবে। ঢাকা স্টক এক্সচেঞ্জ (ডিএসই) সূত্রে এ তথ্য জানা গেছে। সূত্র মতে, আলোচিত সভায় ৩০ সেপ্টেম্বর, ২০২৬ তারিখে সমাপ্ত তৃতীয় প্রান্তিকের অনিরীক্ষিত আর্থিক প্রতিবেদন পর্যালোচনা করা হবে। পর্ষদ এ প্রতিবেদন অনুমোদন করলে [&#8230;] The post প্যারামাউন্ট ইন্স্যুরেন্সের বোর্ড সভা ২৭ অক্টোবর appeared first on Orthosongbad | অর্থসংবাদ .",
-    "source": "https://orthosongbad.com/sharemarket/feed/",
-    "source_name": "পুঁজিবাজার – Orthosongbad | অর্থসংবাদ",
-    "link": "https://orthosongbad.com/419950/%e0%a6%aa%e0%a7%8d%e0%a6%af%e0%a6%be%e0%a6%b0%e0%a6%be%e0%a6%ae%e0%a6%be%e0%a6%89%e0%a6%a8%e0%a7%8d%e0%a6%9f-%e0%a6%87%e0%a6%a8%e0%a7%8d%e0%a6%b8%e0%a7%8d%e0%a6%af%e0%a7%81%e0%a6%b0%e0%a7%87-5/"
-  },
-  {
-    "date": "Sun, 18 Oct 2026 10:08:24 +0000",
-    "symbol": "MARKET",
-    "title": "এমজেএল বাংলাদেশ পিএলসির পর্ষদ সভার তারিখ ঘোষণা",
-    "summary": "পুঁজিবাজারে তালিকাভুক্ত বিদ্যুৎ ও জ্বালানি খাতের কোম্পানি এমজেএল বাংলাদেশ পিএলসি পরিচালনা পর্ষদ সভার তারিখ ঘোষণা করেছে। কোম্পানিটির পর্ষদ সভা আগামী ২৭ অক্টোবর সন্ধ্যা ৬টায় অনুষ্ঠিত হবে। ঢাকা স্টক এক্সচেঞ্জ (ডিএসই) সূত্রে এ তথ্য জানা গেছে। সূত্র মতে, আলোচিত সভায় ৩০ জুন, ২০২৬ তারিখে সমাপ্ত অর্থবছরের আর্থিক প্রতিবেদন পর্যালোচনা করা হবে। পর্ষদ এ প্রতিবেদন অনুমোদন করলে [&#8230;] The post এমজেএল বাংলাদেশ পিএলসির পর্ষদ সভার তারিখ ঘোষণা appeared first on Orthosongbad | অর্থসংবাদ .",
-    "source": "https://orthosongbad.com/sharemarket/feed/",
-    "source_name": "পুঁজিবাজার – Orthosongbad | অর্থসংবাদ",
-    "link": "https://orthosongbad.com/419948/%e0%a6%8f%e0%a6%ae%e0%a6%9c%e0%a7%87%e0%a6%8f%e0%a6%b2-%e0%a6%ac%e0%a6%be%e0%a6%82%e0%a6%b2%e0%a6%be%e0%a6%a6%e0%a7%87%e0%a6%b6-%e0%a6%aa%e0%a6%bf%e0%a6%8f%e0%a6%b2%e0%a6%b8%e0%a6%bf%e0%a6%b0/"
-  },
-  {
-    "date": "Sun, 18 Oct 2026 10:06:26 +0000",
-    "symbol": "MARKET",
-    "title": "সিনো বাংলা ইন্ডাস্ট্রিজের পর্ষদ সভার তারিখ ঘোষণা",
-    "summary": "পুঁজিবাজারে তালিকাভুক্ত বিবিধ খাতের কোম্পানি সিনো বাংলা ইন্ডাস্ট্রিজ লিমিটেড পরিচালনা পর্ষদ সভার তারিখ ঘোষণা করেছে। কোম্পানিটির পর্ষদ সভা আগামী ২৮ অক্টোবর দুপুর আড়াইটায় অনুষ্ঠিত হবে। ঢাকা স্টক এক্সচেঞ্জ (ডিএসই) সূত্রে এ তথ্য জানা গেছে। সূত্র মতে, আলোচিত সভায় ৩০ জুন, ২০২৬ তারিখে সমাপ্ত অর্থবছরের আর্থিক প্রতিবেদন পর্যালোচনা করা হবে। পর্ষদ এ প্রতিবেদন অনুমোদন করলে শেয়ারহোল্ডারদের [&#8230;] The post সিনো বাংলা ইন্ডাস্ট্রিজের পর্ষদ সভার তারিখ ঘোষণা appeared first on Orthosongbad | অর্থসংবাদ .",
-    "source": "https://orthosongbad.com/sharemarket/feed/",
-    "source_name": "পুঁজিবাজার – Orthosongbad | অর্থসংবাদ",
-    "link": "https://orthosongbad.com/419946/%e0%a6%b8%e0%a6%bf%e0%a6%a8%e0%a7%8b-%e0%a6%ac%e0%a6%be%e0%a6%82%e0%a6%b2%e0%a6%be-%e0%a6%87%e0%a6%a8%e0%a7%8d%e0%a6%a1%e0%a6%be%e0%a6%b8%e0%a7%8d%e0%a6%9f%e0%a7%8d%e0%a6%b0%e0%a6%bf%e0%a6%9c%e0%a7%87/"
   },
   {
     "date": "Sun, 16 Jun 2019 20:55:43 +0000",
