@@ -72,24 +72,6 @@
     "link": "https://www.thedailystar.net/business/news/bsec-warns-dhaka-bourse-against-indiscriminate-probes-4307221"
   },
   {
-    "date": "Sun, 25 Oct 26 16:47:44 +0600",
-    "symbol": "BRACBANK",
-    "title": "BRAC Bank to issue country’s first Tk 1,000 crore green bond",
-    "summary": "The three-year zero-coupon paper targets 7.5% return",
-    "source": "https://www.thedailystar.net/business/economy/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/news/brac-bank-issue-countrys-first-tk-1000-crore-green-bond-4307016"
-  },
-  {
-    "date": "Sun, 25 Oct 26 00:00:00 +0600",
-    "symbol": "PRIMEBANK",
-    "title": "Prime Bank partners with LE D’OR to offer benefits to priority banking customers",
-    "summary": "Prime Bank PLC has signed an agreement with LE D’OR, a French bakery, patisserie and café chain operating in Dhaka, to offer privileges to its priority banking customers.",
-    "source": "https://www.thedailystar.net/business/economy/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/economy/news/prime-bank-partners-le-dor-offer-benefits-priority-banking-customers-4306546"
-  },
-  {
     "date": "Sun, 25 Oct 2026 21:57:46 +0600",
     "symbol": "POLITICS-BUSINESS",
     "title": "কোনো অনুদান নয়, জলবায়ু তহবিলে প্রাপ্য অধিকার চান চিফ হুইপ",
@@ -178,6 +160,15 @@
     "source": "https://businessbarta.net/tag/%E0%A6%B6%E0%A7%87%E0%A6%AF%E0%A6%BC%E0%A6%BE%E0%A6%B0%E0%A6%AC%E0%A6%BE%E0%A6%9C%E0%A6%BE%E0%A6%B0/feed/",
     "source_name": "শেয়ারবাজার – Business Barta",
     "link": "https://businessbarta.net/%e0%a6%ae%e0%a7%87%e0%a6%98%e0%a6%a8%e0%a6%be-%e0%a6%95%e0%a6%a8%e0%a6%a1%e0%a7%87%e0%a6%a8%e0%a7%8d%e0%a6%b8%e0%a6%a1%e0%a7%87%e0%a6%b0-%e0%a7%ab%e0%a7%a6%e0%a7%a6-%e0%a6%b6%e0%a7%87%e0%a6%af/"
+  },
+  {
+    "date": "Mon, 26 Oct 26 00:00:00 +0600",
+    "symbol": "POLITICS-BUSINESS",
+    "title": "UK consumer confidence tumbles",
+    "summary": "British consumer confidence has suffered its sharpest month-on-month fall since early in the Covid-19 pandemic as economic worries deepen, according ​to a survey that created an unwelcome backdrop for finance ‌minister John Healey’s budget next week.",
+    "source": "https://www.thedailystar.net/business/rss.xml",
+    "source_name": "The Daily Star - Journalism without fear or favour",
+    "link": "https://www.thedailystar.net/business/global-economy/news/uk-consumer-confidence-tumbles-4307266"
   },
   {
     "date": "Mon, 14 Sep 2026 07:43:16 +0000",
