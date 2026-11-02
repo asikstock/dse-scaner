@@ -81,15 +81,6 @@
     "link": "https://businessbarta.net/%e0%a6%ae%e0%a7%87%e0%a6%98%e0%a6%a8%e0%a6%be-%e0%a6%95%e0%a6%a8%e0%a6%a1%e0%a7%87%e0%a6%a8%e0%a7%8d%e0%a6%b8%e0%a6%a1%e0%a7%87%e0%a6%b0-%e0%a7%ab%e0%a7%a6%e0%a7%a6-%e0%a6%b6%e0%a7%87%e0%a6%af/"
   },
   {
-    "date": "Sun, 01 Nov 26 14:37:18 +0600",
-    "symbol": "BRACBANK",
-    "title": "BRAC Bank rolls out unified banking service",
-    "summary": "BRAC Bank PLC has launched a unified banking platform, titled “Omnichannel Banking Experience”, the first of its kind in Bangladesh, marking a significant step in its transition towards customer-centric, relationship-led banking.",
-    "source": "https://www.thedailystar.net/business/economy/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/news/brac-bank-rolls-out-unified-banking-service-4312681"
-  },
-  {
     "date": "Sun, 01 Nov 2026 21:51:04 +0600",
     "symbol": "POLITICS-BUSINESS",
     "title": "বিমান নিজেই প্লেন কেনার টাকা পরিশোধ করবে, সরকার শুধু গ্যারান্টর: বিমানমন্ত্রী",
@@ -199,29 +190,20 @@
   },
   {
     "date": "Mon, 02 Nov 26 00:00:00 +0600",
+    "symbol": "IPDC",
+    "title": "IPDC to raise Tk 400cr through bonds",
+    "summary": "IPDC Finance PLC is going to raise a total of Tk 400 crore by issuing two bonds, including a green one, to institutional and private investors.",
+    "source": "https://www.thedailystar.net/business/rss.xml",
+    "source_name": "The Daily Star - Journalism without fear or favour",
+    "link": "https://www.thedailystar.net/business/organisation-news/news/ipdc-raise-tk-400cr-through-bonds-4313116"
+  },
+  {
+    "date": "Mon, 02 Nov 26 00:00:00 +0600",
     "symbol": "ROBI",
     "title": "Digital banks must offer more than traditional banking",
     "summary": "Bangladesh’s banking industry is about to enter another chapter. On September 24, the Bangladesh Bank gave initial approval to five proposed digital banks: bKash Digital Bank, Boost Digital Bank, backed by Robi Axiata; Nova Digital Bank, backed by VEON and Square; DK Digital Bank; and Kori Digital Bank.",
     "source": "https://www.thedailystar.net/business/economy/rss.xml",
     "source_name": "The Daily Star - Journalism without fear or favour",
     "link": "https://www.thedailystar.net/business/economy/news/digital-banks-must-offer-more-traditional-banking-4313081"
-  },
-  {
-    "date": "Mon, 02 Nov 26 00:00:00 +0600",
-    "symbol": "BRACBANK",
-    "title": "BRAC Bank rolls out unified banking service",
-    "summary": "BRAC Bank PLC yesterday launched a unified banking service that allows customers to access services according to their individual needs.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/brac-bank-rolls-out-unified-banking-service-4313071"
-  },
-  {
-    "date": "Mon, 02 Nov 26 00:00:00 +0600",
-    "symbol": "PUBALIBANK",
-    "title": "Pubali Bank turns Gulshan branch into Islamic banking outlet",
-    "summary": "Pubali Bank PLC has converted its Gulshan Circle-1 Branch into an Islamic banking branch to expand its shariah-compliant services.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/pubali-bank-turns-gulshan-branch-islamic-banking-outlet-4313066"
   }
 ]
