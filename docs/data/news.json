@@ -63,33 +63,6 @@
     "link": "https://businessbarta.net/%e0%a6%b6%e0%a7%87%e0%a6%af%e0%a6%bc%e0%a6%be%e0%a6%b0%e0%a6%ac%e0%a6%be%e0%a6%9c%e0%a6%be%e0%a6%b0%e0%a6%95%e0%a7%87-%e0%a6%aa%e0%a7%81%e0%a6%b0%e0%a7%8b%e0%a6%aa%e0%a7%81%e0%a6%b0%e0%a6%bf-%e0%a6%95/"
   },
   {
-    "date": "Sun, 22 Nov 26 00:00:00 +0600",
-    "symbol": "PRIMEBANK",
-    "title": "Prime Bank holds annual risk conference",
-    "summary": "Prime Bank PLC held its “Annual Risk Conference 2026” at its head office in Dhaka recently to promote a proactive risk culture and support sustainable growth.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/prime-bank-holds-annual-risk-conference-4329846"
-  },
-  {
-    "date": "Sun, 22 Nov 26 00:00:00 +0600",
-    "symbol": "ISLAMIBANK",
-    "title": "Shahjalal Islami Bank holds risk management conference",
-    "summary": "Shahjalal Islami Bank PLC yesterday organised its “Annual Risk Management Conference-2026” through a hybrid platform.",
-    "source": "https://www.thedailystar.net/business/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/organisation-news/news/shahjalal-islami-bank-holds-risk-management-conference-4329826"
-  },
-  {
-    "date": "Sun, 22 Nov 26 00:00:00 +0600",
-    "symbol": "MARKET",
-    "title": "BSEC warns of legal action over market crash rumours",
-    "summary": "The Bangladesh Securities and Exchange Commission (BSEC) yesterday warned that legal action would be taken against those spreading false information and misinformation about the capital market.",
-    "source": "https://www.thedailystar.net/business/economy/rss.xml",
-    "source_name": "The Daily Star - Journalism without fear or favour",
-    "link": "https://www.thedailystar.net/business/economy/news/bsec-warns-legal-action-over-market-crash-rumours-4329806"
-  },
-  {
     "date": "Sun, 22 Nov 2026 21:55:05 +0600",
     "symbol": "POLITICS-BUSINESS",
     "title": "বাকেরগঞ্জে সাবেক শিক্ষা প্রতিমন্ত্রী অধ্যক্ষ ইউনুস খানের ৩২তম মৃত্যুবার্ষিকী পালিত",
@@ -223,5 +196,14 @@
     "source": "https://businessbarta.net/tag/%E0%A6%B6%E0%A7%87%E0%A6%AF%E0%A6%BC%E0%A6%BE%E0%A6%B0%E0%A6%AC%E0%A6%BE%E0%A6%9C%E0%A6%BE%E0%A6%B0/feed/",
     "source_name": "শেয়ারবাজার – Business Barta",
     "link": "https://businessbarta.net/%e0%a6%a6%e0%a7%81%e0%a6%87-%e0%a6%8f%e0%a6%b8%e0%a6%8f%e0%a6%ae%e0%a6%87-%e0%a6%95%e0%a7%8b%e0%a6%ae%e0%a7%8d%e0%a6%aa%e0%a6%be%e0%a6%a8%e0%a6%bf%e0%a6%b0-%e0%a7%a7%e0%a7%ad-%e0%a6%95%e0%a7%8b/"
+  },
+  {
+    "date": "Mon, 23 Nov 26 00:00:00 +0600",
+    "symbol": "ISLAMIBANK",
+    "title": "Will state ownership rescue Islami Bank or deepen its woes?",
+    "summary": "The scam-hit Islami Bank Bangladesh has proposed raising fresh capital by offering shares to the government, seeking to bring the state on board as a strategic partner.",
+    "source": "https://www.thedailystar.net/business/economy/rss.xml",
+    "source_name": "The Daily Star - Journalism without fear or favour",
+    "link": "https://www.thedailystar.net/business/economy/news/will-state-ownership-rescue-islami-bank-or-deepen-its-woes-4330681"
   }
 ]
